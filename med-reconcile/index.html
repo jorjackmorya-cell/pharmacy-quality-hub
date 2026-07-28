@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประสานรายการยาเดิมผู้ป่วย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --blue:#185FA5; --blue-dark:#0C447C; --blue-tint:#E6F1FB;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --red:#A32D2D; --red-tint:#FCEBEB;
+    --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
+    --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sarabun','Inter',sans-serif;}
+  .app{max-width:900px; margin:0 auto; padding:28px 20px 80px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:14px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:12px; background:var(--blue); display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; flex-shrink:0;}
+  .brand h1{font-size:19px; font-weight:600; margin:0;}
+  .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
+  .conn-label{font-size:12px; color:var(--ink-soft); display:flex; align-items:center;}
+  .conn-dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px;}
+  .conn-ok{background:#3B6D11;} .conn-bad{background:var(--red);} .conn-none{background:var(--ink-faint);}
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; margin-bottom:20px;}
+  .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer;}
+  .tab-btn.active{background:var(--blue); color:#fff;}
+  .panel{display:none;} .panel.active{display:block;}
+  .form-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow);}
+  .form-card h2{margin-top:0; font-size:17px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
+  .btn{border:none; border-radius:10px; padding:11px 18px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-outline{background:transparent; border:1px solid var(--line); color:var(--ink);}
+  .btn-danger-outline{background:transparent; border:1px solid var(--red); color:var(--red);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin-bottom:10px;}
+  .photo-thumb{position:relative; aspect-ratio:1; border-radius:9px; overflow:hidden; background:var(--gray-tint);}
+  .photo-thumb img{width:100%; height:100%; object-fit:cover;}
+  .photo-thumb .rm{position:absolute; top:3px; right:3px; background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer;}
+  .camera-btn{aspect-ratio:1; border:1.5px dashed var(--line); border-radius:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:#fff; color:var(--blue-dark); font-size:20px;}
+  .hint{font-size:12px; color:var(--ink-faint); margin:2px 0 14px;}
+  .toolbar{display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;}
+  .search{flex:1; min-width:180px; display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px;}
+  .search input{border:none; outline:none; background:transparent; font-family:inherit; font-size:14px; width:100%;}
+  .filter-chip{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 14px; font-size:13px; font-family:inherit; color:var(--ink-soft); cursor:pointer;}
+  .filter-chip.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .prow{background:var(--amber-tint); border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom:8px;}
+  .prow.returned{background:var(--card); border:1px solid var(--line); opacity:.65;}
+  .prow p{margin:0;} .prow .name{font-weight:600; font-size:14px; color:var(--ink);}
+  .prow .meta{font-size:12px; color:var(--amber); margin-top:2px;}
+  .prow.returned .meta{color:var(--ink-faint);}
+  .stat-strip{display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .stat-box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px;}
+  .stat-box .num{font-size:22px; font-weight:700;} .stat-box .lbl{font-size:12px; color:var(--ink-soft);}
+  .overlay{display:none; position:fixed; inset:0; background:rgba(20,28,22,.45); z-index:50; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto;}
+  .overlay.active{display:flex;}
+  .detail{background:var(--bg); border-radius:18px; max-width:640px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:calc(100vh - 64px); overflow-y:auto;}
+  .detail-head{background:var(--card); padding:20px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; display:flex; justify-content:space-between; align-items:flex-start; border-radius:18px 18px 0 0;}
+  .close-x{border:none; background:var(--gray-tint); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px;}
+  .stage{margin:18px 24px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px;}
+  .subtle-label{font-size:12px; color:var(--ink-soft); font-weight:600; margin:4px 0 8px;}
+  .btn-group{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .opt-btn{border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:9px; font-family:inherit; font-size:13px; cursor:pointer; text-align:left;}
+  .opt-btn.sel{background:var(--blue-tint); border-color:var(--blue); color:var(--blue-dark); font-weight:600;}
+  .warn-box{background:var(--amber-tint); border-radius:10px; padding:12px 14px; margin-bottom:14px;}
+  .warn-box textarea{width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-family:inherit; font-size:13px; margin-top:6px;}
+  .empty{background:var(--card); border:1px dashed var(--line); border-radius:var(--radius); padding:40px 20px; text-align:center; color:var(--ink-soft);}
+  @media (max-width:600px){ .grid2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div style="padding:14px 20px 0; max-width:900px; margin:0 auto;">
+  <a href="../" style="display:inline-flex; align-items:center; gap:6px; font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; color:#0C447C; text-decoration:none;">← หน้ารวมเครื่องมือ</a>
+</div>
+<script src="../shared/auth.js"></script>
+<script>window.PHQAuth.requireAuth();</script>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="ti ti-shopping-bag"></i></div>
+      <div><h1>ประสานรายการยาเดิมผู้ป่วย</h1><p>รพ.เชียงม่วน · Medication reconciliation</p></div>
+    </div>
+    <span class="conn-label" id="connLabel"><span class="conn-dot conn-none"></span>ยังไม่เชื่อมต่อ</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dash">รายชื่อผู้ป่วย</button>
+    <button class="tab-btn" data-tab="intake">+ รับยาเดิมผู้ป่วยใหม่</button>
+  </div>
+
+  <div class="panel active" id="panel-dash">
+    <div class="stat-strip">
+      <div class="stat-box"><div class="num" id="statHolding">-</div><div class="lbl">ยังฝากยาไว้วันนี้</div></div>
+      <div class="stat-box"><div class="num" id="statReturned">-</div><div class="lbl">คืนยาแล้วทั้งหมด</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="searchBox" placeholder="ค้นหาด้วยชื่อหรือ HN..."></div>
+      <button class="filter-chip active" data-filter="holding">ยังไม่คืนยา</button>
+      <button class="filter-chip" data-filter="returned">คืนยาแล้ว</button>
+      <button class="filter-chip" data-filter="all">ทั้งหมด</button>
+    </div>
+    <div id="listWrap"></div>
+  </div>
+
+  <div class="panel" id="panel-intake">
+    <div class="form-card">
+      <h2>รับยาเดิมผู้ป่วย</h2>
+      <div class="grid2">
+        <div class="field"><label>HN</label><input type="text" id="f-hn" placeholder="เช่น 660123"></div>
+        <div class="field"><label>ชื่อ-สกุลผู้ป่วย</label><input type="text" id="f-name" placeholder="เช่น นายสมชาย ใจดี"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>หอผู้ป่วย/เตียง</label><select id="f-ward"></select></div>
+        <div class="field"><label>แหล่งที่มาของยา</label><select id="f-source"></select></div>
+      </div>
+      <div class="field" id="sourceOtherField" style="display:none;"><label>ระบุแหล่งที่มา</label><input type="text" id="f-sourceOther"></div>
+      <div class="field"><label>วันเวลารับยาเดิม</label><input type="datetime-local" id="f-intakeDT"></div>
+      <div class="grid2">
+        <div class="field"><label>จำนวนรายการยาที่รับ</label><input type="number" id="f-itemCount" min="0" placeholder="เช่น 5"></div>
+        <div class="field"><label>ระบุชื่อยา (ถ้าต้องการ ไม่บังคับ)</label><input type="text" id="f-itemsNote" placeholder="เช่น Amlodipine, Metformin"></div>
+      </div>
+      <div class="subtle-label">รูปถ่ายยา (ไม่จำกัดจำนวน)</div>
+      <div class="photo-grid" id="intakePhotoGrid">
+        <div class="camera-btn" onclick="document.getElementById('intakeCameraInput').click()"><i class="ti ti-camera"></i></div>
+      </div>
+      <input type="file" id="intakeCameraInput" accept="image/*" capture="environment" style="display:none;">
+      <div class="hint">กดไอคอนกล้องเพื่อเปิดกล้องถ่ายรูปได้ทันที กดซ้ำเพื่อถ่ายรูปเพิ่ม</div>
+      <button class="btn btn-primary" id="submitIntakeBtn"><i class="ti ti-send"></i> บันทึกรับยาเดิม</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="detail" id="detailBox"></div></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
+const WARDS = [];
+['ชาย','หญิง','พิเศษ'].forEach(t=>{ for(let i=1;i<=10;i++) WARDS.push(t+' '+i); });
+const SOURCES = ['รพ.เชียงม่วน','PCU มาง','รพ.สต.ปิน','รพ.สต.ไชยสถาน','รพ.สต.สระ','รพ.สต.ท่าฟ้าใต้','รพ.สต.บ่อเบี้ย','รพ.พะเยา','รพ.เชียงคำ','อื่นๆ'];
+const RETURN_TYPES = ['คืนยาเดิมทั้งหมด','ปรับหรือหยุดยาบางรายการ','จัดยาใหม่และนัดใหม่','ปรับเพิ่ม/ลด/ปรับวิธีใช้บางรายการ','ผู้ป่วยเสียชีวิต','ผู้ป่วยรีเฟอร์','อื่นๆ'];
+
+let patients = [];
+let intakePhotos = [];
+let currentId = null;
+let dischargeReturnPhotos = [];
+let selectedReturnType = null;
+
+function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function nowLocalInput(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function uid(){ return 'm_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function setConn(state){
+  const map={ok:['conn-ok','เชื่อมต่อแล้ว'],bad:['conn-bad','เชื่อมต่อไม่สำเร็จ'],none:['conn-none','ยังไม่เชื่อมต่อ']};
+  const[cls,label]=map[state];
+  document.getElementById('connLabel').innerHTML = `<span class="conn-dot ${cls}"></span>${label}`;
+}
+
+WARDS.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=w; document.getElementById('f-ward').appendChild(o); });
+SOURCES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; document.getElementById('f-source').appendChild(o); });
+document.getElementById('f-source').addEventListener('change', e=>{
+  document.getElementById('sourceOtherField').style.display = e.target.value==='อื่นๆ' ? 'block' : 'none';
+});
+document.getElementById('f-intakeDT').value = nowLocalInput();
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 1280;
+        const scale = Math.min(1, maxW/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width*scale; canvas.height = img.height*scale;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg',0.7);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoGrid(gridId, arr, cameraInputId){
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = arr.map((p,i)=>`<div class="photo-thumb"><img src="${p}"><button class="rm" data-idx="${i}">✕</button></div>`).join('') +
+    `<div class="camera-btn" onclick="document.getElementById('${cameraInputId}').click()"><i class="ti ti-camera"></i></div>`;
+  grid.querySelectorAll('.rm').forEach(b=>b.addEventListener('click', ()=>{
+    arr.splice(Number(b.dataset.idx),1);
+    renderPhotoGrid(gridId, arr, cameraInputId);
+  }));
+}
+document.getElementById('intakeCameraInput').addEventListener('change', async e=>{
+  if(!e.target.files.length) return;
+  const dataUrl = await compressImage(e.target.files[0]);
+  intakePhotos.push(dataUrl);
+  renderPhotoGrid('intakePhotoGrid', intakePhotos, 'intakeCameraInput');
+  e.target.value = '';
+});
+
+async function apiGetAll(){
+  const res = await fetch(API_URL);
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error||'unknown');
+  return data.patients || [];
+}
+async function apiPost(payload){
+  const res = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload)});
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error||'unknown');
+  return data;
+}
+function dataUrlToPart(dataUrl){
+  const [meta, data] = dataUrl.split(',');
+  const mimeType = meta.match(/data:(.*);base64/)[1];
+  return {data, mimeType};
+}
+
+async function loadPatients(){
+  try{
+    patients = await apiGetAll();
+    setConn('ok');
+    renderAll();
+  }catch(e){
+    setConn('bad');
+    document.getElementById('listWrap').innerHTML = `<div class="empty">เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ${e.message}</div>`;
+  }
+}
+function renderAll(){
+  const holding = patients.filter(p=>p.caseStatus==='holding').length;
+  document.getElementById('statHolding').textContent = holding;
+  document.getElementById('statReturned').textContent = patients.filter(p=>p.caseStatus==='returned').length;
+  renderList();
+}
+
+let activeFilter = 'holding';
+document.querySelectorAll('.filter-chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    ch.classList.add('active'); activeFilter = ch.dataset.filter; renderList();
+  });
+});
+document.getElementById('searchBox').addEventListener('input', renderList);
+
+function renderList(){
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  let list = patients;
+  if(q) list = list.filter(p=>(p.name||'').toLowerCase().includes(q) || (p.hn||'').toLowerCase().includes(q));
+  else if(activeFilter!=='all') list = list.filter(p=>p.caseStatus===activeFilter);
+  list = list.slice().sort((a,b)=> new Date(b.intakeDateTime) - new Date(a.intakeDateTime));
+  const wrap = document.getElementById('listWrap');
+  if(list.length===0){ wrap.innerHTML = '<div class="empty"><i class="ti ti-users"></i><br>ไม่พบผู้ป่วยในรายการนี้</div>'; return; }
+  wrap.innerHTML = list.map(p=>`
+    <div class="prow ${p.caseStatus==='returned'?'returned':''}" data-id="${p.id}">
+      <p><span class="name">HN ${p.hn} · ${p.name}</span><br>
+      <span class="meta">${p.ward} · รับยาเดิม ${fmtDT(p.intakeDateTime)} ${p.caseStatus==='returned' ? '· คืนยา '+fmtDT(p.dischargeDateTime) : '· ยังไม่คืน'}</span></p>
+      <i class="ti ti-chevron-right"></i>
+    </div>`).join('');
+  wrap.querySelectorAll('.prow').forEach(el=>el.addEventListener('click', ()=>openDetail(el.dataset.id)));
+}
+
+document.getElementById('submitIntakeBtn').addEventListener('click', async ()=>{
+  const hn = document.getElementById('f-hn').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  if(!hn || !name){ alert('กรุณากรอก HN และชื่อ-สกุลผู้ป่วยก่อนบันทึก'); return; }
+  const btn = document.getElementById('submitIntakeBtn');
+  btn.disabled = true; btn.textContent = 'กำลังอัปโหลดรูป...';
+  const auth = window.PHQAuth.getAuth();
+  const patient = {
+    id: uid(), hn, name,
+    ward: document.getElementById('f-ward').value,
+    source: document.getElementById('f-source').value,
+    sourceOther: document.getElementById('f-sourceOther').value,
+    intakeDateTime: document.getElementById('f-intakeDT').value,
+    itemCount: document.getElementById('f-itemCount').value || '0',
+    itemsNote: document.getElementById('f-itemsNote').value,
+    receivedBy: auth ? auth.name : '',
+    createdAt: Date.now()
+  };
+  try{
+    await apiPost({ action:'saveIntake', patient, photos: intakePhotos.map(dataUrlToPart) });
+    ['f-hn','f-name','f-itemCount','f-itemsNote','f-sourceOther'].forEach(id=>document.getElementById(id).value='');
+    intakePhotos = [];
+    renderPhotoGrid('intakePhotoGrid', intakePhotos, 'intakeCameraInput');
+    document.getElementById('f-intakeDT').value = nowLocalInput();
+    document.querySelector('.tab-btn[data-tab="dash"]').click();
+    await loadPatients();
+  }catch(e){
+    alert('บันทึกไม่สำเร็จ: '+e.message);
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> บันทึกรับยาเดิม';
+});
+
+function openDetail(id){
+  currentId = id; dischargeReturnPhotos = []; selectedReturnType = null;
+  renderDetail();
+  document.getElementById('overlay').classList.add('active');
+}
+function closeDetail(){ document.getElementById('overlay').classList.remove('active'); currentId=null; }
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeDetail(); });
+
+function renderDetail(){
+  const p = patients.find(x=>x.id===currentId);
+  if(!p) return;
+  const box = document.getElementById('detailBox');
+  const photosHtml = (p.photos||[]).map(id=>`<a href="https://drive.google.com/file/d/${id}/view" target="_blank"><img src="https://drive.google.com/thumbnail?id=${id}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;"></a>`).join('');
+  box.innerHTML = `
+    <div class="detail-head">
+      <div><h2 style="margin:0 0 4px;font-size:18px;">${p.name}</h2><div style="color:var(--ink-faint);font-size:12px;">HN ${p.hn} · ${p.ward}</div></div>
+      <button class="close-x" id="closeDetailBtn"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="stage">
+      <div class="subtle-label">ข้อมูลรับยาเดิม</div>
+      <p style="font-size:13px;margin:0 0 4px;">แหล่งที่มา: ${p.source}${p.sourceOther?' ('+p.sourceOther+')':''}</p>
+      <p style="font-size:13px;margin:0 0 4px;">วันเวลารับยา: ${fmtDT(p.intakeDateTime)}</p>
+      <p style="font-size:13px;margin:0 0 4px;">จำนวนรายการยา: ${p.itemCount} รายการ ${p.itemsNote?'('+p.itemsNote+')':''}</p>
+      <p style="font-size:13px;margin:0 0 10px;">ผู้รับยา: ${p.receivedBy}</p>
+      ${photosHtml ? `<div class="photo-grid">${photosHtml}</div>` : '<p style="font-size:12px;color:var(--ink-faint);">ไม่มีรูปถ่าย</p>'}
+    </div>
+    ${p.caseStatus==='holding' ? `
+    <div class="stage" id="dischargeStage">
+      <div class="subtle-label">คืนยาเดิม ก่อนกลับบ้าน</div>
+      <label style="font-size:12px;color:var(--ink-soft);">วันเวลาคืนยา</label>
+      <input type="datetime-local" id="f-dischargeDT" value="${nowLocalInput()}" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin:4px 0 14px;font-family:inherit;">
+      <div class="subtle-label">เลือกรูปแบบการคืนยา</div>
+      <div class="btn-group" id="returnTypeBtns">
+        ${RETURN_TYPES.map(t=>`<button class="opt-btn" data-type="${t}" style="width:100%;">${t}</button>`).join('')}
+      </div>
+      <div id="returnOtherField" style="display:none;margin-bottom:14px;">
+        <input type="text" id="f-returnOther" placeholder="ระบุรูปแบบการคืนยา" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;">
+      </div>
+      <div class="subtle-label">ถ่ายรูปเพิ่ม (กรณียาเยอะ/มูลค่าสูง ไม่บังคับ)</div>
+      <div class="photo-grid" id="returnPhotoGrid">
+        <div class="camera-btn" onclick="document.getElementById('returnCameraInput').click()"><i class="ti ti-camera"></i></div>
+      </div>
+      <input type="file" id="returnCameraInput" accept="image/*" capture="environment" style="display:none;">
+      <div class="warn-box">
+        <label style="font-size:12.5px;color:var(--amber);font-weight:600;">กรณีคืนยาไม่ครบ ระบุเหตุผล (ไม่บังคับ)</label>
+        <textarea id="f-incompleteReason" rows="2" placeholder="เช่น ยาหมดอายุถูกทิ้งระหว่างนอนโรงพยาบาล"></textarea>
+      </div>
+      <button class="btn btn-primary" id="confirmDischargeBtn" style="width:100%;justify-content:center;"><i class="ti ti-check"></i> ยืนยันคืนยา ปิดเคส</button>
+    </div>` : `
+    <div class="stage">
+      <div class="subtle-label">ผลการคืนยา</div>
+      <p style="font-size:13px;margin:0 0 4px;">วันเวลาคืนยา: ${fmtDT(p.dischargeDateTime)}</p>
+      <p style="font-size:13px;margin:0 0 4px;">รูปแบบการคืนยา: ${p.returnType}${p.returnTypeNote?' ('+p.returnTypeNote+')':''}</p>
+      ${p.incompleteReason ? `<p style="font-size:13px;margin:0 0 4px;color:var(--red);">เหตุผลคืนไม่ครบ: ${p.incompleteReason}</p>` : ''}
+      <p style="font-size:13px;margin:0;">ผู้คืนยา: ${p.returnedBy}</p>
+    </div>`}
+  `;
+  box.querySelector('#closeDetailBtn').addEventListener('click', closeDetail);
+  if(p.caseStatus==='holding'){
+    box.querySelectorAll('#returnTypeBtns .opt-btn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        box.querySelectorAll('#returnTypeBtns .opt-btn').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
+        selectedReturnType = b.dataset.type;
+        document.getElementById('returnOtherField').style.display = selectedReturnType==='อื่นๆ' ? 'block' : 'none';
+      });
+    });
+    document.getElementById('returnCameraInput').addEventListener('change', async e=>{
+      if(!e.target.files.length) return;
+      const dataUrl = await compressImage(e.target.files[0]);
+      dischargeReturnPhotos.push(dataUrl);
+      renderPhotoGrid('returnPhotoGrid', dischargeReturnPhotos, 'returnCameraInput');
+      e.target.value = '';
+    });
+    document.getElementById('confirmDischargeBtn').addEventListener('click', async ()=>{
+      if(!selectedReturnType){ alert('กรุณาเลือกรูปแบบการคืนยาก่อน'); return; }
+      const btn = document.getElementById('confirmDischargeBtn');
+      btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+      const auth = window.PHQAuth.getAuth();
+      try{
+        await apiPost({
+          action:'updateDischarge', id: p.id,
+          returnPhotos: dischargeReturnPhotos.map(dataUrlToPart),
+          updates:{
+            dischargeDateTime: document.getElementById('f-dischargeDT').value,
+            returnType: selectedReturnType,
+            returnTypeNote: document.getElementById('f-returnOther') ? document.getElementById('f-returnOther').value : '',
+            incompleteReason: document.getElementById('f-incompleteReason').value,
+            returnedBy: auth ? auth.name : ''
+          }
+        });
+        closeDetail();
+        await loadPatients();
+      }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); btn.disabled=false; btn.innerHTML='<i class="ti ti-check"></i> ยืนยันคืนยา ปิดเคส'; }
+    });
+  }
+}
+
+loadPatients();
+setInterval(()=>loadPatients(), 30000);
+</script>
+</body>
+</html>

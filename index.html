@@ -132,6 +132,20 @@
       </div>
     </a>
 
+    <a class="card live" href="./med-reconcile/" style="--accent:#185FA5; --accent-tint:#E6F1FB;">
+      <div class="card-body">
+        <div class="card-icon"><i class="ti ti-shopping-bag"></i></div>
+        <h3>ประสานรายการยาเดิมผู้ป่วย</h3>
+        <p>เก็บยาเดิมพร้อมถ่ายรูปหลักฐานตอนรับและคืนยา ป้องกันข้อโต้แย้งเรื่องยาสูญหายระหว่างนอนโรงพยาบาล</p>
+        <div class="mini-stats loading" id="medReconcileStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot">
+          <span class="badge">พร้อมใช้งาน</span>
+          <span class="since">เริ่มใช้งาน ก.ค. 2569</span>
+        </div>
+        <span class="go">เปิดใช้งาน <i class="ti ti-arrow-right"></i></span>
+      </div>
+    </a>
+
     <div class="card new-card">
       <div class="card-body">
         <div class="card-icon"><i class="ti ti-plus"></i></div>
@@ -215,6 +229,18 @@
     renderCytisineStats(data.patients || []);
   }).catch(()=>{
     setStat('cytisineStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+  });
+
+  const MEDRECONCILE_API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
+  function renderMedReconcileStats(patients){
+    const holding = patients.filter(p => p.caseStatus === 'holding').length;
+    if(holding > 0) setStat('medReconcileStats', 'urgent', `<i class="ti ti-shopping-bag"></i> ยังฝากยาไว้ <b>${holding}</b> ราย`);
+    else setStat('medReconcileStats', 'ok', `<i class="ti ti-circle-check"></i> ไม่มีผู้ป่วยฝากยาไว้`);
+  }
+  fetch(MEDRECONCILE_API_URL).then(r=>r.json()).then(data=>{
+    renderMedReconcileStats(data.patients || []);
+  }).catch(()=>{
+    setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
   });
 </script>
 </body>
