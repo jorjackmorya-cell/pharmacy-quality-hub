@@ -239,7 +239,7 @@ function downloadCsv(csv, filename){
 
 // ---------- backend helpers (Google Apps Script Web App via fetch) ----------
 // URL นี้ใช้ร่วมกับระบบ "ทบทวน DRP" — มาจากการ Deploy Code.gs ตัวเดียวกัน (แผ่นชีตเดียวกัน คนละแท็บ)
-const API_URL = 'PASTE_OFFHOURS_APPS_SCRIPT_URL_HERE';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
 
 async function apiCall(action, payload){
   const res = await fetch(API_URL, {

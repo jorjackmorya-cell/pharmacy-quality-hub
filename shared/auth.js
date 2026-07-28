@@ -3,7 +3,7 @@
    ใช้ localStorage เก็บสถานะล็อกอิน — ทำงานร่วมกันได้ทุกหน้าเพราะอยู่โดเมนเดียวกัน (GitHub Pages) */
 (function () {
   // วาง URL ของ Apps Script Web App เดียวกับที่ใช้กับ ER Stock / DRP ตรงนี้ (ใช้ verifyCode action)
-  const AUTH_API_URL = 'PASTE_OFFHOURS_APPS_SCRIPT_URL_HERE';
+  const AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
   const AUTH_KEY = 'phq-auth-v1';
 
   function getAuth() {
