@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ศูนย์เครื่องมืองานเภสัชกรรม · รพ.เชียงม่วน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --teal:#0F6E56; --teal-dark:#085041; --teal-tint:#E1F5EE;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --gray-tint:#EDEDE8;
+    --radius:18px; --shadow:0 1px 2px rgba(30,42,34,.05), 0 10px 28px rgba(30,42,34,.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(15,110,86,.06), transparent),
+    var(--bg);
+    color:var(--ink); font-family:'Sarabun','Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px; margin:0 auto; padding:44px 22px 80px;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:44px; flex-wrap:wrap; gap:14px;}
+  .brandmark{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:var(--teal-dark);}
+  .brandmark .dot{width:7px; height:7px; border-radius:50%; background:var(--teal);}
+  .whoami{display:flex; align-items:center; gap:12px; font-size:13px; color:var(--ink-soft);}
+  .whoami b{color:var(--ink);}
+  .whoami a{color:var(--ink-faint); text-decoration:underline; cursor:pointer;}
+
+  .hero{margin-bottom:50px; max-width:660px;}
+  h1{font-size:clamp(30px,4.2vw,44px); font-weight:700; margin:0 0 14px; line-height:1.22; letter-spacing:-.015em;}
+  h1 span{color:var(--teal-dark);}
+  .lede{font-size:16px; color:var(--ink-soft); line-height:1.75; margin:0;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:18px;}
+
+  .card{
+    --accent:#0F6E56; --accent-tint:#E1F5EE;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:2px; box-shadow:var(--shadow); position:relative; display:flex; flex-direction:column;
+    transition:.2s cubic-bezier(.2,.8,.3,1); text-decoration:none; color:inherit; overflow:hidden;
+  }
+  .card::before{content:''; display:block; height:5px; background:var(--accent); border-radius:var(--radius) var(--radius) 0 0;}
+  .card-body{padding:26px 24px 24px; display:flex; flex-direction:column; flex-grow:1;}
+  .card.live:hover{transform:translateY(-3px); box-shadow:0 1px 2px rgba(30,42,34,.05), 0 18px 34px -6px color-mix(in srgb, var(--accent) 35%, transparent);}
+  .card-icon{width:48px; height:48px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:18px; background:var(--accent-tint); color:var(--accent);}
+  .card.live .card-icon{background:var(--accent); color:#fff;}
+  .card h3{font-size:17.5px; font-weight:700; margin:0 0 9px; letter-spacing:-.01em;}
+  .card p{font-size:13.5px; color:var(--ink-soft); line-height:1.65; margin:0 0 22px; flex-grow:1;}
+  .card-foot{display:flex; align-items:center; justify-content:space-between; font-size:12px; margin-top:auto;}
+  .badge{font-size:11px; font-weight:700; padding:4px 11px; border-radius:999px; background:var(--accent-tint); color:var(--accent);}
+  .badge-pending{background:var(--gray-tint); color:var(--ink-faint);}
+  .since{color:var(--ink-faint);}
+  .go{color:var(--accent); font-weight:700; display:flex; align-items:center; gap:4px; opacity:0; transition:.15s; font-size:13px;}
+  .card.live:hover .go{opacity:1;}
+  .card.pending{opacity:.7;}
+  .card.pending::before{background:var(--ink-faint);}
+
+  .new-card{border:1.5px dashed var(--line); box-shadow:none; align-items:center; justify-content:center; text-align:center; min-height:200px;}
+  .new-card::before{display:none;}
+  .new-card .card-body{align-items:center; justify-content:center; text-align:center;}
+  .new-card .card-icon{background:transparent; border:1.5px dashed var(--ink-faint); color:var(--ink-faint); margin-bottom:12px;}
+  .new-card h3{font-size:14px; color:var(--ink-faint); font-weight:500; margin:0;}
+  .new-card p{display:none;}
+
+  footer{margin-top:60px; padding-top:24px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;}
+  @media (max-width:520px){ footer{flex-direction:column;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brandmark"><span class="dot"></span>งานพัฒนาคุณภาพด้านยา · โรงพยาบาลเชียงม่วน</div>
+    <div class="whoami" id="whoami"></div>
+  </div>
+
+  <div class="hero">
+    <h1>ศูนย์เครื่องมือ<span>เภสัชกรรม</span></h1>
+    <p class="lede">รวมระบบดิจิทัลที่พัฒนาขึ้นเพื่อสนับสนุนงานเภสัชกรรมและการดูแลผู้ป่วย — เลือกเครื่องมือที่ต้องการใช้งานจากรายการด้านล่าง</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card pending" style="--accent:#7C3A5D; --accent-tint:#F3E7EC;">
+      <div class="card-body">
+        <div class="card-icon"><i class="ti ti-clipboard-check"></i></div>
+        <h3>ทบทวน DRP / Med Error นอกเวลา</h3>
+        <p>สำหรับเภสัชกรทบทวนความถูกต้องของใบสั่งยาที่จ่ายในช่วงห้องยาปิด บันทึกประเภทและความรุนแรงตาม NCC MERP</p>
+        <div class="card-foot"><span class="badge badge-pending">รอเชื่อมต่อฐานข้อมูล</span></div>
+      </div>
+    </div>
+
+    <a class="card live" href="./cytisine/" style="--accent:#0F6E56; --accent-tint:#E1F5EE;">
+      <div class="card-body">
+        <div class="card-icon"><i class="ti ti-heart-rate-monitor"></i></div>
+        <h3>ติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</h3>
+        <p>บันทึกและติดตามผู้ป่วยที่ได้รับยา Cytisine ผ่านการโทร Day 5 และ Day 25 พร้อมระบบแจ้งเตือนและรายงาน</p>
+        <div class="card-foot">
+          <span class="badge">พร้อมใช้งาน</span>
+          <span class="since">เริ่มใช้งาน ก.ค. 2569</span>
+        </div>
+        <span class="go">เปิดใช้งาน <i class="ti ti-arrow-right"></i></span>
+      </div>
+    </a>
+
+    <div class="card pending" style="--accent:#B5651D; --accent-tint:#FBEEDF;">
+      <div class="card-body">
+        <div class="card-icon"><i class="ti ti-first-aid-kit"></i></div>
+        <h3>บันทึกเติมยา ER Stock นอกเวลา</h3>
+        <p>สำหรับเจ้าหน้าที่ห้องยาบันทึกการเติมยาใน ER Stock ช่วงห้องยาปิดทำการ ข้อมูลกลางใช้ร่วมกันทั้งทีม</p>
+        <div class="card-foot"><span class="badge badge-pending">รอเชื่อมต่อฐานข้อมูล</span></div>
+      </div>
+    </div>
+
+    <div class="card new-card">
+      <div class="card-body">
+        <div class="card-icon"><i class="ti ti-plus"></i></div>
+        <h3>เครื่องมือถัดไปจะมาอยู่ที่นี่</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>พัฒนาโดยฝ่ายเภสัชกรรม รพ.เชียงม่วน</span>
+    <span>อัปเดตล่าสุด กรกฎาคม 2569</span>
+  </footer>
+
+</div>
+
+<script src="./shared/auth.js"></script>
+<script>
+  const auth = window.PHQAuth.requireAuth();
+  function renderWhoami(name){
+    document.getElementById('whoami').innerHTML =
+      `<span>ผู้ใช้งาน: <b>${name}</b></span><a id="phq-logout">ออกจากระบบ</a>`;
+    document.getElementById('phq-logout').addEventListener('click', ()=>{
+      window.PHQAuth.clearAuth();
+      location.reload();
+    });
+  }
+  if(auth) renderWhoami(auth.name);
+  document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
+</script>
+</body>
+</html>

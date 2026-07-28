@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --teal:#0F6E56; --teal-dark:#085041; --teal-tint:#E1F5EE;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --red:#A32D2D; --red-tint:#FCEBEB;
+    --green:#3B6D11; --green-tint:#EAF3DE;
+    --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
+    --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sarabun','Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .app{max-width:1080px; margin:0 auto; padding:28px 20px 80px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:14px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:12px; background:var(--teal); display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; flex-shrink:0;}
+  .brand h1{font-size:19px; font-weight:600; margin:0; line-height:1.3;}
+  .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
+  .topbar-right{display:flex; align-items:center; gap:8px;}
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px;}
+  .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s;}
+  .tab-btn.active{background:var(--teal); color:#fff;}
+  .icon-btn{border:1px solid var(--line); background:var(--card); width:40px; height:40px; border-radius:10px; cursor:pointer; color:var(--ink-soft); font-size:16px; display:flex; align-items:center; justify-content:center;}
+  .icon-btn:hover{border-color:var(--teal); color:var(--teal-dark);}
+  .conn-dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px;}
+  .conn-ok{background:var(--green);} .conn-bad{background:var(--red);} .conn-none{background:var(--ink-faint);}
+  .conn-label{font-size:12px; color:var(--ink-soft); display:flex; align-items:center;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .setup-banner{background:var(--amber-tint); color:var(--amber); border-radius:12px; padding:16px 18px; margin-bottom:16px; font-size:13.5px; display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap;}
+  .setup-banner b{cursor:pointer; text-decoration:underline;}
+  .toolbar{display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;}
+  .search{flex:1; min-width:200px; display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px;}
+  .search input{border:none; outline:none; background:transparent; font-family:inherit; font-size:14px; width:100%; color:var(--ink);}
+  .filter-chip{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 14px; font-size:13px; font-family:inherit; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .filter-chip.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .empty{background:var(--card); border:1px dashed var(--line); border-radius:var(--radius); padding:48px 20px; text-align:center; color:var(--ink-soft);}
+  .empty i{font-size:32px; color:var(--ink-faint); display:block; margin-bottom:10px;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill, minmax(310px,1fr)); gap:14px;}
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; cursor:pointer; box-shadow:var(--shadow); transition:.15s; position:relative;}
+  .pcard:hover{border-color:var(--teal); transform:translateY(-1px);}
+  .pcard.alert-red{background:var(--red-tint); border-color:var(--red);}
+  .pcard.blink{animation:blinkAlert 1.4s ease-in-out infinite;}
+  @keyframes blinkAlert{0%,100%{box-shadow:0 0 0 0 rgba(163,45,45,.35);} 50%{box-shadow:0 0 0 6px rgba(163,45,45,0);}}
+  .pcard .hn{font-size:12px; color:var(--ink-faint); font-weight:500; letter-spacing:.3px;}
+  .pcard h3{margin:2px 0 10px; font-size:17px; font-weight:600;}
+  .pcard .meta{display:flex; gap:14px; font-size:13px; color:var(--ink-soft); margin-bottom:10px; flex-wrap:wrap;}
+  .pcard .meta span{display:flex; align-items:center; gap:5px;}
+  .call-link{display:inline-flex; align-items:center; gap:5px; color:var(--teal-dark); text-decoration:none; font-weight:500;}
+  .call-link:hover{text-decoration:underline;}
+  .return-note{font-size:12px; font-weight:600; color:var(--red); margin-bottom:10px; display:flex; align-items:center; gap:5px;}
+  .track{display:flex; gap:8px;}
+  .track .step{flex:1; border-radius:10px; padding:8px 10px; font-size:12px;}
+  .step-label{font-weight:600; margin-bottom:2px; display:block;}
+  .step-date{color:var(--ink-faint); font-size:11px;}
+  .pill{display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; margin-top:4px;}
+  .pill-pending{background:var(--gray-tint); color:var(--gray-ink);}
+  .pill-green{background:var(--green-tint); color:var(--green);}
+  .pill-red{background:var(--red-tint); color:var(--red);}
+  .pill-amber{background:var(--amber-tint); color:var(--amber);}
+  .case-tag{position:absolute; top:16px; right:16px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px;}
+  .banner{border-radius:12px; padding:14px 18px; margin-bottom:14px; font-size:13px;}
+  .banner-amber{background:var(--amber-tint); color:var(--amber);}
+  .banner-red{background:var(--red-tint); color:var(--red);}
+  .banner h4{margin:0 0 8px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .banner-list{display:flex; gap:8px; flex-wrap:wrap;}
+  .banner-chip{background:#fff; border:1px solid currentColor; border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; color:inherit;}
+  .form-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow:var(--shadow); max-width:720px;}
+  .form-card h2{margin-top:0; font-size:18px;}
+  .form-sub{color:var(--ink-soft); font-size:13px; margin-top:-10px; margin-bottom:22px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink); outline:none;}
+  .field input:focus, .field select:focus{border-color:var(--teal);}
+  .field-row{display:flex; gap:10px;}
+  .preview-dates{display:flex; gap:12px; background:var(--teal-tint); border-radius:10px; padding:12px 14px; margin:6px 0 20px; flex-wrap:wrap;}
+  .preview-dates div{font-size:13px; color:var(--teal-dark);}
+  .preview-dates b{display:block; font-size:15px;}
+  .btn{border:none; border-radius:10px; padding:11px 20px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.15s;}
+  .btn-primary{background:var(--teal); color:#fff;}
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-outline{background:transparent; border:1px solid var(--line); color:var(--ink);}
+  .btn-outline:hover{border-color:var(--ink);}
+  .btn-danger-outline{background:transparent; border:1px solid var(--red); color:var(--red);}
+  .btn-danger-outline:hover{background:var(--red-tint);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-amber{background:var(--amber); color:#fff;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .overlay{display:none; position:fixed; inset:0; background:rgba(20,28,22,.45); z-index:50; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto;}
+  .overlay.active{display:flex;}
+  .detail{background:var(--bg); border-radius:18px; max-width:760px; width:100%; padding:0; box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:calc(100vh - 64px); overflow-y:auto;}
+  .settings-box{background:var(--bg); border-radius:18px; max-width:520px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .detail-head{background:var(--card); padding:22px 26px; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; border-radius:18px 18px 0 0;}
+  .detail-head h2{margin:0 0 4px; font-size:19px;}
+  .detail-head .hn{color:var(--ink-faint); font-size:12px;}
+  .close-x{border:none; background:var(--gray-tint); width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:16px; color:var(--ink-soft);}
+  .infogrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:18px 26px; background:var(--card); border-bottom:1px solid var(--line);}
+  .infogrid .item{font-size:13px;}
+  .infogrid .item span{display:block; color:var(--ink-faint); font-size:11px; margin-bottom:2px;}
+  .stage{margin:20px 26px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; position:relative;}
+  .stage.locked{opacity:.5; pointer-events:none;}
+  .stage-title{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stage-title h3{margin:0; font-size:15px;}
+  .stage-title .date{font-size:12px; color:var(--ink-faint);}
+  .lock-note{font-size:12px; color:var(--ink-faint); font-style:italic;}
+  .btn-group{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+  .opt-btn{border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:9px; font-family:inherit; font-size:13px; cursor:pointer; font-weight:500; color:var(--ink-soft);}
+  .opt-btn.sel-green{background:var(--green-tint); border-color:var(--green); color:var(--green);}
+  .opt-btn.sel-red{background:var(--red-tint); border-color:var(--red); color:var(--red);}
+  .opt-btn.sel-amber{background:var(--amber-tint); border-color:var(--amber); color:var(--amber);}
+  .opt-btn.sel-teal{background:var(--teal-tint); border-color:var(--teal); color:var(--teal-dark);}
+  .chip{border:1px solid var(--line); background:#fff; padding:7px 13px; border-radius:999px; font-family:inherit; font-size:12.5px; cursor:pointer; color:var(--ink-soft);}
+  .chip.chosen{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .subtle-label{font-size:12px; color:var(--ink-soft); font-weight:600; margin:4px 0 8px;}
+  .return-box{background:var(--red-tint); border:1px solid var(--red); border-radius:10px; padding:14px; margin-top:10px;}
+  .return-box p{margin:0 0 10px; font-size:13px; color:var(--red);}
+  .success-box{background:var(--green-tint); border:1px solid var(--green); border-radius:10px; padding:14px; margin-top:14px;}
+  .success-box p{margin:0 0 10px; font-size:13px; color:var(--green);}
+  .refer-box{background:var(--amber-tint); border:1px solid var(--amber); border-radius:10px; padding:14px; margin-top:14px;}
+  .refer-box p{margin:0 0 10px; font-size:13px; color:var(--amber);}
+  .closed-banner{margin:20px 26px 0; padding:14px 18px; border-radius:12px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .closed-banner.success{background:var(--green-tint); color:var(--green);}
+  .closed-banner.returned{background:var(--gray-tint); color:var(--gray-ink);}
+  .closed-banner.referred{background:var(--amber-tint); color:var(--amber);}
+  .stats-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px;}
+  .stat-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat-card .num{font-size:24px; font-weight:700;}
+  .stat-card .lbl{font-size:12px; color:var(--ink-soft);}
+  .report-table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; border:1px solid var(--line);}
+  .report-table th{text-align:left; font-size:12px; color:var(--ink-soft); background:var(--gray-tint); padding:10px 12px;}
+  .report-table td{font-size:13px; padding:10px 12px; border-top:1px solid var(--line);}
+  .report-table tr{cursor:pointer;}
+  .report-table tr:hover td{background:var(--teal-tint);}
+  .hint-box{background:var(--teal-tint); color:var(--teal-dark); border-radius:10px; padding:12px 14px; font-size:12.5px; margin-bottom:18px;}
+  .danger-zone{margin:20px 26px 26px; padding:16px 20px; border:1px dashed var(--red); border-radius:14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .danger-zone p{margin:0; font-size:12.5px; color:var(--ink-soft); max-width:400px;}
+  .btn-danger{background:var(--red); color:#fff;}
+  .btn-danger:hover{background:#7e2222;}
+  @media (max-width:600px){ .infogrid{grid-template-columns:1fr 1fr;} .grid2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<script src="../shared/auth.js"></script>
+<script>window.PHQAuth.requireAuth();</script>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="ti ti-heart-rate-monitor"></i></div>
+      <div>
+        <h1>ระบบติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</h1>
+        <p>งานบริบาลทางเภสัชกรรม · เชื่อมต่อ Google Sheet ส่วนกลาง</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="conn-label" id="connLabel"><span class="conn-dot conn-none"></span>ยังไม่เชื่อมต่อ</span>
+      <button class="icon-btn" id="refreshBtn" title="รีเฟรชข้อมูล"><i class="ti ti-refresh"></i></button>
+      <button class="icon-btn" id="settingsBtn" title="ตั้งค่าการเชื่อมต่อ"><i class="ti ti-settings"></i></button>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="list">รายชื่อผู้ป่วย</button>
+        <button class="tab-btn" data-tab="form">+ เพิ่มผู้ป่วยใหม่</button>
+        <button class="tab-btn" data-tab="report">รายงาน</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="setupBannerWrap"></div>
+
+  <!-- LIST PANEL -->
+  <div class="panel active" id="panel-list">
+    <div id="banners"></div>
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="searchBox" placeholder="ค้นหาด้วยชื่อ หรือ HN (ค้นได้ทั้งเคสที่ปิดแล้ว)..."></div>
+      <button class="filter-chip active" data-filter="active">กำลังติดตาม</button>
+      <button class="filter-chip" data-filter="due">ถึงกำหนดวันนี้</button>
+      <button class="filter-chip" data-filter="returnPending">รอคืนยา</button>
+      <button class="filter-chip" data-filter="allClosed">เคสที่ปิดแล้ว</button>
+    </div>
+    <div id="cardsWrap"></div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="panel" id="panel-form">
+    <div class="form-card">
+      <h2>ลงทะเบียนผู้ป่วยเริ่มยา Cytisine</h2>
+      <div class="form-sub">กรอกข้อมูลวันแรกที่ผู้ป่วยได้รับยา ระบบจะคำนวณวันโทรติดตามให้อัตโนมัติ</div>
+
+      <div class="grid2">
+        <div class="field"><label>วันที่มารับบริการ / ได้รับยา Cytisine วันแรก</label><input type="date" id="f-startDate"></div>
+        <div class="field"><label>HN</label><input type="text" id="f-hn" placeholder="เช่น 660123"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>ชื่อ-สกุลผู้ป่วย</label><input type="text" id="f-name" placeholder="เช่น นายสมชาย ใจดี"></div>
+        <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="f-phone" placeholder="เช่น 0812345678"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>จำนวนบุหรี่ที่สูบในปัจจุบัน (มวน/วัน)</label><input type="number" id="f-cig" min="0" placeholder="เช่น 15"></div>
+        <div class="field"><label>วันนัดพบแพทย์ครั้งถัดไป (ถ้ามี)</label><input type="date" id="f-nextAppt"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>วิธีรับประทานยา Cytisine</label><input type="text" id="f-regimen" value="Cytisine 1.5 mg 2 tab po tid"></div>
+        <div class="field"><label>จำนวนเม็ดยาที่ได้รับในวันนี้</label><input type="number" id="f-tablets" min="0" placeholder="เช่น 60"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>จำนวนครั้งที่เคยพยายามเลิกบุหรี่ด้วยตัวเอง</label><input type="number" id="f-quitCount" min="0" placeholder="เช่น 2"></div>
+        <div class="field"><label>ระยะเวลาที่เคยเลิกได้นานที่สุดก่อนกลับไปสูบใหม่</label>
+          <div class="field-row">
+            <input type="number" id="f-quitDurVal" min="0" style="flex:1" placeholder="เช่น 3">
+            <select id="f-quitDurUnit" style="flex:1">
+              <option value="วัน">วัน</option><option value="สัปดาห์">สัปดาห์</option>
+              <option value="เดือน" selected>เดือน</option><option value="ปี">ปี</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-dates" id="datePreview" style="display:none;">
+        <div>วันโทรติดตามครั้งที่ 1 (Day 5)<b id="prevDay5">-</b></div>
+        <div>วันโทรติดตามครั้งที่ 2 (Day 25)<b id="prevDay25">-</b></div>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn"><i class="ti ti-send"></i> บันทึกและส่งข้อมูลผู้ป่วย</button>
+    </div>
+  </div>
+
+  <!-- REPORT PANEL -->
+  <div class="panel" id="panel-report">
+    <div class="hint-box"><i class="ti ti-info-circle"></i> ข้อมูลทั้งหมดถูกเก็บอยู่ใน Google Sheet ส่วนกลาง เปิดชีตโดยตรงเพื่อดู/กรอง/พิมพ์ได้ทุกเมื่อ หรือกดดาวน์โหลดเป็น Excel จากปุ่มด้านล่าง</div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <button class="btn btn-primary" id="exportBtn" style="margin-bottom:20px;"><i class="ti ti-file-spreadsheet"></i> ดาวน์โหลดรายงาน Excel (ผู้ป่วยทั้งหมด)</button>
+    <div class="search" style="margin-bottom:14px;"><i class="ti ti-search"></i><input id="reportSearch" placeholder="ค้นหาในฐานข้อมูลทั้งหมด ด้วยชื่อหรือ HN..."></div>
+    <div style="overflow-x:auto;"><table class="report-table" id="reportTable"></table></div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="detail" id="detailBox"></div></div>
+<div class="overlay" id="settingsOverlay">
+  <div class="settings-box">
+    <div class="detail-head">
+      <div><h2>ตั้งค่าการเชื่อมต่อ Google Sheet</h2><div class="hn">วาง URL ของ Web App ที่ Deploy จาก Apps Script</div></div>
+      <button class="close-x" id="closeSettingsBtn"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:22px 26px;">
+      <div class="field"><label>Web App URL</label><input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/xxxx/exec"></div>
+      <div id="settingsMsg" style="font-size:13px; margin-bottom:14px;"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="saveApiUrlBtn"><i class="ti ti-device-floppy"></i> บันทึก</button>
+        <button class="btn btn-outline" id="testApiUrlBtn"><i class="ti ti-plug-connected"></i> ทดสอบการเชื่อมต่อ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG_KEY = 'cytisine-apiurl-v1';
+// URL เริ่มต้นของ Google Apps Script Web App — ทำให้เปิดเว็บแล้วเชื่อมต่อได้ทันทีโดยไม่ต้องตั้งค่าเอง
+// เปลี่ยนได้ภายหลังผ่านปุ่มตั้งค่า (เฟือง) หากต้องย้ายไปใช้ Google Sheet ชุดใหม่
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
+let patients = [];
+let currentId = null;
+let refreshTimer = null;
+
+const SIDE_EFFECTS = ['คลื่นไส้','ปากแห้ง','เวียนศีรษะ','นอนไม่หลับ','หงุดหงิด/กระวนกระวาย','อาหารไม่ย่อย','ไม่มีอาการ'];
+const MANAGEMENT_OPTIONS = [
+  'แนะนำดื่มน้ำเปล่าให้เพียงพอ','แนะนำรับประทานยาพร้อม/หลังอาหารทันที','จ่ายยาแก้คลื่นไส้ (antiemetic)',
+  'ปรับเวลามื้อเย็น/ลดขนาดมื้อค่ำ','พิจารณาจ่ายยาช่วยการนอนหลับ','แนะนำเปลี่ยนท่าอย่างช้าๆ ป้องกันเวียนศีรษะ',
+  'ให้คำแนะนำและเฝ้าระวังอาการต่อเนื่อง','ส่งพบแพทย์เพื่อประเมินเพิ่มเติม'
+];
+
+function fmtDate(d){ if(!d) return '-'; const dt = new Date(d); return dt.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}); }
+function addDays(dateStr, n){ const dt = new Date(dateStr); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function isDue(dateStr){ const t=new Date(); t.setHours(0,0,0,0); const d=new Date(dateStr); d.setHours(0,0,0,0); return d<=t; }
+function daysSince(ts){ return Math.floor((Date.now()-ts)/86400000); }
+function uid(){ return 'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+// ---------- API layer (Google Apps Script Web App) ----------
+function getApiUrl(){ return localStorage.getItem(CONFIG_KEY) || DEFAULT_API_URL || ''; }
+function setApiUrl(url){ localStorage.setItem(CONFIG_KEY, url); }
+
+async function apiGetAll(){
+  const url = getApiUrl();
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า URL');
+  const res = await fetch(url);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'ไม่ทราบสาเหตุ');
+  return json.patients || [];
+}
+async function apiSavePatient(p){
+  const url = getApiUrl();
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า URL');
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({patient:p})
+  });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'ไม่ทราบสาเหตุ');
+}
+async function apiDeletePatient(id){
+  const url = getApiUrl();
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า URL');
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({deleteId:id})
+  });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'ไม่ทราบสาเหตุ');
+}
+
+function setConnStatus(state){
+  const el = document.getElementById('connLabel');
+  const map = {
+    ok: ['conn-ok','เชื่อมต่อแล้ว'], bad: ['conn-bad','เชื่อมต่อไม่สำเร็จ'], none: ['conn-none','ยังไม่เชื่อมต่อ']
+  };
+  const [cls, label] = map[state];
+  el.innerHTML = `<span class="conn-dot ${cls}"></span>${label}`;
+}
+
+function renderSetupBanner(){
+  const wrap = document.getElementById('setupBannerWrap');
+  if(getApiUrl()){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = `<div class="setup-banner"><span><i class="ti ti-alert-triangle"></i> ยังไม่ได้เชื่อมต่อกับ Google Sheet ส่วนกลาง — ข้อมูลจะยังไม่ถูกบันทึก จนกว่าจะ <b id="openSetupLink">ตั้งค่า URL ที่นี่</b></span></div>`;
+  document.getElementById('openSetupLink').addEventListener('click', openSettings);
+}
+
+async function loadPatients(silent){
+  renderSetupBanner();
+  if(!getApiUrl()){ setConnStatus('none'); patients=[]; renderAll(); return; }
+  try{
+    patients = await apiGetAll();
+    setConnStatus('ok');
+    renderAll();
+  }catch(e){
+    console.error(e);
+    setConnStatus('bad');
+    if(!silent) alert('ดึงข้อมูลจาก Google Sheet ไม่สำเร็จ: '+e.message);
+  }
+}
+async function syncPatient(p){
+  try{
+    await apiSavePatient(p);
+    setConnStatus('ok');
+  }catch(e){
+    console.error(e);
+    setConnStatus('bad');
+    alert('บันทึกขึ้น Google Sheet ไม่สำเร็จ: '+e.message+'\nกรุณาตรวจสอบอินเทอร์เน็ต หรือการตั้งค่า URL (ปุ่มรูปเฟือง)');
+  }
+}
+function renderAll(){ renderList(); renderReport(); }
+
+// ---------- Settings modal ----------
+function openSettings(){
+  document.getElementById('apiUrlInput').value = getApiUrl();
+  document.getElementById('settingsMsg').textContent = '';
+  document.getElementById('settingsOverlay').classList.add('active');
+}
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('active'); }
+document.getElementById('settingsBtn').addEventListener('click', openSettings);
+document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+document.getElementById('settingsOverlay').addEventListener('click', e=>{ if(e.target.id==='settingsOverlay') closeSettings(); });
+document.getElementById('saveApiUrlBtn').addEventListener('click', ()=>{
+  const val = document.getElementById('apiUrlInput').value.trim();
+  setApiUrl(val);
+  document.getElementById('settingsMsg').innerHTML = '<span style="color:var(--teal-dark)">บันทึกแล้ว กำลังโหลดข้อมูล...</span>';
+  loadPatients().then(()=>{ closeSettings(); });
+});
+document.getElementById('testApiUrlBtn').addEventListener('click', async ()=>{
+  const val = document.getElementById('apiUrlInput').value.trim();
+  const msg = document.getElementById('settingsMsg');
+  msg.innerHTML = 'กำลังทดสอบ...';
+  const prevUrl = getApiUrl();
+  setApiUrl(val);
+  try{
+    const list = await apiGetAll();
+    msg.innerHTML = `<span style="color:var(--teal-dark)"><i class="ti ti-circle-check"></i> เชื่อมต่อสำเร็จ พบผู้ป่วย ${list.length} ราย</span>`;
+  }catch(e){
+    msg.innerHTML = `<span style="color:var(--red)"><i class="ti ti-alert-triangle"></i> เชื่อมต่อไม่สำเร็จ: ${e.message}</span>`;
+    setApiUrl(prevUrl);
+  }
+});
+document.getElementById('refreshBtn').addEventListener('click', ()=>loadPatients());
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='report') renderReport();
+  });
+});
+
+// ---------- Form date preview ----------
+function updatePreview(){
+  const sd = document.getElementById('f-startDate').value;
+  const wrap = document.getElementById('datePreview');
+  if(!sd){ wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  document.getElementById('prevDay5').textContent = fmtDate(addDays(sd,5));
+  document.getElementById('prevDay25').textContent = fmtDate(addDays(sd,25));
+}
+document.getElementById('f-startDate').addEventListener('input', updatePreview);
+(function initDate(){ document.getElementById('f-startDate').value = todayStr(); updatePreview(); })();
+
+// ---------- Submit new patient ----------
+document.getElementById('submitBtn').addEventListener('click', async ()=>{
+  if(!getApiUrl()){ alert('กรุณาตั้งค่า URL การเชื่อมต่อ Google Sheet ก่อน (ปุ่มรูปเฟืองด้านบน)'); openSettings(); return; }
+  const sd = document.getElementById('f-startDate').value;
+  const hn = document.getElementById('f-hn').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  if(!sd || !hn || !name || !phone){ alert('กรุณากรอก วันที่เริ่มยา, HN, ชื่อ-สกุล และเบอร์โทร ให้ครบก่อนบันทึก'); return; }
+  const p = {
+    id: uid(), startDate: sd, hn, name, phone,
+    cig: document.getElementById('f-cig').value || '-',
+    nextAppt: document.getElementById('f-nextAppt').value || '',
+    regimen: document.getElementById('f-regimen').value || '-',
+    tablets: document.getElementById('f-tablets').value || '-',
+    quitCount: document.getElementById('f-quitCount').value || '0',
+    quitDurVal: document.getElementById('f-quitDurVal').value || '',
+    quitDurUnit: document.getElementById('f-quitDurUnit').value,
+    day5Date: addDays(sd,5), day25Date: addDays(sd,25),
+    day5: { status:null, sideEffects:[], management:[], decision:null, stopDecisionAt:null },
+    day25: { status:null, sideEffects:[], management:[], successLikely:null },
+    caseStatus: 'active', createdAt: Date.now()
+  };
+  patients.unshift(p);
+  await syncPatient(p);
+  ['f-hn','f-name','f-phone','f-cig','f-nextAppt','f-tablets','f-quitCount','f-quitDurVal'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-regimen').value = 'Cytisine 1.5 mg 2 tab po tid';
+  document.querySelector('.tab-btn[data-tab="list"]').click();
+  renderAll();
+  openDetail(p.id);
+});
+
+// ---------- List rendering ----------
+let activeFilter = 'active';
+document.querySelectorAll('.filter-chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    ch.classList.add('active'); activeFilter = ch.dataset.filter; renderList();
+  });
+});
+document.getElementById('searchBox').addEventListener('input', renderList);
+
+function statusPill(stage){
+  if(!stage || !stage.status) return null;
+  if(stage.status==='quit') return '<span class="pill pill-green">เลิกสูบแล้ว</span>';
+  if(stage.status==='notquit') return '<span class="pill pill-red">ยังไม่เลิกสูบ</span>';
+  if(stage.status==='unreachable') return '<span class="pill pill-amber">ติดต่อไม่ได้</span>';
+  return null;
+}
+function dueBadge(dateStr, stage, locked){
+  if(locked) return '<span class="pill pill-pending">รอผลจาก Day 5</span>';
+  const done = statusPill(stage);
+  if(done) return done;
+  if(isDue(dateStr)) return '<span class="pill pill-amber">ถึงกำหนดติดตาม</span>';
+  return '<span class="pill pill-green">ยังไม่ถึงกำหนด</span>';
+}
+function isReturnPending(p){ return p.day5.decision==='stop' && p.caseStatus==='active'; }
+function isDueToday(p){
+  if(p.caseStatus!=='active') return false;
+  if(!p.day5.status && isDue(p.day5Date)) return true;
+  if(p.day5.decision==='continue' && !p.day25.status && isDue(p.day25Date)) return true;
+  return false;
+}
+function renderBanners(){
+  const wrap = document.getElementById('banners');
+  const dueList = patients.filter(isDueToday);
+  const returnList = patients.filter(isReturnPending);
+  let html = '';
+  if(dueList.length){
+    html += `<div class="banner banner-amber"><h4><i class="ti ti-bell-ringing"></i> ถึงกำหนดโทรติดตามวันนี้ (${dueList.length} ราย)</h4>
+      <div class="banner-list">${dueList.map(p=>`<button class="banner-chip" data-id="${p.id}">${p.name} · HN ${p.hn}</button>`).join('')}</div></div>`;
+  }
+  if(returnList.length){
+    html += `<div class="banner banner-red"><h4><i class="ti ti-alert-triangle"></i> รอผู้ป่วยนำยาคืน (${returnList.length} ราย)</h4>
+      <div class="banner-list">${returnList.map(p=>{
+        const d = p.day5.stopDecisionAt ? daysSince(p.day5.stopDecisionAt) : 0;
+        return `<button class="banner-chip" data-id="${p.id}">${p.name} · HN ${p.hn} · ${d} วัน${d>=7?' ⚠':''}</button>`;
+      }).join('')}</div></div>`;
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.banner-chip').forEach(b=>b.addEventListener('click', ()=>openDetail(b.dataset.id)));
+}
+function renderList(){
+  renderBanners();
+  const wrap = document.getElementById('cardsWrap');
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  let list;
+  if(q){ list = patients.filter(p=> p.name.toLowerCase().includes(q) || p.hn.toLowerCase().includes(q)); }
+  else {
+    list = patients.filter(p=>{
+      if(activeFilter==='active') return p.caseStatus==='active';
+      if(activeFilter==='due') return isDueToday(p);
+      if(activeFilter==='returnPending') return isReturnPending(p);
+      if(activeFilter==='allClosed') return p.caseStatus!=='active';
+      return true;
+    });
+  }
+  if(list.length===0){
+    wrap.innerHTML = `<div class="empty"><i class="ti ti-users"></i>${getApiUrl() ? 'ไม่พบผู้ป่วยในรายการนี้' : 'กรุณาตั้งค่าการเชื่อมต่อ Google Sheet ก่อนเริ่มใช้งาน'}</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="cards">${list.map(cardHtml).join('')}</div>`;
+  wrap.querySelectorAll('.pcard').forEach(el=>{
+    el.addEventListener('click', (e)=>{ if(e.target.closest('.call-link')) return; openDetail(el.dataset.id); });
+  });
+}
+function cardHtml(p){
+  let tag = '';
+  if(p.caseStatus==='closed-success') tag = '<div class="case-tag" style="background:var(--green-tint);color:var(--green);">ปิดเคส · สำเร็จ</div>';
+  if(p.caseStatus==='closed-returned') tag = '<div class="case-tag" style="background:var(--gray-tint);color:var(--gray-ink);">ปิดเคส · คืนยา</div>';
+  if(p.caseStatus==='closed-referred') tag = '<div class="case-tag" style="background:var(--amber-tint);color:var(--amber);">ส่งต่อคลินิก</div>';
+  const returnPending = isReturnPending(p);
+  const daysWaiting = (returnPending && p.day5.stopDecisionAt) ? daysSince(p.day5.stopDecisionAt) : 0;
+  const cardClasses = returnPending ? `pcard alert-red ${daysWaiting>=7?'blink':''}` : 'pcard';
+  return `
+  <div class="${cardClasses}" data-id="${p.id}">
+    ${tag}
+    <div class="hn">HN ${p.hn}</div>
+    <h3>${p.name}</h3>
+    <div class="meta"><span><i class="ti ti-cigarette"></i> ${p.cig} มวน/วัน</span><span><i class="ti ti-calendar"></i> เริ่มยา ${fmtDate(p.startDate)}</span></div>
+    <a class="call-link" href="tel:${p.phone}"><i class="ti ti-phone"></i> ${p.phone}</a>
+    ${returnPending ? `<div class="return-note" style="margin-top:10px;"><i class="ti ti-alert-triangle"></i> รอผู้ป่วยนำยามาคืน (${daysWaiting} วัน)${daysWaiting>=7?' — เกิน 7 วันแล้ว!':''}</div>` : ''}
+    <div class="track" style="margin-top:10px;">
+      <div class="step" style="background:var(--teal-tint);">
+        <span class="step-label" style="color:var(--teal-dark);">Day 5</span><span class="step-date">${fmtDate(p.day5Date)}</span>
+        ${dueBadge(p.day5Date, p.day5, false)}
+      </div>
+      <div class="step" style="background:${p.caseStatus==='closed-returned' ? 'var(--gray-tint)' : 'var(--amber-tint)'};">
+        <span class="step-label" style="color:${p.caseStatus==='closed-returned' ? 'var(--gray-ink)' : 'var(--amber)'};">Day 25</span><span class="step-date">${fmtDate(p.day25Date)}</span>
+        ${p.caseStatus==='closed-returned' ? '<span class="pill pill-pending">ไม่ดำเนินการต่อ</span>' : dueBadge(p.day25Date, p.day25, p.day5.decision!=='continue')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---------- Detail overlay ----------
+function openDetail(id){ currentId = id; renderDetail(); document.getElementById('overlay').classList.add('active'); }
+function closeDetail(){ document.getElementById('overlay').classList.remove('active'); currentId = null; renderAll(); }
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeDetail(); });
+
+function chipsHtml(stageKey, chosen, groupClass, dataAttr){
+  const list = groupClass==='mgmt' ? MANAGEMENT_OPTIONS : SIDE_EFFECTS;
+  return list.map(s=>{
+    const isSel = chosen.includes(s);
+    return `<button class="chip ${isSel?'chosen':''}" data-stage="${stageKey}" data-${dataAttr}="${s}">${s}</button>`;
+  }).join('');
+}
+
+function renderDetail(){
+  const p = patients.find(x=>x.id===currentId);
+  if(!p) return;
+  const box = document.getElementById('detailBox');
+  const day25Locked = p.day5.decision !== 'continue';
+
+  let closedBanner = '';
+  if(p.caseStatus==='closed-success') closedBanner = `<div class="closed-banner success"><i class="ti ti-circle-check"></i> ปิดเคสแล้ว — ติดตามสำเร็จ ผู้ป่วยเลิกบุหรี่ได้ต่อเนื่องจนจบคอร์ส</div>`;
+  if(p.caseStatus==='closed-returned') closedBanner = `<div class="closed-banner returned"><i class="ti ti-package-import"></i> ปิดเคสแล้ว — ผู้ป่วยหยุดกระบวนการเลิกบุหรี่และคืนยาเรียบร้อย</div>`;
+  if(p.caseStatus==='closed-referred') closedBanner = `<div class="closed-banner referred"><i class="ti ti-send"></i> ปิดเคสแล้ว — ส่งต่อคลินิกเลิกบุหรี่เพื่อติดตามต่อเนื่อง</div>`;
+
+  const showMgmt5 = p.day5.sideEffects.some(s=>s!=='ไม่มีอาการ');
+  const showMgmt25 = p.day25.sideEffects.some(s=>s!=='ไม่มีอาการ');
+
+  box.innerHTML = `
+    <div class="detail-head">
+      <div><h2>${p.name}</h2><div class="hn">HN ${p.hn} · เริ่มยา ${fmtDate(p.startDate)}</div></div>
+      <button class="close-x" id="closeDetailBtn"><i class="ti ti-x"></i></button>
+    </div>
+    ${closedBanner}
+    <div class="infogrid">
+      <div class="item"><span>เบอร์โทร</span><a class="call-link" href="tel:${p.phone}"><i class="ti ti-phone"></i> ${p.phone}</a></div>
+      <div class="item"><span>สูบปัจจุบัน</span>${p.cig} มวน/วัน</div>
+      <div class="item"><span>วันนัดแพทย์ครั้งถัดไป</span>${p.nextAppt ? fmtDate(p.nextAppt) : '-'}</div>
+      <div class="item"><span>วิธีรับประทานยา</span>${p.regimen}</div>
+      <div class="item"><span>จำนวนเม็ดที่ได้รับ</span>${p.tablets} เม็ด</div>
+      <div class="item"><span>เคยเลิกมาก่อน</span>${p.quitCount} ครั้ง</div>
+      <div class="item"><span>เคยเลิกได้นานสุด</span>${p.quitDurVal ? p.quitDurVal+' '+p.quitDurUnit : '-'}</div>
+    </div>
+
+    <div class="stage" id="stage5">
+      <div class="stage-title"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 1 — Day 5</h3><span class="date">${fmtDate(p.day5Date)}</span></div>
+      <div class="subtle-label">สถานะการเลิกบุหรี่</div>
+      <div class="btn-group">
+        <button class="opt-btn ${p.day5.status==='quit'?'sel-green':''}" data-stage="day5" data-field="status" data-val="quit">เลิกสูบแล้ว</button>
+        <button class="opt-btn ${p.day5.status==='notquit'?'sel-red':''}" data-stage="day5" data-field="status" data-val="notquit">ยังไม่เลิกสูบ</button>
+        <button class="opt-btn ${p.day5.status==='unreachable'?'sel-amber':''}" data-stage="day5" data-field="status" data-val="unreachable">ติดต่อผู้ป่วยไม่ได้</button>
+      </div>
+      <div class="subtle-label">ผลข้างเคียงที่พบ (เลือกได้หลายข้อ)</div>
+      <div class="btn-group">${chipsHtml('day5', p.day5.sideEffects, 'se', 'se')}</div>
+      ${showMgmt5 ? `<div class="subtle-label"><i class="ti ti-first-aid-kit"></i> แนวทางจัดการผลข้างเคียง (เลือกได้หลายข้อ)</div><div class="btn-group">${chipsHtml('day5', p.day5.management, 'mgmt', 'mg')}</div>` : ''}
+      <div class="subtle-label">แนวทางดำเนินการต่อ</div>
+      <div class="btn-group">
+        <button class="btn ${p.day5.decision==='continue' ? 'btn-primary' : 'btn-outline'}" id="continueBtn"><i class="ti ti-arrow-right"></i> ทานยาต่อเนื่องถึง Day 25</button>
+        <button class="btn ${p.day5.decision==='stop' ? 'btn-danger-outline' : 'btn-outline'}" id="stopBtn"><i class="ti ti-player-stop"></i> หยุดกระบวนการเลิกบุหรี่</button>
+      </div>
+      ${p.day5.decision==='stop' && p.caseStatus!=='closed-returned' ? `
+        <div class="return-box"><p><i class="ti ti-alert-triangle"></i> แจ้งผู้ป่วยนำยา Cytisine ที่เหลือมาคืนโรงพยาบาล เมื่อเภสัชกรได้รับยาคืนแล้วให้กดยืนยันด้านล่าง
+          ${p.day5.stopDecisionAt ? ` (รอมาแล้ว ${daysSince(p.day5.stopDecisionAt)} วัน)` : ''}</p>
+          <button class="btn btn-outline" id="confirmReturnBtn"><i class="ti ti-check"></i> ได้รับยาคืนเรียบร้อย — ปิดเคส</button>
+        </div>` : ''}
+    </div>
+
+    <div class="stage ${day25Locked ? 'locked':''}" id="stage25">
+      <div class="stage-title"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 2 — Day 25 (สิ้นสุดคอร์ส)</h3><span class="date">${fmtDate(p.day25Date)}</span></div>
+      ${day25Locked ? '<div class="lock-note">รอผลประเมินและการตัดสินใจจาก Day 5 ก่อน</div>' : ''}
+      <div class="subtle-label">สถานะการเลิกบุหรี่</div>
+      <div class="btn-group">
+        <button class="opt-btn ${p.day25.status==='quit'?'sel-green':''}" data-stage="day25" data-field="status" data-val="quit">เลิกสูบแล้ว</button>
+        <button class="opt-btn ${p.day25.status==='notquit'?'sel-red':''}" data-stage="day25" data-field="status" data-val="notquit">ยังไม่เลิกสูบ</button>
+        <button class="opt-btn ${p.day25.status==='unreachable'?'sel-amber':''}" data-stage="day25" data-field="status" data-val="unreachable">ติดต่อผู้ป่วยไม่ได้</button>
+      </div>
+      <div class="subtle-label">ผลข้างเคียงที่พบ (เลือกได้หลายข้อ)</div>
+      <div class="btn-group">${chipsHtml('day25', p.day25.sideEffects, 'se', 'se')}</div>
+      ${showMgmt25 ? `<div class="subtle-label"><i class="ti ti-first-aid-kit"></i> แนวทางจัดการผลข้างเคียง (เลือกได้หลายข้อ)</div><div class="btn-group">${chipsHtml('day25', p.day25.management, 'mgmt', 'mg')}</div>` : ''}
+      <div class="subtle-label">แนวโน้มความสำเร็จในการเลิกบุหรี่</div>
+      <div class="btn-group">
+        <button class="opt-btn ${p.day25.successLikely==='high'?'sel-teal':''}" data-stage="day25" data-field="successLikely" data-val="high">มีโอกาสเลิกสำเร็จสูง</button>
+        <button class="opt-btn ${p.day25.successLikely==='risk'?'sel-amber':''}" data-stage="day25" data-field="successLikely" data-val="risk">ยังมีความเสี่ยงกลับไปสูบ</button>
+      </div>
+      ${p.caseStatus==='active' && p.day25.status==='quit' && p.day25.successLikely==='high' ? `
+      <div class="success-box"><p><i class="ti ti-flag"></i> ผู้ป่วยเลิกสูบได้ต่อเนื่องจนจบคอร์ส และมีแนวโน้มสำเร็จสูง สามารถปิดการติดตามได้ที่นี่</p>
+        <button class="btn btn-green" id="successBtn"><i class="ti ti-circle-check"></i> ติดตามสำเร็จ — ปิดเคส</button></div>` : ''}
+      ${p.caseStatus==='active' && p.day25.successLikely==='risk' ? `
+      <div class="refer-box"><p><i class="ti ti-send"></i> ผู้ป่วยยังมีความเสี่ยงกลับไปสูบ แนะนำส่งต่อคลินิกเลิกบุหรี่เพื่อติดตามต่อเนื่อง</p>
+        <button class="btn btn-amber" id="referBtn"><i class="ti ti-send"></i> ส่งต่อคลินิกเลิกบุหรี่ — ติดตามต่อเนื่อง</button></div>` : ''}
+    </div>
+
+    <div class="danger-zone">
+      <p><i class="ti ti-alert-triangle"></i> ใช้สำหรับกรณีทดสอบระบบ ผู้ป่วยเลิกได้แล้วต้องการเคลียร์ข้อมูลทดสอบ หรือผู้ป่วยเสียชีวิต — การลบจะนำข้อมูลออกจากฐานข้อมูลถาวร ไม่สามารถกู้คืนได้</p>
+      <button class="btn btn-danger" id="deletePatientBtn"><i class="ti ti-trash"></i> ลบผู้ป่วยออกจากระบบ</button>
+    </div>
+  `;
+
+  box.querySelector('#closeDetailBtn').addEventListener('click', closeDetail);
+  box.querySelectorAll('.opt-btn[data-field]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const stage = btn.dataset.stage, field = btn.dataset.field, val = btn.dataset.val;
+      p[stage][field] = (p[stage][field]===val) ? null : val;
+      await syncPatient(p); renderDetail();
+    });
+  });
+  box.querySelectorAll('.chip[data-se]').forEach(ch=>{
+    ch.addEventListener('click', async ()=>{
+      const stage = ch.dataset.stage, se = ch.dataset.se, arr = p[stage].sideEffects, idx = arr.indexOf(se);
+      if(idx>-1) arr.splice(idx,1); else arr.push(se);
+      await syncPatient(p); renderDetail();
+    });
+  });
+  box.querySelectorAll('.chip[data-mg]').forEach(ch=>{
+    ch.addEventListener('click', async ()=>{
+      const stage = ch.dataset.stage, mg = ch.dataset.mg, arr = p[stage].management, idx = arr.indexOf(mg);
+      if(idx>-1) arr.splice(idx,1); else arr.push(mg);
+      await syncPatient(p); renderDetail();
+    });
+  });
+  const contBtn = box.querySelector('#continueBtn');
+  if(contBtn) contBtn.addEventListener('click', async ()=>{ p.day5.decision='continue'; await syncPatient(p); renderDetail(); });
+  const stopBtn = box.querySelector('#stopBtn');
+  if(stopBtn) stopBtn.addEventListener('click', async ()=>{ p.day5.decision='stop'; p.day5.stopDecisionAt=Date.now(); await syncPatient(p); renderDetail(); });
+  const confirmReturnBtn = box.querySelector('#confirmReturnBtn');
+  if(confirmReturnBtn) confirmReturnBtn.addEventListener('click', async ()=>{
+    if(!confirm('ยืนยันว่าเภสัชกรได้รับยา Cytisine คืนจากผู้ป่วยเรียบร้อยแล้ว และปิดการติดตามรายนี้?')) return;
+    p.caseStatus='closed-returned'; await syncPatient(p); renderDetail();
+  });
+  const successBtn = box.querySelector('#successBtn');
+  if(successBtn) successBtn.addEventListener('click', async ()=>{ p.caseStatus='closed-success'; await syncPatient(p); renderDetail(); });
+  const referBtn = box.querySelector('#referBtn');
+  if(referBtn) referBtn.addEventListener('click', async ()=>{ p.caseStatus='closed-referred'; await syncPatient(p); renderDetail(); });
+  const deleteBtn = box.querySelector('#deletePatientBtn');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    if(!confirm(`แน่ใจว่าจะลบผู้ป่วยรายนี้ออกจากระบบ?\n\n${p.name} · HN ${p.hn}\n\nการลบนี้ไม่สามารถกู้คืนได้`)) return;
+    try{
+      await apiDeletePatient(p.id);
+      patients = patients.filter(x=>x.id!==p.id);
+      closeDetail();
+    }catch(e){
+      alert('ลบข้อมูลไม่สำเร็จ: '+e.message);
+    }
+  });
+}
+
+// ---------- Report panel ----------
+function statusLabel(stage){ if(!stage.status) return 'รอผล'; if(stage.status==='quit') return 'เลิกสูบแล้ว'; if(stage.status==='notquit') return 'ยังไม่เลิกสูบ'; return 'ติดต่อไม่ได้'; }
+function caseLabel(cs){ return {active:'กำลังติดตาม','closed-success':'ปิดเคส · สำเร็จ','closed-returned':'ปิดเคส · คืนยา','closed-referred':'ส่งต่อคลินิก'}[cs] || cs; }
+function renderReport(){
+  const stats = document.getElementById('statsGrid');
+  const total = patients.length, active = patients.filter(p=>p.caseStatus==='active').length,
+    success = patients.filter(p=>p.caseStatus==='closed-success').length,
+    returned = patients.filter(p=>p.caseStatus==='closed-returned').length,
+    referred = patients.filter(p=>p.caseStatus==='closed-referred').length;
+  stats.innerHTML = `
+    <div class="stat-card"><div class="num">${total}</div><div class="lbl">ผู้ป่วยทั้งหมด</div></div>
+    <div class="stat-card"><div class="num">${active}</div><div class="lbl">กำลังติดตาม</div></div>
+    <div class="stat-card"><div class="num">${success}</div><div class="lbl">เลิกสำเร็จ</div></div>
+    <div class="stat-card"><div class="num">${returned}</div><div class="lbl">คืนยา/หยุด</div></div>
+    <div class="stat-card"><div class="num">${referred}</div><div class="lbl">ส่งต่อคลินิก</div></div>`;
+  renderReportTable();
+}
+function renderReportTable(){
+  const q = (document.getElementById('reportSearch').value || '').trim().toLowerCase();
+  let list = patients;
+  if(q) list = list.filter(p=>p.name.toLowerCase().includes(q) || p.hn.toLowerCase().includes(q));
+  const table = document.getElementById('reportTable');
+  table.innerHTML = `<tr><th>HN</th><th>ชื่อ-สกุล</th><th>เริ่มยา</th><th>Day5</th><th>Day25</th><th>สถานะเคส</th></tr>
+    ${list.map(p=>`<tr data-id="${p.id}"><td>${p.hn}</td><td>${p.name}</td><td>${fmtDate(p.startDate)}</td><td>${statusLabel(p.day5)}</td><td>${statusLabel(p.day25)}</td><td>${caseLabel(p.caseStatus)}</td></tr>`).join('')}`;
+  table.querySelectorAll('tr[data-id]').forEach(tr=>tr.addEventListener('click', ()=>openDetail(tr.dataset.id)));
+}
+document.getElementById('reportSearch').addEventListener('input', renderReportTable);
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = patients.map(p=>({
+    'HN': p.hn, 'ชื่อ-สกุล': p.name, 'เบอร์โทร': p.phone, 'วันเริ่มยา': p.startDate, 'จำนวนบุหรี่/วัน': p.cig,
+    'วิธีรับประทานยา': p.regimen, 'จำนวนเม็ดที่ได้รับ': p.tablets, 'เคยเลิกมาก่อน(ครั้ง)': p.quitCount,
+    'เคยเลิกได้นานสุด': p.quitDurVal ? p.quitDurVal+' '+p.quitDurUnit : '', 'วันนัดแพทย์ครั้งถัดไป': p.nextAppt || '',
+    'Day5 วันที่': p.day5Date, 'Day5 สถานะ': statusLabel(p.day5), 'Day5 ผลข้างเคียง': p.day5.sideEffects.join(', '),
+    'Day5 การจัดการ': p.day5.management.join(', '), 'Day5 การตัดสินใจ': p.day5.decision || '',
+    'Day25 วันที่': p.day25Date, 'Day25 สถานะ': statusLabel(p.day25), 'Day25 ผลข้างเคียง': p.day25.sideEffects.join(', '),
+    'Day25 การจัดการ': p.day25.management.join(', '), 'Day25 แนวโน้มสำเร็จ': p.day25.successLikely || '',
+    'สถานะเคส': caseLabel(p.caseStatus)
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cytisine Followup');
+  XLSX.writeFile(wb, 'cytisine-followup-report-' + todayStr() + '.xlsx');
+});
+
+// ---------- Init ----------
+loadPatients();
+refreshTimer = setInterval(()=>loadPatients(true), 25000);
+</script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บันทึกเติมยา ER Stock — รพ.เชียงม่วน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#20302E; --ink-soft:#4B615D; --paper:#F0F3EF; --card:#FFFFFF; --line:#D8E1DC;
+    --teal:#0F4C4C; --teal-deep:#0A3838; --teal-soft:#E4EEEC;
+    --amber:#C97B3D; --amber-soft:#F6E8D8;
+    --danger:#B5473A; --danger-soft:#F5E1DE;
+    --good:#3D7A5E; --good-soft:#DEEBE3;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Sarabun',sans-serif;background:var(--paper);color:var(--ink);}
+  .app{max-width:1140px;margin:0 auto;padding:24px 20px 60px;}
+  header{margin-bottom:22px;}
+  .eyebrow{font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:4px;}
+  h1{font-size:26px;font-weight:700;margin:0 0 2px;color:var(--teal-deep);}
+  .sub{font-size:14.5px;color:var(--ink-soft);margin:0 0 18px;}
+
+  .timeline{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:22px;}
+  .timeline-label{font-size:13px;color:var(--ink-soft);margin-bottom:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;}
+  .timeline-bar{position:relative;height:34px;border-radius:8px;overflow:hidden;display:flex;font-size:11.5px;}
+  .tl-seg{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;}
+  .tl-open{background:var(--teal);} .tl-closed{background:var(--amber);}
+  .tl-marks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);margin-top:4px;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
+  .card h2{font-size:17px;margin:0 0 14px;color:var(--teal-deep);}
+  .card h3{font-size:14.5px;margin:0 0 10px;color:var(--ink-soft);font-weight:600;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;font-weight:500;}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14.5px;color:var(--ink);background:#fff;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  input:disabled{background:var(--paper);color:var(--ink-soft);}
+  textarea{resize:vertical;min-height:60px;}
+
+  .row-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;}
+  button.primary{background:var(--teal);color:#fff;border:none;padding:9px 20px;border-radius:7px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;transition:.15s;}
+  button.primary:hover{background:var(--teal-deep);}
+  button.ghost{background:none;border:1px solid var(--line);color:var(--ink-soft);padding:9px 16px;border-radius:7px;font-family:inherit;font-size:14px;cursor:pointer;}
+  button.ghost:hover{border-color:var(--teal);color:var(--teal-deep);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  .filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+  .filter-bar > div{min-width:130px;}
+  .chip-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+  .chip.active{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-deep);font-weight:600;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:8px 10px;color:var(--ink-soft);font-weight:600;border-bottom:2px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);}
+  tr:hover td{background:var(--paper);}
+  .empty{padding:24px;text-align:center;color:var(--ink-soft);font-size:14px;}
+  .del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12.5px;padding:2px 6px;}
+  .del-btn:hover{text-decoration:underline;}
+  .neg{color:var(--danger);font-weight:700;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;}
+  .stat{background:var(--teal-soft);border-radius:8px;padding:14px 16px;}
+  .stat .num{font-size:26px;font-weight:700;color:var(--teal-deep);line-height:1.1;}
+  .stat .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;}
+  .bar-name{width:170px;flex-shrink:0;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-track{flex:1;background:var(--paper);border-radius:5px;height:18px;overflow:hidden;}
+  .bar-fill{background:var(--teal);height:100%;border-radius:5px 0 0 5px;transition:width .3s;}
+  .bar-val{width:50px;text-align:right;flex-shrink:0;font-weight:600;color:var(--teal-deep);}
+
+  .drug-hint{font-size:12.5px;color:var(--ink-soft);background:var(--teal-soft);border-radius:6px;padding:8px 10px;margin-top:8px;}
+  .drug-row{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--paper);position:relative;}
+  .drug-row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;}
+  .drug-row-actions{display:flex;gap:6px;}
+  .row-icon-btn{background:var(--card);border:1px solid var(--line);color:var(--ink-soft);width:34px;height:34px;border-radius:7px;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .row-icon-btn:hover{border-color:var(--teal);color:var(--teal-deep);}
+  .row-icon-btn.remove:hover{border-color:var(--danger);color:var(--danger);}
+  .drug-row-num{font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:8px;}
+  @media (max-width:760px){ .drug-row-grid{grid-template-columns:1fr 1fr;} }
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .loading-note{font-size:13px;color:var(--ink-soft);padding:6px 0;}
+  .shared-note{font-size:12px;color:var(--ink-soft);background:var(--teal-soft);border-radius:6px;padding:6px 10px;margin-bottom:14px;display:inline-block;}
+
+  @media (max-width:640px){ .bar-name{width:110px;} table{font-size:12px;} th,td{padding:6px} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<script src="../shared/auth.js"></script>
+<script>window.PHQAuth.requireAuth();</script>
+<div class="app">
+  <header>
+    <div class="eyebrow">รพ.เชียงม่วน · ห้องยา</div>
+    <h1>บันทึกเติมยา ER Stock นอกเวลา</h1>
+    <p class="sub">สำหรับเจ้าหน้าที่ห้องยาที่เติมยาใน ER Stock — รายการยาอ้างอิงจากฟอร์มเดิมของ รพ. ข้อมูลแบบเรียลไทม์ ใช้งานร่วมกันได้ทั้งทีม</p>
+    <div class="timeline">
+      <div class="timeline-label"><span>เวลาทำการห้องยา วันนี้</span><span id="tl-now"></span></div>
+      <div class="timeline-bar">
+        <div class="tl-seg tl-closed" style="width:33.33%">00:00–08:00 ปิด</div>
+        <div class="tl-seg tl-open" style="width:58.33%">08:00–22:00 เปิด</div>
+        <div class="tl-seg tl-closed" style="width:8.33%">22:00–24:00 ปิด</div>
+      </div>
+      <div class="tl-marks"><span>00:00</span><span>08:00</span><span>16:00</span><span>22:00</span><span>24:00</span></div>
+    </div>
+  </header>
+
+  <div class="shared-note">🔗 ข้อมูลนี้เป็นข้อมูลกลาง เจ้าหน้าที่ห้องยาทุกคนเห็นและบันทึกร่วมกันได้</div>
+
+  <div class="card">
+    <h2>บันทึกใบสั่งยา (ผู้ป่วย 1 คน)</h2>
+    <p class="sub" style="margin:0 0 14px;font-size:13px;">1 ใบสั่งยาอาจมียาหลายรายการ — กรอกยาตัวแรก แล้วกด "+" เพื่อเพิ่มยาตัวถัดไปในใบสั่งยาเดียวกัน จบแล้วกด "ส่งข้อมูล" ครั้งเดียว</p>
+    <div class="grid">
+      <div>
+        <label>วันที่ใช้ยา</label>
+        <input type="date" id="rf-date">
+      </div>
+      <div>
+        <label>ผู้บันทึก (เจ้าหน้าที่ห้องยา)</label>
+        <select id="rf-nurse-select">
+          <option value="">-- เลือกผู้บันทึก --</option>
+          <option value="คุณโชติวัฒน์ แก้วกลางเมือง">คุณโชติวัฒน์ แก้วกลางเมือง</option>
+          <option value="คุณเกียรติคุณ อุ่นกันทะ">คุณเกียรติคุณ อุ่นกันทะ</option>
+          <option value="คุณภัทรียาพร คำมาปัน">คุณภัทรียาพร คำมาปัน</option>
+          <option value="__other__">อื่นๆ (ระบุเอง)</option>
+        </select>
+        <input type="text" id="rf-nurse-other" autocomplete="off" placeholder="ระบุชื่อผู้บันทึก" style="margin-top:6px;display:none;">
+      </div>
+    </div>
+
+    <h3 style="margin-top:16px;">รายการยาในใบสั่งยานี้</h3>
+    <datalist id="drug-datalist"></datalist>
+    <div id="rf-drug-rows"></div>
+
+    <div class="grid" style="margin-top:8px;">
+      <div style="grid-column:1/-1;">
+        <label>หมายเหตุ (ถ้ามี — ใช้ร่วมกันทั้งใบสั่งยา)</label>
+        <input type="text" id="rf-note" autocomplete="off" placeholder="เช่น HN ผู้ป่วย, อาการ, เหตุผลที่ยาไม่พอ">
+      </div>
+    </div>
+    <div class="row-actions">
+      <button class="primary" id="rf-add-btn">ส่งข้อมูล</button>
+      <span id="rf-status" class="loading-note"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>สรุปรายงาน</h2>
+    <div class="filter-bar">
+      <div class="chip-group" id="rf-period-chips">
+        <span class="chip active" data-period="day">รายวัน</span>
+        <span class="chip" data-period="week">รายสัปดาห์</span>
+        <span class="chip" data-period="month">รายเดือน</span>
+        <span class="chip" data-period="custom">กำหนดเอง</span>
+      </div>
+    </div>
+    <div class="filter-bar" id="rf-custom-range" style="display:none;">
+      <div><label>ตั้งแต่วันที่</label><input type="date" id="rf-range-start"></div>
+      <div><label>ถึงวันที่</label><input type="date" id="rf-range-end"></div>
+    </div>
+    <div class="filter-bar">
+      <div style="min-width:220px;">
+        <label>กรองตามยา</label>
+        <select id="rf-drug-filter"><option value="">ทุกรายการ</option></select>
+      </div>
+      <div style="min-width:200px;">
+        <label>กรองตามผู้บันทึก</label>
+        <select id="rf-nurse-filter"><option value="">ทุกคน</option></select>
+      </div>
+      <div><button class="ghost" id="rf-export-btn">⬇ ส่งออก CSV</button></div>
+      <div><button class="ghost" id="rf-export-xlsx-btn">⬇ ดาวน์โหลด Excel (.xlsx)</button></div>
+    </div>
+
+    <div class="stat-grid" id="rf-stats"></div>
+    <h3>จำนวนที่ใช้จริงแยกตามรายการยา</h3>
+    <div id="rf-bars"></div>
+    <h3 style="margin-top:16px;">จำนวนรายการแยกตามผู้บันทึก</h3>
+    <div id="rf-nurse-bars"></div>
+  </div>
+
+  <div class="card">
+    <h2>รายการทั้งหมด</h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>วันที่</th><th>เลขที่ใบสั่งยา</th><th>ชื่อยา</th><th>หน่วย</th><th>ทั้งหมด</th><th>ใช้จริง</th><th>คงเหลือ</th><th>ผู้บันทึก</th><th>หมายเหตุ</th><th></th></tr></thead>
+        <tbody id="rf-table-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="rf-empty" style="display:none;">ยังไม่มีรายการในช่วงเวลาที่เลือก</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- Real ER stock drug master list (from hospital's existing monthly tracking form) ----
+const DRUG_MASTER = [{"name": "0.02% TA cream", "strength": "5gm", "unit": "ตลับ", "par": 3}, {"name": "0.1% TA cream", "strength": "5gm", "unit": "ตลับ", "par": 3}, {"name": "50% glucose inj.", "strength": "50%/50ml", "unit": "ขวด", "par": 1}, {"name": "Adrenaline inj.", "strength": "1mg/1ml", "unit": "amp", "par": 0}, {"name": "Air-x", "strength": "80 mg", "unit": "เม็ด", "par": 60}, {"name": "Amitriptyline", "strength": "10 mg", "unit": "เม็ด", "par": 20}, {"name": "Amoxicillin", "strength": "500 mg", "unit": "เม็ด", "par": 80}, {"name": "Amoxicillin syr.", "strength": "125 mg/5 ml", "unit": "ขวด", "par": 6}, {"name": "Amoxicillin syr.", "strength": "250 mg/5 ml", "unit": "ขวด", "par": 6}, {"name": "Antacid Gel", "strength": "240 ml", "unit": "ขวด", "par": 5}, {"name": "Augmentin", "strength": "1000 mg", "unit": "เม็ด", "par": 8}, {"name": "Berodual Forte", "strength": "0.5/1.25mg/4ml", "unit": "NB", "par": 15}, {"name": "Berodual MDI", "strength": "200 puff", "unit": "กล่อง", "par": 0}, {"name": "Betahistine", "strength": "6 mg", "unit": "เม็ด", "par": 20}, {"name": "Buscopan  syr.", "strength": "5 mg/5 ml", "unit": "ขวด", "par": 3}, {"name": "Buscopan inj.", "strength": "20 mg/ml", "unit": "amp", "par": 5}, {"name": "CPM", "strength": "4 mg", "unit": "เม็ด", "par": 40}, {"name": "CPM  inj.", "strength": "10mg/1ml", "unit": "amp", "par": 5}, {"name": "CPM  syr.", "strength": "2 mg/5 ml", "unit": "ขวด", "par": 3}, {"name": "Calamine lotion", "strength": "60ml", "unit": "ขวด", "par": 3}, {"name": "Captopril", "strength": "25 mg", "unit": "เม็ด", "par": 10}, {"name": "Cefazolin  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Ceftazidime  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Ceftriaxone  inj.", "strength": "1 g", "unit": "vial", "par": 10}, {"name": "Chloram Oph", "strength": "10ml", "unit": "ขวด", "par": 2}, {"name": "Cloxacillin  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Co-trimoxazole susp.", "strength": "200/40mg/5ml", "unit": "ขวด", "par": 2}, {"name": "Dexamethasone  inj.", "strength": "4mg/1ml", "unit": "amp", "par": 8}, {"name": "Dextromethorphan", "strength": "5 mg", "unit": "เม็ด", "par": 20}, {"name": "Diazepam  inj.", "strength": "10mg/2ml", "unit": "amp", "par": 10}, {"name": "Diclofenac", "strength": "75 mg", "unit": "เม็ด", "par": 20}, {"name": "Dicloxacillin", "strength": "250 mg", "unit": "เม็ด", "par": 80}, {"name": "Dimenhydrinate", "strength": "50 mg", "unit": "เม็ด", "par": 40}, {"name": "Dimenhydrinate  inj.", "strength": "50mg/1ml", "unit": "amp", "par": 5}, {"name": "Domperidone", "strength": "10 mg", "unit": "เม็ด", "par": 40}, {"name": "Domperidone susp.", "strength": "5mg/5ml", "unit": "ขวด", "par": 3}, {"name": "Drotaverine", "strength": "40 mg", "unit": "เม็ด", "par": 60}, {"name": "Ergotamine", "strength": "100 mg", "unit": "เม็ด", "par": 0}, {"name": "Furosemide inj.", "strength": "20mg/2ml", "unit": "amp", "par": 6}, {"name": "Glycerin chil suppositories", "strength": "1.5gm", "unit": "แท่ง", "par": 12}, {"name": "Glyceryl guaiacolate", "strength": "100 mg", "unit": "เม็ด", "par": 60}, {"name": "Guaifenesin syr.", "strength": "100mg/5ml", "unit": "ขวด", "par": 3}, {"name": "Haloperidol  inj.", "strength": "5mg/1ml", "unit": "amp", "par": 2}, {"name": "Hista Oph", "strength": "10ml", "unit": "ขวด", "par": 3}, {"name": "Hydralazine", "strength": "25 mg", "unit": "เม็ด", "par": 10}, {"name": "Hydroxyzine", "strength": "10 mg", "unit": "เม็ด", "par": 0}, {"name": "Ibuprofen", "strength": "400 mg", "unit": "เม็ด", "par": 40}, {"name": "Ibuprofen syr.", "strength": "100 mg/5 ml", "unit": "ขวด", "par": 2}, {"name": "KCl elixir", "strength": "30 ml", "unit": "ขวด", "par": 6}, {"name": "Lactolose", "strength": "100ml", "unit": "ขวด", "par": 0}, {"name": "Lorazepam", "strength": "1 mg", "unit": "เม็ด", "par": 40}, {"name": "M.carminative", "strength": "180 ml", "unit": "ขวด", "par": 40}, {"name": "Metronidazole  inj.", "strength": "500mg/100ml", "unit": "ขวด", "par": 2}, {"name": "Morphine inj.", "strength": "10mg/1ml", "unit": "amp", "par": 3}, {"name": "Norfloxacin", "strength": "400 mg", "unit": "เม็ด", "par": 20}, {"name": "ORS ผู้ใหญ่", "strength": "", "unit": "ซอง", "par": 20}, {"name": "ORS เด็ก", "strength": "", "unit": "ซอง", "par": 20}, {"name": "Omeprazole", "strength": "20 mg", "unit": "เม็ด", "par": 40}, {"name": "Omeprazole  inj.", "strength": "40mg/10ml", "unit": "vial", "par": 4}, {"name": "Paracetamol", "strength": "325 mg", "unit": "เม็ด", "par": 60}, {"name": "Paracetamol", "strength": "500 mg", "unit": "เม็ด", "par": 100}, {"name": "Paracetamol syr.", "strength": "120mg/5 ml", "unit": "ขวด", "par": 5}, {"name": "Paranic", "strength": "450/35mg", "unit": "เม็ด", "par": 40}, {"name": "Pethidine inj.", "strength": "50mg /1ml", "unit": "amp", "par": 3}, {"name": "Plasil inj.", "strength": "10mg/2ml", "unit": "amp", "par": 2}, {"name": "Poly Oph", "strength": "5ml", "unit": "ขวด", "par": 2}, {"name": "Potassium chloride inj.", "strength": "20mEq/10ml", "unit": "amp", "par": 6}, {"name": "Prednisolone", "strength": "5 mg", "unit": "เม็ด", "par": 80}, {"name": "Propranolol", "strength": "10 mg", "unit": "เม็ด", "par": 20}, {"name": "Roxithromycin", "strength": "150 mg", "unit": "เม็ด", "par": 20}, {"name": "Salbutamol", "strength": "2 mg", "unit": "เม็ด", "par": 0}, {"name": "Sodiumbicarbonateหยอดหู", "strength": "15ml", "unit": "ขวด", "par": 10}, {"name": "Special mouth wash", "strength": "180 ml", "unit": "ขวด", "par": 0}, {"name": "Tramadol", "strength": "50 mg", "unit": "เม็ด", "par": 60}, {"name": "Tramadol inj.", "strength": "50mg/1ml", "unit": "amp", "par": 5}, {"name": "Unison", "strength": "100ml", "unit": "ลูก", "par": 2}, {"name": "Vit Bco", "strength": "", "unit": "เม็ด", "par": 0}, {"name": "Vit K", "strength": "1 mg/0.5ml", "unit": "amp", "par": 10}, {"name": "VitB1-6-12", "strength": "", "unit": "เม็ด", "par": 0}, {"name": "Vitamin C", "strength": "100 mg", "unit": "เม็ด", "par": 20}, {"name": "ยาธาตุผสมอบเชย", "strength": "120 ml", "unit": "ขวด", "par": 3}, {"name": "ยาอมมะแว้ง", "strength": "200 mg", "unit": "เม็ด", "par": 80}, {"name": "ยาแก้ไอมะขามป้อม", "strength": "60 ml", "unit": "ขวด", "par": 3}];
+
+function displayName(d){ return d.strength ? `${d.name} ${d.strength}` : d.name; }
+function findDrugByDisplay(name){
+  return DRUG_MASTER.find(d => displayName(d) === name);
+}
+
+let refillEntries = [];
+let draftRows = [];
+let rfPeriod = 'day';
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function updateClock(){
+  const now=new Date();
+  const h=now.getHours(); const isOpen = h>=8 && h<22;
+  document.getElementById('tl-now').textContent =
+    now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) + (isOpen? ' · ห้องยาเปิด':' · ห้องยาปิด (ใช้ ER stock)');
+}
+updateClock(); setInterval(updateClock,30000);
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function downloadCsv(csv, filename){
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------- backend helpers (Google Apps Script Web App via fetch) ----------
+// URL นี้ใช้ร่วมกับระบบ "ทบทวน DRP" — มาจากการ Deploy Code.gs ตัวเดียวกัน (แผ่นชีตเดียวกัน คนละแท็บ)
+const API_URL = 'PASTE_OFFHOURS_APPS_SCRIPT_URL_HERE';
+
+async function apiCall(action, payload){
+  const res = await fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action, ...payload})
+  });
+  return res.json();
+}
+async function loadAll(){
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'unknown');
+    refillEntries = data.refillEntries || [];
+  }catch(e){
+    showToast('โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
+    refillEntries = [];
+  }
+}
+async function saveRefillEntry(entry){
+  try{
+    const res = await apiCall('addRefill', {entry});
+    return !!res.ok;
+  }catch(e){
+    showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+    return false;
+  }
+}
+async function deleteRefillEntry(id){
+  try{
+    const res = await apiCall('deleteRefill', {id});
+    return !!res.ok;
+  }catch(e){
+    showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
+    return false;
+  }
+}
+
+// ---------- date range helpers ----------
+function rangeFor(period, customStart, customEnd){
+  const now = new Date();
+  let start, end;
+  if(period==='day'){ start = todayStr(); end = todayStr(); }
+  else if(period==='week'){
+    const d = new Date(now);
+    const day = d.getDay(); const diff = (day===0?6:day-1);
+    d.setDate(d.getDate()-diff);
+    start = d.toISOString().slice(0,10); end = todayStr();
+  } else if(period==='month'){
+    start = now.toISOString().slice(0,7)+'-01'; end = todayStr();
+  } else {
+    start = customStart || todayStr(); end = customEnd || todayStr();
+  }
+  return {start,end};
+}
+function inRange(dateStr, start, end){ return dateStr >= start && dateStr <= end; }
+
+// ---------- DRUG LIST UI ----------
+function renderDrugDatalist(){
+  const dl = document.getElementById('drug-datalist');
+  dl.innerHTML = DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}">`).join('');
+  const filt = document.getElementById('rf-drug-filter');
+  const cur = filt.value;
+  filt.innerHTML = '<option value="">ทุกรายการ</option>' + DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}">${escapeHtml(displayName(d))}</option>`).join('');
+  filt.value = cur;
+}
+
+// ---------- REFILL FORM (multi-drug prescription) ----------
+document.getElementById('rf-date').value = todayStr();
+
+document.getElementById('rf-nurse-select').addEventListener('change', (e)=>{
+  document.getElementById('rf-nurse-other').style.display = e.target.value==='__other__' ? 'block' : 'none';
+});
+
+function newDraftRow(){
+  return { key: uid(), drug:'', unit:'เม็ด', total:'', used:'' };
+}
+draftRows = [newDraftRow()];
+
+function computeRemaining(row){
+  const total = parseFloat(row.total);
+  const used = parseFloat(row.used);
+  if(isNaN(total) || isNaN(used)) return null;
+  return total - used;
+}
+
+function renderDraftRows(){
+  const wrap = document.getElementById('rf-drug-rows');
+  wrap.innerHTML = draftRows.map((row, i)=>{
+    const rem = computeRemaining(row);
+    const remDisplay = rem===null ? '' : rem;
+    const match = findDrugByDisplay((row.drug||'').trim());
+    const hint = match ? `หน่วย: ${match.unit||'-'} · จำนวนทั้งหมด (Par) มาตรฐาน: ${match.par||'-'}` : '';
+    return `
+    <div class="drug-row" data-key="${row.key}">
+      <div class="drug-row-num">รายการยาที่ ${i+1}</div>
+      <div class="drug-row-grid">
+        <div>
+          <label>ชื่อยา</label>
+          <input type="text" class="dr-drug" list="drug-datalist" autocomplete="off" value="${escapeHtml(row.drug)}" placeholder="พิมพ์หรือเลือกชื่อยา">
+        </div>
+        <div>
+          <label>หน่วย</label>
+          <select class="dr-unit">
+            ${['เม็ด','แคปซูล','ml','vial','amp','ซอง','หลอด','ขวด','ตลับ','แท่ง','กล่อง','NB','ลูก','อื่นๆ'].map(u=>`<option ${u===row.unit?'selected':''}>${u}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>ทั้งหมด (Par)</label>
+          <input type="number" class="dr-total" min="0" step="1" autocomplete="off" value="${escapeHtml(row.total)}" placeholder="100">
+        </div>
+        <div>
+          <label>ใช้จริง</label>
+          <input type="number" class="dr-used" min="0" step="0.5" autocomplete="off" value="${escapeHtml(row.used)}" placeholder="10">
+        </div>
+        <div>
+          <label>คงเหลือ</label>
+          <input type="text" class="dr-remaining" disabled value="${remDisplay}">
+        </div>
+        <div class="drug-row-actions">
+          <button type="button" class="row-icon-btn add" title="เพิ่มยาอีกรายการ">+</button>
+          ${draftRows.length>1 ? '<button type="button" class="row-icon-btn remove" title="ลบรายการนี้">×</button>' : ''}
+        </div>
+      </div>
+      ${hint ? `<div class="drug-hint">${hint} — แก้ไขได้ถ้าจำนวนวันนี้ไม่เท่าเดิม</div>` : ''}
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('.drug-row').forEach(rowEl=>{
+    const key = rowEl.dataset.key;
+    const row = draftRows.find(r=>r.key===key);
+
+    rowEl.querySelector('.dr-drug').addEventListener('input', (e)=>{
+      row.drug = e.target.value;
+      const match = findDrugByDisplay(row.drug.trim());
+      if(match){ row.unit = match.unit || 'เม็ด'; row.total = match.par || ''; }
+      renderDraftRows();
+      // restore focus to the same field after re-render
+      const idx = draftRows.indexOf(row);
+      const inputs = document.querySelectorAll('.dr-drug');
+      if(inputs[idx]){ inputs[idx].focus(); inputs[idx].setSelectionRange(inputs[idx].value.length, inputs[idx].value.length); }
+    });
+    rowEl.querySelector('.dr-unit').addEventListener('change', (e)=>{ row.unit = e.target.value; });
+    rowEl.querySelector('.dr-total').addEventListener('input', (e)=>{
+      row.total = e.target.value;
+      const rem = computeRemaining(row);
+      rowEl.querySelector('.dr-remaining').value = rem===null ? '' : rem;
+      rowEl.querySelector('.dr-remaining').classList.toggle('neg', rem!==null && rem<0);
+    });
+    rowEl.querySelector('.dr-used').addEventListener('input', (e)=>{
+      row.used = e.target.value;
+      const rem = computeRemaining(row);
+      rowEl.querySelector('.dr-remaining').value = rem===null ? '' : rem;
+      rowEl.querySelector('.dr-remaining').classList.toggle('neg', rem!==null && rem<0);
+    });
+    rowEl.querySelector('.add').addEventListener('click', ()=>{
+      const idx = draftRows.indexOf(row);
+      draftRows.splice(idx+1, 0, newDraftRow());
+      renderDraftRows();
+    });
+    const removeBtn = rowEl.querySelector('.remove');
+    if(removeBtn){
+      removeBtn.addEventListener('click', ()=>{
+        draftRows = draftRows.filter(r=>r.key!==key);
+        renderDraftRows();
+      });
+    }
+  });
+}
+renderDraftRows();
+
+document.getElementById('rf-add-btn').addEventListener('click', async ()=>{
+  const date = document.getElementById('rf-date').value || todayStr();
+  const nurseSelect = document.getElementById('rf-nurse-select').value;
+  const nurse = nurseSelect==='__other__' ? document.getElementById('rf-nurse-other').value.trim() : nurseSelect;
+  const note = document.getElementById('rf-note').value.trim();
+  const statusEl = document.getElementById('rf-status');
+
+  if(!nurse){
+    showToast('กรุณาเลือกหรือระบุผู้บันทึก');
+    return;
+  }
+  const validRows = draftRows.filter(r => r.drug.trim() && !isNaN(parseFloat(r.used)) && parseFloat(r.used)>=0);
+  if(validRows.length===0){
+    showToast('กรุณากรอกชื่อยาและจำนวนใช้จริงอย่างน้อย 1 รายการ');
+    return;
+  }
+
+  const visitId = uid();
+  const entries = validRows.map(r=>{
+    const total = parseFloat(r.total);
+    const used = parseFloat(r.used);
+    const remaining = isNaN(total) ? null : (total - used);
+    return {
+      id: uid(), date, drug: r.drug.trim(), unit: r.unit,
+      total: isNaN(total)?null:total, used, remaining,
+      nurse, note, createdAt: Date.now(), visitId
+    };
+  });
+
+  statusEl.textContent = `กำลังบันทึก... (0/${entries.length})`;
+  let savedCount = 0;
+  for(const entry of entries){
+    const ok = await saveRefillEntry(entry);
+    if(!ok){
+      statusEl.textContent = '';
+      showToast(`บันทึกสำเร็จ ${savedCount}/${entries.length} รายการ — รายการที่เหลือลองกด "ส่งข้อมูล" อีกครั้ง`);
+      refillEntries.push(...entries.slice(0, savedCount));
+      renderNurseFilter();
+      renderRefillReport();
+      return;
+    }
+    savedCount++;
+    statusEl.textContent = `กำลังบันทึก... (${savedCount}/${entries.length})`;
+  }
+  statusEl.textContent = '';
+  refillEntries.push(...entries);
+  draftRows = [newDraftRow()];
+  renderDraftRows();
+  document.getElementById('rf-note').value='';
+  showToast(`บันทึกใบสั่งยาเรียบร้อย (${entries.length} รายการยา)`);
+  renderNurseFilter();
+  renderRefillReport();
+});
+
+document.querySelectorAll('#rf-period-chips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#rf-period-chips .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    rfPeriod = chip.dataset.period;
+    document.getElementById('rf-custom-range').style.display = rfPeriod==='custom' ? 'flex':'none';
+    renderRefillReport();
+  });
+});
+document.getElementById('rf-range-start').addEventListener('change', renderRefillReport);
+document.getElementById('rf-range-end').addEventListener('change', renderRefillReport);
+const STAFF_LIST = ['คุณโชติวัฒน์ แก้วกลางเมือง','คุณเกียรติคุณ อุ่นกันทะ','คุณภัทรียาพร คำมาปัน'];
+
+function renderNurseFilter(){
+  const filt = document.getElementById('rf-nurse-filter');
+  const cur = filt.value;
+  const names = new Set(STAFF_LIST);
+  refillEntries.forEach(e=>{ if(e.nurse) names.add(e.nurse); });
+  filt.innerHTML = '<option value="">ทุกคน</option>' + Array.from(names).map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  filt.value = cur;
+}
+document.getElementById('rf-nurse-filter').addEventListener('change', renderRefillReport);
+document.getElementById('rf-drug-filter').addEventListener('change', renderRefillReport);
+
+document.getElementById('rf-export-btn').addEventListener('click', ()=>{
+  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
+  const drugFilter = document.getElementById('rf-drug-filter').value;
+  const nurseFilter = document.getElementById('rf-nurse-filter').value;
+  const rows = refillEntries.filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter));
+  let csv = 'วันที่,เลขที่ใบสั่งยา,ชื่อยา,หน่วย,จำนวนทั้งหมด,ใช้จริง,คงเหลือ,ผู้บันทึก,หมายเหตุ\n';
+  rows.forEach(e=>{
+    csv += `${e.date},"${e.visitId||e.id}","${e.drug}",${e.unit},${e.total ?? ''},${e.used},${e.remaining ?? ''},"${e.nurse}","${e.note}"\n`;
+  });
+  downloadCsv(csv, `er_stock_refill_${start}_to_${end}.csv`);
+});
+
+document.getElementById('rf-export-xlsx-btn').addEventListener('click', ()=>{
+  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
+  const drugFilter = document.getElementById('rf-drug-filter').value;
+  const nurseFilter = document.getElementById('rf-nurse-filter').value;
+  const rows = refillEntries
+    .filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter))
+    .sort((a,b)=> a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
+  const header = ['วันที่','เลขที่ใบสั่งยา','ชื่อยา','หน่วย','จำนวนทั้งหมด','ใช้จริง','คงเหลือ','ผู้บันทึก','หมายเหตุ'];
+  const aoa = [header, ...rows.map(e=>[e.date, e.visitId||e.id, e.drug, e.unit, e.total ?? '', e.used, e.remaining ?? '', e.nurse, e.note])];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:11},{wch:16},{wch:28},{wch:8},{wch:10},{wch:9},{wch:9},{wch:24},{wch:30}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ER Stock Refill');
+  XLSX.writeFile(wb, `er_stock_refill_${start}_to_${end}.xlsx`);
+});
+
+async function deleteRefill(id){
+  refillEntries = refillEntries.filter(e=>e.id!==id);
+  await deleteRefillEntry(id);
+  renderRefillReport();
+  showToast('ลบรายการแล้ว');
+}
+
+function renderRefillReport(){
+  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
+  const drugFilter = document.getElementById('rf-drug-filter').value;
+  const nurseFilter = document.getElementById('rf-nurse-filter').value;
+  const rows = refillEntries
+    .filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter))
+    .sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+
+  const totalUsed = rows.reduce((s,e)=>s+e.used,0);
+  const uniqueDrugs = new Set(rows.map(e=>e.drug)).size;
+  const entryCount = rows.length;
+
+  const totalPatients = new Set(rows.map(e=>e.visitId || e.id)).size;
+  const rate = totalPatients ? (totalUsed/totalPatients).toFixed(1) : '-';
+
+  document.getElementById('rf-stats').innerHTML = `
+    <div class="stat"><div class="num">${entryCount}</div><div class="lbl">รายการยาที่บันทึก</div></div>
+    <div class="stat"><div class="num">${totalUsed}</div><div class="lbl">จำนวนหน่วยยาที่ใช้จริงรวม</div></div>
+    <div class="stat"><div class="num">${uniqueDrugs}</div><div class="lbl">ชนิดยาที่ถูกใช้</div></div>
+    <div class="stat"><div class="num">${totalPatients}</div><div class="lbl">จำนวนใบสั่งยา (ผู้ป่วย)</div></div>
+    <div class="stat"><div class="num">${rate}</div><div class="lbl">อัตราใช้ยาเฉลี่ย/ผู้ป่วย (หน่วย)</div></div>
+  `;
+
+  const byDrug = {};
+  rows.forEach(e=>{ byDrug[e.drug] = (byDrug[e.drug]||0) + e.used; });
+  const sorted = Object.entries(byDrug).sort((a,b)=>b[1]-a[1]);
+  const maxVal = sorted.length? sorted[0][1] : 1;
+  document.getElementById('rf-bars').innerHTML = sorted.length ? sorted.map(([d,v])=>`
+    <div class="bar-row">
+      <div class="bar-name" title="${escapeHtml(d)}">${escapeHtml(d)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxVal*100).toFixed(0)}%"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`).join('') : '<div class="empty">ไม่มีข้อมูล</div>';
+
+  const byNurse = {};
+  rows.forEach(e=>{ const n = e.nurse || 'ไม่ระบุ'; byNurse[n] = (byNurse[n]||0) + 1; });
+  const nurseSorted = Object.entries(byNurse).sort((a,b)=>b[1]-a[1]);
+  const maxNurse = nurseSorted.length? nurseSorted[0][1] : 1;
+  document.getElementById('rf-nurse-bars').innerHTML = nurseSorted.length ? nurseSorted.map(([n,v])=>`
+    <div class="bar-row">
+      <div class="bar-name" title="${escapeHtml(n)}">${escapeHtml(n)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxNurse*100).toFixed(0)}%"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`).join('') : '<div class="empty">ไม่มีข้อมูล</div>';
+
+  const tbody = document.getElementById('rf-table-body');
+  document.getElementById('rf-empty').style.display = rows.length? 'none':'block';
+  tbody.innerHTML = rows.map(e=>`
+    <tr>
+      <td>${e.date}</td><td title="${escapeHtml(e.visitId||e.id)}">${escapeHtml((e.visitId||e.id).slice(-6))}</td>
+      <td>${escapeHtml(e.drug)}</td><td>${escapeHtml(e.unit)}</td>
+      <td>${e.total ?? '-'}</td><td>${e.used}</td>
+      <td class="${(e.remaining!==null && e.remaining<0)?'neg':''}">${e.remaining ?? '-'}</td>
+      <td>${escapeHtml(e.nurse||'-')}</td><td>${escapeHtml(e.note||'-')}</td>
+      <td><button class="del-btn" data-id="${e.id}">ลบ</button></td>
+    </tr>`).join('');
+  tbody.querySelectorAll('.del-btn').forEach(b=>{
+    b.addEventListener('click', ()=>deleteRefill(b.dataset.id));
+  });
+}
+
+// ---------- INIT ----------
+(async function init(){
+  document.getElementById('rf-status').textContent = 'กำลังโหลดข้อมูล...';
+  renderDrugDatalist();
+  await loadAll();
+  renderNurseFilter();
+  renderRefillReport();
+  document.getElementById('rf-status').textContent = '';
+})();
+</script>
+</body>
+</html>
