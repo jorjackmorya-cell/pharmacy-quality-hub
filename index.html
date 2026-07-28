@@ -58,6 +58,12 @@
   .card.pending{opacity:.7;}
   .card.pending::before{background:var(--ink-faint);}
 
+  .mini-stats{font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:10px; margin:0 0 16px; background:var(--accent-tint); color:var(--accent); display:flex; align-items:center; gap:6px;}
+  .mini-stats b{font-size:14px;}
+  .mini-stats.loading{color:var(--ink-faint); background:var(--gray-tint); font-weight:500;}
+  .mini-stats.urgent{background:#FCEBEB; color:#A32D2D;}
+  .mini-stats.ok{background:#EAF3DE; color:#3B6D11;}
+
   .new-card{border:1.5px dashed var(--line); box-shadow:none; align-items:center; justify-content:center; text-align:center; min-height:200px;}
   .new-card::before{display:none;}
   .new-card .card-body{align-items:center; justify-content:center; text-align:center;}
@@ -89,6 +95,7 @@
         <div class="card-icon"><i class="ti ti-clipboard-check"></i></div>
         <h3>ทบทวน DRP / Med Error นอกเวลา</h3>
         <p>สำหรับเภสัชกรทบทวนความถูกต้องของใบสั่งยาที่จ่ายในช่วงห้องยาปิด บันทึกประเภทและความรุนแรงตาม NCC MERP</p>
+        <div class="mini-stats loading" id="drpStats">กำลังโหลดสถิติวันนี้...</div>
         <div class="card-foot">
           <span class="badge">พร้อมใช้งาน</span>
           <span class="since">เริ่มใช้งาน ก.ค. 2569</span>
@@ -102,6 +109,7 @@
         <div class="card-icon"><i class="ti ti-heart-rate-monitor"></i></div>
         <h3>ติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</h3>
         <p>บันทึกและติดตามผู้ป่วยที่ได้รับยา Cytisine ผ่านการโทร Day 5 และ Day 25 พร้อมระบบแจ้งเตือนและรายงาน</p>
+        <div class="mini-stats loading" id="cytisineStats">กำลังโหลดสถิติวันนี้...</div>
         <div class="card-foot">
           <span class="badge">พร้อมใช้งาน</span>
           <span class="since">เริ่มใช้งาน ก.ค. 2569</span>
@@ -115,6 +123,7 @@
         <div class="card-icon"><i class="ti ti-first-aid-kit"></i></div>
         <h3>บันทึกเติมยา ER Stock นอกเวลา</h3>
         <p>สำหรับเจ้าหน้าที่ห้องยาบันทึกการเติมยาใน ER Stock ช่วงห้องยาปิดทำการ ข้อมูลกลางใช้ร่วมกันทั้งทีม</p>
+        <div class="mini-stats loading" id="stockStats">กำลังโหลดสถิติวันนี้...</div>
         <div class="card-foot">
           <span class="badge">พร้อมใช้งาน</span>
           <span class="since">เริ่มใช้งาน ก.ค. 2569</span>
@@ -152,6 +161,61 @@
   }
   if(auth) renderWhoami(auth.name);
   document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
+
+  // ---------- Live mini-dashboard on each card ----------
+  const OFFHOURS_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
+  const CYTISINE_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
+
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function isDue(dateStr){
+    const t = new Date(); t.setHours(0,0,0,0);
+    const d = new Date(dateStr); d.setHours(0,0,0,0);
+    return d <= t;
+  }
+  function setStat(id, cls, html){
+    const el = document.getElementById(id);
+    el.className = 'mini-stats' + (cls ? ' '+cls : '');
+    el.innerHTML = html;
+  }
+
+  function renderDrpStats(entries){
+    const today = todayStr();
+    const todays = entries.filter(e => e.date === today);
+    const seen = new Set();
+    let totalRx = 0;
+    todays.forEach(e => { if(!seen.has(e.reviewId)){ seen.add(e.reviewId); totalRx += Number(e.total)||0; } });
+    const drpCount = todays.filter(e => e.type !== 'none').length;
+    setStat('drpStats', '', `<i class="ti ti-clipboard-check"></i> วันนี้ทบทวน <b>${totalRx}</b> ใบสั่งยา · พบ DRP <b>${drpCount}</b> เหตุการณ์`);
+  }
+  function renderStockStats(entries){
+    const today = todayStr();
+    const count = entries.filter(e => e.date === today).length;
+    setStat('stockStats', '', `<i class="ti ti-first-aid-kit"></i> วันนี้เติมยา <b>${count}</b> รายการ`);
+  }
+  function renderCytisineStats(patients){
+    let pending = 0;
+    patients.forEach(p => {
+      if(p.caseStatus !== 'active') return;
+      if(!p.day5.status && isDue(p.day5Date)) pending++;
+      else if(p.day5.decision === 'continue' && !p.day25.status && isDue(p.day25Date)) pending++;
+    });
+    if(pending > 0) setStat('cytisineStats', 'urgent', `<i class="ti ti-alert-triangle"></i> ต้องติดตามวันนี้ <b>${pending}</b> ราย`);
+    else setStat('cytisineStats', 'ok', `<i class="ti ti-circle-check"></i> ติดตามครบทุกเคสวันนี้`);
+  }
+
+  fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
+    renderDrpStats(data.drpEntries || []);
+    renderStockStats(data.refillEntries || []);
+  }).catch(()=>{
+    setStat('drpStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    setStat('stockStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+  });
+
+  fetch(CYTISINE_API_URL).then(r=>r.json()).then(data=>{
+    renderCytisineStats(data.patients || []);
+  }).catch(()=>{
+    setStat('cytisineStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+  });
 </script>
 </body>
 </html>
