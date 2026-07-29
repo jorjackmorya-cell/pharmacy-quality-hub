@@ -7,11 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
     --blue:#185FA5; --blue-dark:#0C447C; --blue-tint:#E6F1FB;
     --amber:#BA7517; --amber-tint:#FAEEDA;
+    --purple:#6B46C1; --purple-tint:#EFE9FB;
     --red:#A32D2D; --red-tint:#FCEBEB;
     --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
     --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
@@ -27,7 +29,7 @@
   .conn-label{font-size:12px; color:var(--ink-soft); display:flex; align-items:center;}
   .conn-dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px;}
   .conn-ok{background:#3B6D11;} .conn-bad{background:var(--red);} .conn-none{background:var(--ink-faint);}
-  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; margin-bottom:20px;}
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; margin-bottom:20px; flex-wrap:wrap;}
   .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer;}
   .tab-btn.active{background:var(--blue); color:#fff;}
   .panel{display:none;} .panel.active{display:block;}
@@ -37,10 +39,15 @@
   .field{margin-bottom:14px;}
   .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
   .field input, .field select, .field textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
+  .checkbox-row{display:flex; align-items:flex-start; gap:10px; background:var(--purple-tint); border-radius:10px; padding:12px 14px; margin-bottom:16px;}
+  .checkbox-row input{margin-top:3px;}
+  .checkbox-row label{font-size:13px; color:var(--purple); font-weight:500; line-height:1.5;}
   .btn{border:none; border-radius:10px; padding:11px 18px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
   .btn-primary{background:var(--blue); color:#fff;}
   .btn-outline{background:transparent; border:1px solid var(--line); color:var(--ink);}
   .btn-danger-outline{background:transparent; border:1px solid var(--red); color:var(--red);}
+  .btn-purple{background:var(--purple); color:#fff;}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
   .btn:disabled{opacity:.5; cursor:not-allowed;}
   .photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin-bottom:10px;}
   .photo-thumb{position:relative; aspect-ratio:1; border-radius:9px; overflow:hidden; background:var(--gray-tint);}
@@ -54,9 +61,11 @@
   .filter-chip{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 14px; font-size:13px; font-family:inherit; color:var(--ink-soft); cursor:pointer;}
   .filter-chip.active{background:var(--ink); color:#fff; border-color:var(--ink);}
   .prow{background:var(--amber-tint); border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom:8px;}
+  .prow.ward{background:var(--purple-tint);}
   .prow.returned{background:var(--card); border:1px solid var(--line); opacity:.65;}
   .prow p{margin:0;} .prow .name{font-weight:600; font-size:14px; color:var(--ink);}
   .prow .meta{font-size:12px; color:var(--amber); margin-top:2px;}
+  .prow.ward .meta{color:var(--purple);}
   .prow.returned .meta{color:var(--ink-faint);}
   .stat-strip{display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
   .stat-box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px;}
@@ -67,13 +76,22 @@
   .detail-head{background:var(--card); padding:20px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; display:flex; justify-content:space-between; align-items:flex-start; border-radius:18px 18px 0 0;}
   .close-x{border:none; background:var(--gray-tint); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px;}
   .stage{margin:18px 24px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px;}
+  .stage-title-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
   .subtle-label{font-size:12px; color:var(--ink-soft); font-weight:600; margin:4px 0 8px;}
   .btn-group{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
   .opt-btn{border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:9px; font-family:inherit; font-size:13px; cursor:pointer; text-align:left;}
   .opt-btn.sel{background:var(--blue-tint); border-color:var(--blue); color:var(--blue-dark); font-weight:600;}
   .warn-box{background:var(--amber-tint); border-radius:10px; padding:12px 14px; margin-bottom:14px;}
   .warn-box textarea{width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-family:inherit; font-size:13px; margin-top:6px;}
+  .purple-box{background:var(--purple-tint); border-radius:10px; padding:14px; margin-bottom:6px;}
+  .purple-box p{margin:0 0 10px; font-size:13px; color:var(--purple);}
+  .err-card{border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:10px; background:#fff; position:relative;}
+  .err-card .rm-err{position:absolute; top:10px; right:10px; background:var(--gray-tint); border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:13px;}
   .empty{background:var(--card); border:1px dashed var(--line); border-radius:var(--radius); padding:40px 20px; text-align:center; color:var(--ink-soft);}
+  .range-btns{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .report-table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; border:1px solid var(--line); font-size:13px;}
+  .report-table th{text-align:left; font-size:11.5px; color:var(--ink-soft); background:var(--gray-tint); padding:9px 10px;}
+  .report-table td{padding:9px 10px; border-top:1px solid var(--line);}
   @media (max-width:600px){ .grid2{grid-template-columns:1fr;} }
 </style>
 </head>
@@ -96,18 +114,20 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="dash">รายชื่อผู้ป่วย</button>
     <button class="tab-btn" data-tab="intake">+ รับยาเดิมผู้ป่วยใหม่</button>
+    <button class="tab-btn" data-tab="report">รายงาน</button>
   </div>
 
   <div class="panel active" id="panel-dash">
     <div class="stat-strip">
       <div class="stat-box"><div class="num" id="statHolding">-</div><div class="lbl">ยังฝากยาไว้วันนี้</div></div>
+      <div class="stat-box"><div class="num" id="statWard">-</div><div class="lbl">ยาอยู่ที่ ward</div></div>
       <div class="stat-box"><div class="num" id="statReturned">-</div><div class="lbl">คืนยาแล้วทั้งหมด</div></div>
     </div>
     <div class="toolbar">
       <div class="search"><i class="ti ti-search"></i><input id="searchBox" placeholder="ค้นหาด้วยชื่อหรือ HN..."></div>
-      <button class="filter-chip active" data-filter="holding">ยังไม่คืนยา</button>
+      <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
+      <button class="filter-chip" data-filter="holding">ยังไม่คืนยา</button>
       <button class="filter-chip" data-filter="returned">คืนยาแล้ว</button>
-      <button class="filter-chip" data-filter="all">ทั้งหมด</button>
     </div>
     <div id="listWrap"></div>
   </div>
@@ -127,15 +147,42 @@
       <div class="field"><label>วันเวลารับยาเดิม</label><input type="datetime-local" id="f-intakeDT"></div>
       <div class="grid2">
         <div class="field"><label>จำนวนรายการยาที่รับ</label><input type="number" id="f-itemCount" min="0" placeholder="เช่น 5"></div>
-        <div class="field"><label>ระบุชื่อยา (ถ้าต้องการ ไม่บังคับ)</label><input type="text" id="f-itemsNote" placeholder="เช่น Amlodipine, Metformin"></div>
+        <div class="field"><label>ระบุชื่อยา หรือข้อความที่ต้องการสื่อสาร (ถ้าต้องการ ไม่บังคับ)</label><input type="text" id="f-itemsNote" placeholder="เช่น Amlodipine, Metformin หรือข้อความอื่นๆ"></div>
       </div>
-      <div class="subtle-label">รูปถ่ายยา (ไม่จำกัดจำนวน)</div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="f-wardHeld">
+        <label for="f-wardHeld">ยาอยู่ที่ ward — เภสัชกรรับยาเดิมมาแล้วแต่ยังถือยาอยู่ ยังไม่ได้นำมาเก็บที่ห้องยา</label>
+      </div>
+      <div class="subtle-label">รูปถ่ายยา</div>
       <div class="photo-grid" id="intakePhotoGrid">
         <div class="camera-btn" onclick="document.getElementById('intakeCameraInput').click()"><i class="ti ti-camera"></i></div>
       </div>
-      <input type="file" id="intakeCameraInput" accept="image/*" capture="environment" style="display:none;">
-      <div class="hint">กดไอคอนกล้องเพื่อเปิดกล้องถ่ายรูปได้ทันที กดซ้ำเพื่อถ่ายรูปเพิ่ม</div>
+      <input type="file" id="intakeCameraInput" accept="image/*" multiple style="display:none;">
+      <div class="hint">กดไอคอนกล้อง เลือกได้ทั้งถ่ายรูปสดหรือเลือกจากคลังรูปที่ถ่ายไว้ก่อนแล้ว</div>
       <button class="btn btn-primary" id="submitIntakeBtn"><i class="ti ti-send"></i> บันทึกรับยาเดิม</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-report">
+    <div class="form-card">
+      <h2>รายงานย้อนหลัง</h2>
+      <div class="range-btns">
+        <button class="filter-chip active" data-range="today">วันนี้</button>
+        <button class="filter-chip" data-range="week">7 วันล่าสุด</button>
+        <button class="filter-chip" data-range="month">เดือนนี้</button>
+        <button class="filter-chip" data-range="custom">กำหนดเอง</button>
+      </div>
+      <div class="grid2" id="customRangeFields" style="display:none;">
+        <div class="field"><label>ตั้งแต่วันที่</label><input type="date" id="rangeFrom"></div>
+        <div class="field"><label>ถึงวันที่</label><input type="date" id="rangeTo"></div>
+      </div>
+      <div class="stat-strip">
+        <div class="stat-box"><div class="num" id="rptTotal">-</div><div class="lbl">ผู้ป่วยในช่วงที่เลือก</div></div>
+        <div class="stat-box"><div class="num" id="rptReturned">-</div><div class="lbl">คืนยาแล้ว</div></div>
+        <div class="stat-box"><div class="num" id="rptErrors">-</div><div class="lbl">Medication Error ที่พบ</div></div>
+      </div>
+      <button class="btn btn-primary" id="exportBtn" style="margin-bottom:16px;"><i class="ti ti-file-spreadsheet"></i> ดาวน์โหลด Excel ของช่วงนี้</button>
+      <div style="overflow-x:auto;"><table class="report-table" id="reportTable"></table></div>
     </div>
   </div>
 
@@ -149,16 +196,22 @@ const WARDS = [];
 ['ชาย','หญิง','พิเศษ'].forEach(t=>{ for(let i=1;i<=10;i++) WARDS.push(t+' '+i); });
 const SOURCES = ['รพ.เชียงม่วน','PCU มาง','รพ.สต.ปิน','รพ.สต.ไชยสถาน','รพ.สต.สระ','รพ.สต.ท่าฟ้าใต้','รพ.สต.บ่อเบี้ย','รพ.พะเยา','รพ.เชียงคำ','อื่นๆ'];
 const RETURN_TYPES = ['คืนยาเดิมทั้งหมด','ปรับหรือหยุดยาบางรายการ','จัดยาใหม่และนัดใหม่','ปรับเพิ่ม/ลด/ปรับวิธีใช้บางรายการ','ผู้ป่วยเสียชีวิต','ผู้ป่วยรีเฟอร์','อื่นๆ'];
+const ERROR_TYPES = ['Prevented error (ตรวจพบและป้องกันได้ก่อนถึงผู้ป่วย)','Missing dose / Omission (ยาขาด ไม่ได้ให้ตามแผน)','Wrong drug (ผิดชนิดยา)','Wrong dose (ผิดขนาดยา)','Wrong time (ผิดเวลาให้ยา)','Wrong route (ผิดวิธีให้ยา)','Extra dose (ได้รับยาเกินแผน)','อื่นๆ'];
 
 let patients = [];
 let intakePhotos = [];
 let currentId = null;
 let dischargeReturnPhotos = [];
 let selectedReturnType = null;
+let editingIntake = false;
+let editingErrors = null;
 
 function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function fmtD(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}); }
 function nowLocalInput(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function todayDateInput(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
 function uid(){ return 'm_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function eid(){ return 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,5); }
 function setConn(state){
   const map={ok:['conn-ok','เชื่อมต่อแล้ว'],bad:['conn-bad','เชื่อมต่อไม่สำเร็จ'],none:['conn-none','ยังไม่เชื่อมต่อ']};
   const[cls,label]=map[state];
@@ -178,6 +231,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.classList.add('active');
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='report') renderReport();
   });
 });
 
@@ -192,8 +246,7 @@ function compressImage(file){
         const canvas = document.createElement('canvas');
         canvas.width = img.width*scale; canvas.height = img.height*scale;
         canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg',0.7);
-        resolve(dataUrl);
+        resolve(canvas.toDataURL('image/jpeg',0.7));
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -214,8 +267,10 @@ function renderPhotoGrid(gridId, arr, cameraInputId){
 }
 document.getElementById('intakeCameraInput').addEventListener('change', async e=>{
   if(!e.target.files.length) return;
-  const dataUrl = await compressImage(e.target.files[0]);
-  intakePhotos.push(dataUrl);
+  for(const file of e.target.files){
+    const dataUrl = await compressImage(file);
+    intakePhotos.push(dataUrl);
+  }
   renderPhotoGrid('intakePhotoGrid', intakePhotos, 'intakeCameraInput');
   e.target.value = '';
 });
@@ -249,16 +304,16 @@ async function loadPatients(){
   }
 }
 function renderAll(){
-  const holding = patients.filter(p=>p.caseStatus==='holding').length;
-  document.getElementById('statHolding').textContent = holding;
+  document.getElementById('statHolding').textContent = patients.filter(p=>p.caseStatus==='holding').length;
+  document.getElementById('statWard').textContent = patients.filter(p=>p.caseStatus==='holding' && p.location==='ward').length;
   document.getElementById('statReturned').textContent = patients.filter(p=>p.caseStatus==='returned').length;
   renderList();
 }
 
-let activeFilter = 'holding';
-document.querySelectorAll('.filter-chip').forEach(ch=>{
+let activeFilter = 'all';
+document.querySelectorAll('#panel-dash .filter-chip').forEach(ch=>{
   ch.addEventListener('click', ()=>{
-    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    document.querySelectorAll('#panel-dash .filter-chip').forEach(c=>c.classList.remove('active'));
     ch.classList.add('active'); activeFilter = ch.dataset.filter; renderList();
   });
 });
@@ -272,12 +327,16 @@ function renderList(){
   list = list.slice().sort((a,b)=> new Date(b.intakeDateTime) - new Date(a.intakeDateTime));
   const wrap = document.getElementById('listWrap');
   if(list.length===0){ wrap.innerHTML = '<div class="empty"><i class="ti ti-users"></i><br>ไม่พบผู้ป่วยในรายการนี้</div>'; return; }
-  wrap.innerHTML = list.map(p=>`
-    <div class="prow ${p.caseStatus==='returned'?'returned':''}" data-id="${p.id}">
+  wrap.innerHTML = list.map(p=>{
+    const cls = p.caseStatus==='returned' ? 'returned' : (p.location==='ward' ? 'ward' : '');
+    const statusText = p.caseStatus==='returned' ? ('คืนยา '+fmtDT(p.dischargeDateTime)) : (p.location==='ward' ? 'ยาอยู่ที่ ward' : 'ยังไม่คืน (ยาอยู่ห้องยา)');
+    return `
+    <div class="prow ${cls}" data-id="${p.id}">
       <p><span class="name">HN ${p.hn} · ${p.name}</span><br>
-      <span class="meta">${p.ward} · รับยาเดิม ${fmtDT(p.intakeDateTime)} ${p.caseStatus==='returned' ? '· คืนยา '+fmtDT(p.dischargeDateTime) : '· ยังไม่คืน'}</span></p>
+      <span class="meta">${p.ward} · รับยาเดิม ${fmtDT(p.intakeDateTime)} · ${statusText}</span></p>
       <i class="ti ti-chevron-right"></i>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   wrap.querySelectorAll('.prow').forEach(el=>el.addEventListener('click', ()=>openDetail(el.dataset.id)));
 }
 
@@ -297,11 +356,13 @@ document.getElementById('submitIntakeBtn').addEventListener('click', async ()=>{
     itemCount: document.getElementById('f-itemCount').value || '0',
     itemsNote: document.getElementById('f-itemsNote').value,
     receivedBy: auth ? auth.name : '',
+    location: document.getElementById('f-wardHeld').checked ? 'ward' : 'pharmacy',
     createdAt: Date.now()
   };
   try{
     await apiPost({ action:'saveIntake', patient, photos: intakePhotos.map(dataUrlToPart) });
     ['f-hn','f-name','f-itemCount','f-itemsNote','f-sourceOther'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-wardHeld').checked = false;
     intakePhotos = [];
     renderPhotoGrid('intakePhotoGrid', intakePhotos, 'intakeCameraInput');
     document.getElementById('f-intakeDT').value = nowLocalInput();
@@ -314,31 +375,101 @@ document.getElementById('submitIntakeBtn').addEventListener('click', async ()=>{
 });
 
 function openDetail(id){
-  currentId = id; dischargeReturnPhotos = []; selectedReturnType = null;
+  currentId = id; dischargeReturnPhotos = []; selectedReturnType = null; editingIntake = false;
+  const p0 = patients.find(x=>x.id===id);
+  editingErrors = p0 ? JSON.parse(JSON.stringify(p0.medErrors||[])) : [];
   renderDetail();
   document.getElementById('overlay').classList.add('active');
 }
 function closeDetail(){ document.getElementById('overlay').classList.remove('active'); currentId=null; }
 document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeDetail(); });
 
+function intakeInfoReadHtml(p){
+  const photosHtml = (p.photos||[]).map(id=>`<a href="https://drive.google.com/file/d/${id}/view" target="_blank"><img src="https://drive.google.com/thumbnail?id=${id}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;"></a>`).join('');
+  return `
+    <p style="font-size:13px;margin:0 0 4px;">หอผู้ป่วย: ${p.ward}</p>
+    <p style="font-size:13px;margin:0 0 4px;">แหล่งที่มา: ${p.source}${p.sourceOther?' ('+p.sourceOther+')':''}</p>
+    <p style="font-size:13px;margin:0 0 4px;">วันเวลารับยา: ${fmtDT(p.intakeDateTime)}</p>
+    <p style="font-size:13px;margin:0 0 4px;">จำนวนรายการยา: ${p.itemCount} รายการ ${p.itemsNote?'('+p.itemsNote+')':''}</p>
+    <p style="font-size:13px;margin:0 0 10px;">ผู้รับยา: ${p.receivedBy}</p>
+    ${photosHtml ? `<div class="photo-grid">${photosHtml}</div>` : '<p style="font-size:12px;color:var(--ink-faint);">ไม่มีรูปถ่าย</p>'}`;
+}
+function intakeInfoEditHtml(p){
+  return `
+    <div class="grid2">
+      <div class="field"><label>HN</label><input id="e-hn" value="${p.hn}"></div>
+      <div class="field"><label>ชื่อ-สกุล</label><input id="e-name" value="${p.name}"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>หอผู้ป่วย</label><select id="e-ward">${WARDS.map(w=>`<option ${w===p.ward?'selected':''}>${w}</option>`).join('')}</select></div>
+      <div class="field"><label>แหล่งที่มา</label><select id="e-source">${SOURCES.map(s=>`<option ${s===p.source?'selected':''}>${s}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>ระบุแหล่งที่มา (ถ้าเลือกอื่นๆ)</label><input id="e-sourceOther" value="${p.sourceOther||''}"></div>
+    <div class="field"><label>วันเวลารับยาเดิม</label><input type="datetime-local" id="e-intakeDT" value="${(p.intakeDateTime||'').slice(0,16)}"></div>
+    <div class="grid2">
+      <div class="field"><label>จำนวนรายการยา</label><input type="number" id="e-itemCount" value="${p.itemCount}"></div>
+      <div class="field"><label>ระบุชื่อยา/ข้อความ</label><input id="e-itemsNote" value="${p.itemsNote||''}"></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="saveIntakeEditBtn"><i class="ti ti-check"></i> บันทึกการแก้ไข</button>
+      <button class="btn btn-outline btn-sm" id="cancelIntakeEditBtn">ยกเลิก</button>
+    </div>`;
+}
+
+function errCardHtml(err, idx){
+  return `
+    <div class="err-card" data-idx="${idx}">
+      <button class="rm-err" data-idx="${idx}">✕</button>
+      <div class="field"><label>ประเภทของ Error</label>
+        <select class="err-type" data-idx="${idx}">${ERROR_TYPES.map(t=>`<option ${t===err.type?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>การแก้ไข</label><input class="err-fix" data-idx="${idx}" value="${err.fix||''}" placeholder="เช่น แจ้งแพทย์แก้ไขคำสั่งยาแล้ว"></div>
+      <div class="field" style="margin-bottom:0;"><label>รายละเอียด</label><textarea class="err-detail" data-idx="${idx}" rows="2">${err.detail||''}</textarea></div>
+    </div>`;
+}
+
 function renderDetail(){
   const p = patients.find(x=>x.id===currentId);
   if(!p) return;
   const box = document.getElementById('detailBox');
-  const photosHtml = (p.photos||[]).map(id=>`<a href="https://drive.google.com/file/d/${id}/view" target="_blank"><img src="https://drive.google.com/thumbnail?id=${id}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;"></a>`).join('');
+  const day = p.caseStatus;
+
+  let closedBanner = '';
+  if(day==='returned') closedBanner = `<div class="stage" style="background:var(--gray-tint);border:none;"><p style="margin:0;font-size:13px;font-weight:600;"><i class="ti ti-check"></i> คืนยาแล้ว — ปิดเคส</p></div>`;
+
   box.innerHTML = `
     <div class="detail-head">
       <div><h2 style="margin:0 0 4px;font-size:18px;">${p.name}</h2><div style="color:var(--ink-faint);font-size:12px;">HN ${p.hn} · ${p.ward}</div></div>
       <button class="close-x" id="closeDetailBtn"><i class="ti ti-x"></i></button>
     </div>
+
     <div class="stage">
-      <div class="subtle-label">ข้อมูลรับยาเดิม</div>
-      <p style="font-size:13px;margin:0 0 4px;">แหล่งที่มา: ${p.source}${p.sourceOther?' ('+p.sourceOther+')':''}</p>
-      <p style="font-size:13px;margin:0 0 4px;">วันเวลารับยา: ${fmtDT(p.intakeDateTime)}</p>
-      <p style="font-size:13px;margin:0 0 4px;">จำนวนรายการยา: ${p.itemCount} รายการ ${p.itemsNote?'('+p.itemsNote+')':''}</p>
-      <p style="font-size:13px;margin:0 0 10px;">ผู้รับยา: ${p.receivedBy}</p>
-      ${photosHtml ? `<div class="photo-grid">${photosHtml}</div>` : '<p style="font-size:12px;color:var(--ink-faint);">ไม่มีรูปถ่าย</p>'}
+      <div class="stage-title-row">
+        <div class="subtle-label" style="margin:0;">ข้อมูลรับยาเดิม</div>
+        ${!editingIntake ? `<button class="btn btn-outline btn-sm" id="editIntakeBtn"><i class="ti ti-pencil"></i> แก้ไขข้อมูล</button>` : ''}
+      </div>
+      <div id="intakeInfoWrap">${editingIntake ? intakeInfoEditHtml(p) : intakeInfoReadHtml(p)}</div>
     </div>
+
+    ${p.caseStatus==='holding' && p.location==='ward' ? `
+    <div class="stage">
+      <div class="purple-box">
+        <p><i class="ti ti-building-hospital"></i> ยาเดิมของผู้ป่วยรายนี้ยังอยู่ที่ ward กับเภสัชกร ยังไม่ได้นำมาเก็บที่ห้องยา</p>
+        <button class="btn btn-purple" id="confirmPharmacyBtn"><i class="ti ti-building-store"></i> ยืนยันเก็บยาไว้ห้องยาแล้ว</button>
+      </div>
+    </div>` : ''}
+
+    <div class="stage">
+      <div class="subtle-label">Medication Error ระหว่างนอนโรงพยาบาล (ถ้ามี)</div>
+      <div id="errListWrap">${editingErrors.map((e,i)=>errCardHtml(e,i)).join('')}</div>
+      <div class="btn-group">
+        <button class="btn btn-outline btn-sm" id="addErrBtn"><i class="ti ti-plus"></i> เพิ่มเหตุการณ์</button>
+        <button class="btn btn-primary btn-sm" id="saveErrBtn"><i class="ti ti-device-floppy"></i> บันทึก Medication Error</button>
+      </div>
+    </div>
+
+    ${closedBanner}
+
     ${p.caseStatus==='holding' ? `
     <div class="stage" id="dischargeStage">
       <div class="subtle-label">คืนยาเดิม ก่อนกลับบ้าน</div>
@@ -355,7 +486,7 @@ function renderDetail(){
       <div class="photo-grid" id="returnPhotoGrid">
         <div class="camera-btn" onclick="document.getElementById('returnCameraInput').click()"><i class="ti ti-camera"></i></div>
       </div>
-      <input type="file" id="returnCameraInput" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="returnCameraInput" accept="image/*" multiple style="display:none;">
       <div class="warn-box">
         <label style="font-size:12.5px;color:var(--amber);font-weight:600;">กรณีคืนยาไม่ครบ ระบุเหตุผล (ไม่บังคับ)</label>
         <textarea id="f-incompleteReason" rows="2" placeholder="เช่น ยาหมดอายุถูกทิ้งระหว่างนอนโรงพยาบาล"></textarea>
@@ -370,7 +501,62 @@ function renderDetail(){
       <p style="font-size:13px;margin:0;">ผู้คืนยา: ${p.returnedBy}</p>
     </div>`}
   `;
+
   box.querySelector('#closeDetailBtn').addEventListener('click', closeDetail);
+
+  const editBtn = box.querySelector('#editIntakeBtn');
+  if(editBtn) editBtn.addEventListener('click', ()=>{ editingIntake = true; renderDetail(); });
+  const cancelEditBtn = box.querySelector('#cancelIntakeEditBtn');
+  if(cancelEditBtn) cancelEditBtn.addEventListener('click', ()=>{ editingIntake = false; renderDetail(); });
+  const saveEditBtn = box.querySelector('#saveIntakeEditBtn');
+  if(saveEditBtn) saveEditBtn.addEventListener('click', async ()=>{
+    saveEditBtn.disabled = true; saveEditBtn.textContent='กำลังบันทึก...';
+    try{
+      await apiPost({ action:'updateIntake', id:p.id, updates:{
+        hn: document.getElementById('e-hn').value.trim(),
+        name: document.getElementById('e-name').value.trim(),
+        ward: document.getElementById('e-ward').value,
+        source: document.getElementById('e-source').value,
+        sourceOther: document.getElementById('e-sourceOther').value,
+        intakeDateTime: document.getElementById('e-intakeDT').value,
+        itemCount: document.getElementById('e-itemCount').value,
+        itemsNote: document.getElementById('e-itemsNote').value
+      }});
+      editingIntake = false;
+      await loadPatients();
+      renderDetail();
+    }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); saveEditBtn.disabled=false; saveEditBtn.innerHTML='<i class="ti ti-check"></i> บันทึกการแก้ไข'; }
+  });
+
+  const confirmPharmacyBtn = box.querySelector('#confirmPharmacyBtn');
+  if(confirmPharmacyBtn) confirmPharmacyBtn.addEventListener('click', async ()=>{
+    confirmPharmacyBtn.disabled = true;
+    try{ await apiPost({action:'confirmPharmacyStored', id:p.id}); await loadPatients(); renderDetail(); }
+    catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); confirmPharmacyBtn.disabled=false; }
+  });
+
+  box.querySelector('#addErrBtn').addEventListener('click', ()=>{
+    editingErrors.push({id:eid(), type:ERROR_TYPES[0], fix:'', detail:''});
+    renderDetail();
+  });
+  box.querySelectorAll('.rm-err').forEach(b=>b.addEventListener('click', ()=>{
+    editingErrors.splice(Number(b.dataset.idx),1);
+    renderDetail();
+  }));
+  box.querySelectorAll('.err-type,.err-fix,.err-detail').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const idx = Number(inp.dataset.idx);
+      const field = inp.classList.contains('err-type')?'type':(inp.classList.contains('err-fix')?'fix':'detail');
+      editingErrors[idx][field] = inp.value;
+    });
+  });
+  box.querySelector('#saveErrBtn').addEventListener('click', async ()=>{
+    const btn = box.querySelector('#saveErrBtn');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    try{ await apiPost({action:'updateMedErrors', id:p.id, medErrors:editingErrors}); await loadPatients(); renderDetail(); }
+    catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); btn.disabled=false; btn.innerHTML='<i class="ti ti-device-floppy"></i> บันทึก Medication Error'; }
+  });
+
   if(p.caseStatus==='holding'){
     box.querySelectorAll('#returnTypeBtns .opt-btn').forEach(b=>{
       b.addEventListener('click', ()=>{
@@ -382,8 +568,10 @@ function renderDetail(){
     });
     document.getElementById('returnCameraInput').addEventListener('change', async e=>{
       if(!e.target.files.length) return;
-      const dataUrl = await compressImage(e.target.files[0]);
-      dischargeReturnPhotos.push(dataUrl);
+      for(const file of e.target.files){
+        const dataUrl = await compressImage(file);
+        dischargeReturnPhotos.push(dataUrl);
+      }
       renderPhotoGrid('returnPhotoGrid', dischargeReturnPhotos, 'returnCameraInput');
       e.target.value = '';
     });
@@ -410,6 +598,77 @@ function renderDetail(){
     });
   }
 }
+
+// ---------- Report tab ----------
+let reportRange = 'today';
+document.querySelectorAll('#panel-report .range-btns .filter-chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    document.querySelectorAll('#panel-report .range-btns .filter-chip').forEach(c=>c.classList.remove('active'));
+    ch.classList.add('active');
+    reportRange = ch.dataset.range;
+    document.getElementById('customRangeFields').style.display = reportRange==='custom' ? 'grid' : 'none';
+    renderReport();
+  });
+});
+document.getElementById('rangeFrom').addEventListener('change', renderReport);
+document.getElementById('rangeTo').addEventListener('change', renderReport);
+(function initRange(){
+  document.getElementById('rangeFrom').value = todayDateInput();
+  document.getElementById('rangeTo').value = todayDateInput();
+})();
+
+function getReportBounds(){
+  const now = new Date();
+  let from, to;
+  if(reportRange==='today'){ from = todayDateInput(); to = todayDateInput(); }
+  else if(reportRange==='week'){ const d=new Date(); d.setDate(d.getDate()-6); from = d.toISOString().slice(0,10); to = todayDateInput(); }
+  else if(reportRange==='month'){ from = todayDateInput().slice(0,8)+'01'; to = todayDateInput(); }
+  else { from = document.getElementById('rangeFrom').value; to = document.getElementById('rangeTo').value; }
+  return {from, to};
+}
+function filterByRange(){
+  const {from, to} = getReportBounds();
+  if(!from || !to) return [];
+  return patients.filter(p=>{
+    const d = (p.intakeDateTime||'').slice(0,10);
+    return d >= from && d <= to;
+  });
+}
+function statusLabel(p){ return p.caseStatus==='returned' ? 'คืนยาแล้ว' : (p.location==='ward' ? 'ยาอยู่ที่ ward' : 'ยังไม่คืน (ห้องยา)'); }
+function renderReport(){
+  const list = filterByRange();
+  document.getElementById('rptTotal').textContent = list.length;
+  document.getElementById('rptReturned').textContent = list.filter(p=>p.caseStatus==='returned').length;
+  document.getElementById('rptErrors').textContent = list.reduce((sum,p)=>sum+(p.medErrors||[]).length,0);
+  const table = document.getElementById('reportTable');
+  table.innerHTML = `<tr><th>HN</th><th>ชื่อ-สกุล</th><th>หอผู้ป่วย</th><th>รับยาเดิม</th><th>คืนยา</th><th>สถานะ</th><th>Med Error</th></tr>
+    ${list.map(p=>`<tr data-id="${p.id}" style="cursor:pointer;">
+      <td>${p.hn}</td><td>${p.name}</td><td>${p.ward}</td><td>${fmtD(p.intakeDateTime)}</td>
+      <td>${p.dischargeDateTime?fmtD(p.dischargeDateTime):'-'}</td><td>${statusLabel(p)}</td><td>${(p.medErrors||[]).length}</td>
+    </tr>`).join('')}`;
+  table.querySelectorAll('tr[data-id]').forEach(tr=>tr.addEventListener('click', ()=>{
+    document.querySelector('.tab-btn[data-tab="dash"]').click();
+    openDetail(tr.dataset.id);
+  }));
+}
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const list = filterByRange();
+  const rows = list.map(p=>({
+    'HN': p.hn, 'ชื่อ-สกุล': p.name, 'หอผู้ป่วย': p.ward, 'แหล่งที่มา': p.source+(p.sourceOther?' ('+p.sourceOther+')':''),
+    'วันเวลารับยาเดิม': p.intakeDateTime, 'จำนวนรายการยา': p.itemCount, 'ระบุยา/ข้อความ': p.itemsNote,
+    'ผู้รับยา': p.receivedBy, 'สถานะที่เก็บยา': p.location==='ward'?'ยาอยู่ที่ ward':'ยาอยู่ห้องยา',
+    'สถานะเคส': statusLabel(p),
+    'วันเวลาคืนยา': p.dischargeDateTime||'', 'รูปแบบการคืนยา': (p.returnType||'')+(p.returnTypeNote?' ('+p.returnTypeNote+')':''),
+    'เหตุผลคืนไม่ครบ': p.incompleteReason||'', 'ผู้คืนยา': p.returnedBy||'',
+    'จำนวน Med Error': (p.medErrors||[]).length,
+    'รายละเอียด Med Error': (p.medErrors||[]).map(e=>`${e.type}: ${e.detail}`).join(' | ')
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'MedReconcile');
+  const {from,to} = getReportBounds();
+  XLSX.writeFile(wb, `medreconcile-report-${from}_to_${to}.xlsx`);
+});
 
 loadPatients();
 setInterval(()=>loadPatients(), 30000);
