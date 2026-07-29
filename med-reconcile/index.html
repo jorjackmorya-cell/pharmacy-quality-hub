@@ -127,8 +127,9 @@
       <div class="search"><i class="ti ti-search"></i><input id="searchBox" placeholder="ค้นหาด้วยชื่อหรือ HN..."></div>
       <button class="filter-chip active" data-filter="all">ทั้งหมด</button>
       <button class="filter-chip" data-filter="holding">ยังไม่คืนยา</button>
-      <button class="filter-chip" data-filter="returned">คืนยาแล้ว</button>
+      <button class="filter-chip" data-filter="returned">คืนยาแล้ว (วันนี้)</button>
     </div>
+    <div class="hint" style="margin-top:-8px;">รายชื่อด้านล่างแสดงเฉพาะผู้ป่วยที่ยังไม่คืนยา และผู้ที่คืนยาวันนี้ — ประวัติย้อนหลังทั้งหมดดูได้ที่แท็บ "รายงาน" หรือค้นหาด้วยชื่อ/HN ด้านบน</div>
     <div id="listWrap"></div>
   </div>
 
@@ -202,11 +203,12 @@ let patients = [];
 let intakePhotos = [];
 let currentId = null;
 let dischargeReturnPhotos = [];
-let selectedReturnType = null;
+let selectedReturnTypes = [];
 let editingIntake = false;
 let editingErrors = null;
 
 function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function isToday(iso){ if(!iso) return false; return String(iso).slice(0,10) === todayDateInput(); }
 function fmtD(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}); }
 function nowLocalInput(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
 function todayDateInput(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
@@ -322,11 +324,18 @@ document.getElementById('searchBox').addEventListener('input', renderList);
 function renderList(){
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
   let list = patients;
-  if(q) list = list.filter(p=>(p.name||'').toLowerCase().includes(q) || (p.hn||'').toLowerCase().includes(q));
-  else if(activeFilter!=='all') list = list.filter(p=>p.caseStatus===activeFilter);
+  if(q){
+    list = list.filter(p=>(p.name||'').toLowerCase().includes(q) || (p.hn||'').toLowerCase().includes(q));
+  } else if(activeFilter==='all'){
+    list = list.filter(p=> p.caseStatus==='holding' || isToday(p.dischargeDateTime));
+  } else if(activeFilter==='holding'){
+    list = list.filter(p=>p.caseStatus==='holding');
+  } else if(activeFilter==='returned'){
+    list = list.filter(p=>p.caseStatus==='returned' && isToday(p.dischargeDateTime));
+  }
   list = list.slice().sort((a,b)=> new Date(b.intakeDateTime) - new Date(a.intakeDateTime));
   const wrap = document.getElementById('listWrap');
-  if(list.length===0){ wrap.innerHTML = '<div class="empty"><i class="ti ti-users"></i><br>ไม่พบผู้ป่วยในรายการนี้</div>'; return; }
+  if(list.length===0){ wrap.innerHTML = '<div class="empty"><i class="ti ti-users"></i><br>ไม่พบผู้ป่วยในรายการนี้ — ดูประวัติย้อนหลังทั้งหมดได้ที่แท็บ "รายงาน"</div>'; return; }
   wrap.innerHTML = list.map(p=>{
     const cls = p.caseStatus==='returned' ? 'returned' : (p.location==='ward' ? 'ward' : '');
     const statusText = p.caseStatus==='returned' ? ('คืนยา '+fmtDT(p.dischargeDateTime)) : (p.location==='ward' ? 'ยาอยู่ที่ ward' : 'ยังไม่คืน (ยาอยู่ห้องยา)');
@@ -375,7 +384,7 @@ document.getElementById('submitIntakeBtn').addEventListener('click', async ()=>{
 });
 
 function openDetail(id){
-  currentId = id; dischargeReturnPhotos = []; selectedReturnType = null; editingIntake = false;
+  currentId = id; dischargeReturnPhotos = []; selectedReturnTypes = []; editingIntake = false;
   const p0 = patients.find(x=>x.id===id);
   editingErrors = p0 ? JSON.parse(JSON.stringify(p0.medErrors||[])) : [];
   renderDetail();
@@ -475,7 +484,7 @@ function renderDetail(){
       <div class="subtle-label">คืนยาเดิม ก่อนกลับบ้าน</div>
       <label style="font-size:12px;color:var(--ink-soft);">วันเวลาคืนยา</label>
       <input type="datetime-local" id="f-dischargeDT" value="${nowLocalInput()}" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin:4px 0 14px;font-family:inherit;">
-      <div class="subtle-label">เลือกรูปแบบการคืนยา</div>
+      <div class="subtle-label">เลือกรูปแบบการคืนยา (เลือกได้หลายข้อ)</div>
       <div class="btn-group" id="returnTypeBtns">
         ${RETURN_TYPES.map(t=>`<button class="opt-btn" data-type="${t}" style="width:100%;">${t}</button>`).join('')}
       </div>
@@ -560,10 +569,11 @@ function renderDetail(){
   if(p.caseStatus==='holding'){
     box.querySelectorAll('#returnTypeBtns .opt-btn').forEach(b=>{
       b.addEventListener('click', ()=>{
-        box.querySelectorAll('#returnTypeBtns .opt-btn').forEach(x=>x.classList.remove('sel'));
-        b.classList.add('sel');
-        selectedReturnType = b.dataset.type;
-        document.getElementById('returnOtherField').style.display = selectedReturnType==='อื่นๆ' ? 'block' : 'none';
+        const t = b.dataset.type;
+        const idx = selectedReturnTypes.indexOf(t);
+        if(idx>-1){ selectedReturnTypes.splice(idx,1); b.classList.remove('sel'); }
+        else { selectedReturnTypes.push(t); b.classList.add('sel'); }
+        document.getElementById('returnOtherField').style.display = selectedReturnTypes.includes('อื่นๆ') ? 'block' : 'none';
       });
     });
     document.getElementById('returnCameraInput').addEventListener('change', async e=>{
@@ -576,7 +586,7 @@ function renderDetail(){
       e.target.value = '';
     });
     document.getElementById('confirmDischargeBtn').addEventListener('click', async ()=>{
-      if(!selectedReturnType){ alert('กรุณาเลือกรูปแบบการคืนยาก่อน'); return; }
+      if(!selectedReturnTypes.length){ alert('กรุณาเลือกรูปแบบการคืนยาอย่างน้อย 1 ข้อ'); return; }
       const btn = document.getElementById('confirmDischargeBtn');
       btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
       const auth = window.PHQAuth.getAuth();
@@ -586,7 +596,7 @@ function renderDetail(){
           returnPhotos: dischargeReturnPhotos.map(dataUrlToPart),
           updates:{
             dischargeDateTime: document.getElementById('f-dischargeDT').value,
-            returnType: selectedReturnType,
+            returnType: selectedReturnTypes.join(', '),
             returnTypeNote: document.getElementById('f-returnOther') ? document.getElementById('f-returnOther').value : '',
             incompleteReason: document.getElementById('f-incompleteReason').value,
             returnedBy: auth ? auth.name : ''
