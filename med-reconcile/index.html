@@ -193,6 +193,39 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
+const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+let linkedRiskRefs = new Set();
+async function loadLinkedRiskRefs(){
+  try{
+    const res = await fetch(RISKREPORT_API_URL);
+    const data = await res.json();
+    linkedRiskRefs = new Set((data.reports||[]).filter(r=>r.sourceRef).map(r=>r.sourceRef));
+  }catch(e){ /* ถ้าดึงไม่สำเร็จ ปล่อยให้ปุ่มกดได้ตามปกติ ไม่บล็อกการใช้งานหลัก */ }
+}
+async function pushMedErrorToRiskReport(p, err, severity){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return false; }
+  const desc = `[ประสานรายการยาเดิม HN ${p.hn} · ${p.name}] ${err.type} — ${err.detail||'(ไม่มีรายละเอียดเพิ่มเติม)'}${err.fix ? ' | การแก้ไข: '+err.fix : ''}`;
+  const report = {
+    datetime: new Date().toISOString().slice(0,16),
+    reporterCode: auth.code,
+    severity,
+    severityOther: '',
+    desc,
+    source: 'MedReconcile',
+    sourceRef: err.id
+  };
+  try{
+    const res = await fetch(RISKREPORT_API_URL, { method:'POST', body: JSON.stringify({action:'addReport', report, photos:[]}) });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'unknown');
+    linkedRiskRefs.add(err.id);
+    return true;
+  }catch(e){
+    alert('ส่งเข้าระบบรายงานความเสี่ยงไม่สำเร็จ: '+e.message);
+    return false;
+  }
+}
 const WARDS = [];
 ['ชาย','หญิง','พิเศษ'].forEach(t=>{ for(let i=1;i<=10;i++) WARDS.push(t+' '+i); });
 const SOURCES = ['รพ.เชียงม่วน','PCU มาง','รพ.สต.ปิน','รพ.สต.ไชยสถาน','รพ.สต.สระ','รพ.สต.ท่าฟ้าใต้','รพ.สต.บ่อเบี้ย','รพ.พะเยา','รพ.เชียงคำ','อื่นๆ'];
@@ -434,6 +467,25 @@ function errCardHtml(err, idx){
       </div>
       <div class="field"><label>การแก้ไข</label><input class="err-fix" data-idx="${idx}" value="${err.fix||''}" placeholder="เช่น แจ้งแพทย์แก้ไขคำสั่งยาแล้ว"></div>
       <div class="field" style="margin-bottom:0;"><label>รายละเอียด</label><textarea class="err-detail" data-idx="${idx}" rows="2">${err.detail||''}</textarea></div>
+      <div class="field" style="margin:10px 0 0; padding-top:10px; border-top:1px dashed var(--line);">
+        <label>ระดับความเสี่ยง (สำหรับส่งเข้าระบบรายงานความเสี่ยง)</label>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select class="err-risk-sev" data-idx="${idx}" style="flex:1; min-width:160px;">
+            <option value="A">Category A</option>
+            <option value="B">Category B</option>
+            <option value="C">Category C</option>
+            <option value="D">Category D</option>
+            <option value="E">Category E</option>
+            <option value="F">Category F</option>
+            <option value="G">Category G</option>
+            <option value="H">Category H</option>
+            <option value="I">Category I</option>
+          </select>
+          ${linkedRiskRefs.has(err.id)
+            ? `<span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; background:var(--green-tint,#EAF3DE); color:var(--green,#3B6D11); white-space:nowrap;">ส่งแล้ว ✓</span>`
+            : `<button class="risk-link-btn" data-idx="${idx}" data-id="${err.id}" style="border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 10px; font-size:12px; font-family:inherit; color:#7A3B8F; cursor:pointer; white-space:nowrap;">ส่งเข้าระบบรายงานความเสี่ยง</button>`}
+        </div>
+      </div>
     </div>`;
 }
 
@@ -559,6 +611,18 @@ function renderDetail(){
       editingErrors[idx][field] = inp.value;
     });
   });
+  box.querySelectorAll('.risk-link-btn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const idx = Number(b.dataset.idx);
+      const err = editingErrors[idx];
+      const sevSelect = box.querySelector(`.err-risk-sev[data-idx="${idx}"]`);
+      const severity = sevSelect.value;
+      b.disabled = true; b.textContent = 'กำลังส่ง...';
+      const ok = await pushMedErrorToRiskReport(p, err, severity);
+      if(ok) renderDetail();
+      else { b.disabled = false; b.textContent = 'ส่งเข้าระบบรายงานความเสี่ยง'; }
+    });
+  });
   box.querySelector('#saveErrBtn').addEventListener('click', async ()=>{
     const btn = box.querySelector('#saveErrBtn');
     btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
@@ -681,8 +745,9 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 });
 
 loadPatients();
-setInterval(()=>{ if(document.visibilityState === 'visible') loadPatients(); }, 30000);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') loadPatients(); });
+loadLinkedRiskRefs();
+setInterval(()=>{ if(document.visibilityState === 'visible') { loadPatients(); loadLinkedRiskRefs(); } }, 30000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') { loadPatients(); loadLinkedRiskRefs(); } });
 </script>
 </body>
 </html>
