@@ -197,11 +197,9 @@
       location.reload();
     });
   }
-  if(auth){ renderWhoami(auth.name); initDashboardStats(); }
-  document.addEventListener('phq-auth-success', (e)=>{ renderWhoami(e.detail.name); initDashboardStats(); });
 
   // ---------- Live mini-dashboard on each card ----------
-  // หมายเหตุ: initDashboardStats() ถูกเรียกเฉพาะหลังยืนยันตัวตนสำเร็จเท่านั้น (ดูด้านบน)
+  // หมายเหตุ: initDashboardStats() ถูกเรียกเฉพาะหลังยืนยันตัวตนสำเร็จเท่านั้น (ดูท้ายสคริปต์)
   // เพื่อป้องกันไม่ให้ข้อมูลสถิติผู้ป่วยถูกดึงมาแสดง/ค้างอยู่ในหน่วยความจำหน้าเว็บก่อนล็อกอิน
   const OFFHOURS_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
   const CYTISINE_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
@@ -302,6 +300,10 @@
       setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
     });
   }
+
+  // ทำงานตรงนี้เสมอ (ท้ายสคริปต์) เพื่อให้แน่ใจว่าฟังก์ชัน/ตัวแปรทั้งหมดด้านบนถูกประกาศครบก่อนถูกเรียกใช้
+  if(auth){ renderWhoami(auth.name); initDashboardStats(); }
+  document.addEventListener('phq-auth-success', (e)=>{ renderWhoami(e.detail.name); initDashboardStats(); });
 </script>
 </body>
 </html>
