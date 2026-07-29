@@ -447,7 +447,7 @@ function openDetail(id){
       ? `<p style="font-size:13px;color:var(--green);">✅ ส่งเข้าระบบรายงานความเสี่ยงโรงพยาบาลแล้ว โดย ${escapeHtml(r.reportedByName)} เมื่อ ${fmtDT(r.reportedAt)}</p>`
       : `<div class="modal-actions" style="justify-content:space-between;">
            <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
-           <button class="btn btn-primary" id="btnMarkReported">ทำเครื่องหมายว่ารายงานเข้าระบบ รพ. แล้ว</button>
+           <button class="btn btn-primary" id="btnMarkReported">ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว</button>
          </div>`}
   `;
   document.getElementById('detailOverlay').classList.add('active');
@@ -473,7 +473,7 @@ function openDetail(id){
       await loadReports();
     }catch(e){
       alert('บันทึกไม่สำเร็จ: '+e.message);
-      markBtn.disabled = false; markBtn.textContent = 'ทำเครื่องหมายว่ารายงานเข้าระบบ รพ. แล้ว';
+      markBtn.disabled = false; markBtn.textContent = 'ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว';
     }
   });
 }
