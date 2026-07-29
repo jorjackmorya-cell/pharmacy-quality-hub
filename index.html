@@ -78,22 +78,18 @@
   @media (max-width:520px){ footer{flex-direction:column;} }
 
   .summary-bar{
-    display:grid; grid-template-columns:repeat(4, 1fr);
-    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    box-shadow:var(--shadow); margin-bottom:40px; overflow:hidden;
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px;
+    margin-bottom:40px;
   }
-  .summary-item{display:flex; align-items:center; gap:13px; padding:20px 22px; border-right:1px solid var(--line); transition:.2s;}
-  .summary-item:last-child{border-right:none;}
+  .summary-item{display:flex; align-items:center; gap:13px; padding:18px 20px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); transition:.2s;}
   .summary-icon{width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:var(--gray-tint); color:var(--ink-faint); flex-shrink:0; transition:.2s;}
   .summary-icon svg{width:19px; height:19px;}
-  .summary-item.urgent{background:#FCF6F6;}
+  .summary-item.urgent{background:#FCF6F6; border-color:#F3D9D9;}
   .summary-item.urgent .summary-icon{background:#FCEBEB; color:#A32D2D;}
   .summary-item.ok .summary-icon{background:#EAF3DE; color:#3B6D11;}
   .summary-num{font-size:23px; font-weight:700; color:var(--ink); display:block; line-height:1.15; letter-spacing:-.01em;}
   .summary-item.urgent .summary-num{color:#A32D2D;}
   .summary-label{font-size:12px; color:var(--ink-soft); display:block; margin-top:2px; line-height:1.4;}
-  @media (max-width:820px){ .summary-bar{grid-template-columns:repeat(2, 1fr);} .summary-item:nth-child(2){border-right:none;} .summary-item:nth-child(1),.summary-item:nth-child(2){border-bottom:1px solid var(--line);} }
-  @media (max-width:480px){ .summary-bar{grid-template-columns:1fr;} .summary-item{border-right:none !important; border-bottom:1px solid var(--line);} .summary-item:last-child{border-bottom:none;} }
 </style>
 </head>
 <body>
@@ -128,6 +124,10 @@
     <div class="summary-item" id="sumStock">
       <div class="summary-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/></svg></div>
       <div><span class="summary-num">–</span><span class="summary-label">เติมยา ER Stock วันนี้</span></div>
+    </div>
+    <div class="summary-item" id="sumRiskReport">
+      <div class="summary-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+      <div><span class="summary-num">–</span><span class="summary-label">รายงานความเสี่ยงยังไม่ส่งเข้าระบบ รพ.</span></div>
     </div>
   </div>
 
@@ -166,13 +166,13 @@
       </div>
     </a>
 
-    <a class="card live" href="./med-reconcile/" style="--accent:#185FA5; --accent-tint:#E6F1FB;">
+    <a class="card live" href="./risk-report/" style="--accent:#7A3B8F; --accent-tint:#F1E7F5;">
       <div class="card-body">
-        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
-        <h3>ประสานรายการยาเดิมผู้ป่วย</h3>
-        <p>เก็บยาเดิมพร้อมถ่ายรูปหลักฐานตอนรับและคืนยา ป้องกันข้อโต้แย้งเรื่องยาสูญหายระหว่างนอนโรงพยาบาล</p>
-        <div class="mini-stats loading" id="medReconcileStats">กำลังโหลดสถิติวันนี้...</div>
-        <div class="card-foot"><span class="foot-metric" id="medReconcileAllTotal">กำลังโหลด...</span></div>
+        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+        <h3>รายงานความเสี่ยงเบื้องต้น</h3>
+        <p>บันทึกความเสี่ยง/Near miss พร้อมรูปถ่าย ก่อนส่งต่อเข้าระบบรายงานความเสี่ยงของโรงพยาบาล</p>
+        <div class="mini-stats loading" id="riskReportStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot"><span class="foot-metric" id="riskReportPendingTotal">กำลังโหลด...</span></div>
         <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
       </div>
     </a>
@@ -266,6 +266,7 @@
   }
 
   const MEDRECONCILE_API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
+  const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
   function renderMedReconcileStats(patients){
     const holding = patients.filter(p => p.caseStatus === 'holding').length;
     if(holding > 0) setStat('medReconcileStats', 'urgent', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg> ยังฝากยาไว้ <b>${holding}</b> ราย`);
@@ -273,6 +274,16 @@
     setSummary('sumMedReconcile', holding > 0 ? 'urgent' : 'ok', holding);
     const wardCount = patients.filter(p => p.caseStatus === 'holding' && p.location === 'ward').length;
     setFootMetric('medReconcileAllTotal', wardCount > 0 ? `ยังอยู่ที่หอผู้ป่วย (รอเก็บ) <b>${wardCount}</b> ราย` : `ไม่มีเคสค้างที่หอผู้ป่วย`);
+  }
+  function renderRiskReportStats(reports){
+    const today = todayStr();
+    const todayCount = reports.filter(r => (r.datetime||'').slice(0,10) === today).length;
+    const pending = reports.filter(r => r.status !== 'reported').length;
+    if(pending > 0) setStat('riskReportStats', 'urgent', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> วันนี้รายงาน <b>${todayCount}</b> รายการ · ยังไม่ส่งเข้าระบบ รพ. <b>${pending}</b> รายการ`);
+    else setStat('riskReportStats', 'ok', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> วันนี้รายงาน <b>${todayCount}</b> รายการ`);
+    setSummary('sumRiskReport', pending > 0 ? 'urgent' : 'ok', pending);
+    const monthCount = reports.filter(r => isSameMonth(r.datetime)).length;
+    setFootMetric('riskReportPendingTotal', `เดือนนี้รายงานสะสม <b>${monthCount}</b> รายการ`);
   }
 
   var statsLoaded = false;
@@ -298,6 +309,12 @@
       renderMedReconcileStats(data.patients || []);
     }).catch(()=>{
       setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    });
+
+    fetch(RISKREPORT_API_URL).then(r=>r.json()).then(data=>{
+      renderRiskReportStats(data.reports || []);
+    }).catch(()=>{
+      setStat('riskReportStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
     });
   }
 
