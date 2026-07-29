@@ -5,9 +5,17 @@
   // วาง URL ของ Apps Script Web App เดียวกับที่ใช้กับ ER Stock / DRP ตรงนี้ (ใช้ verifyCode action)
   const AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
   const AUTH_KEY = 'phq-auth-v1';
+  const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // ล็อกอินค้างได้สูงสุด 12 ชั่วโมง แล้วต้องกรอกรหัสใหม่
 
   function getAuth() {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch (e) { return null; }
+    let auth;
+    try { auth = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch (e) { return null; }
+    if (!auth) return null;
+    if (!auth.at || (Date.now() - auth.at) > SESSION_MAX_AGE_MS) {
+      clearAuth();
+      return null;
+    }
+    return auth;
   }
   function clearAuth() {
     localStorage.removeItem(AUTH_KEY);
