@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบรายงานความเสี่ยงเบื้องต้น</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="../shared/auth.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --teal:#0F6E56; --teal-dark:#085041; --teal-tint:#E1F5EE;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --red:#A32D2D; --red-tint:#FCEBEB;
+    --green:#3B6D11; --green-tint:#EAF3DE;
+    --purple:#7A3B8F; --purple-tint:#F1E7F5;
+    --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
+    --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sarabun','Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .app{max-width:1080px; margin:0 auto; padding:28px 20px 80px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:14px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:12px; background:var(--purple); display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;}
+  .brand-mark svg{width:22px; height:22px;}
+  .brand h1{font-size:19px; font-weight:600; margin:0; line-height:1.3;}
+  .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
+  .topbar-right{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft);}
+  .topbar-right a{color:var(--red); cursor:pointer; text-decoration:underline;}
+  .icon{width:16px; height:16px; vertical-align:-3px; flex-shrink:0;}
+  .icon-sm{width:14px; height:14px; vertical-align:-2px; flex-shrink:0;}
+ 
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:20px;}
+  .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s; display:flex; align-items:center; gap:6px;}
+  .tab-btn.active{background:var(--purple); color:#fff;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+ 
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px;}
+  .card h2{font-size:16px; margin:0 0 18px; display:flex; align-items:center; gap:8px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink); outline:none;}
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--purple);}
+  .field-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .field-row .field{flex:1; min-width:200px;}
+  .readonly-box{padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--gray-tint); color:var(--ink-soft); font-size:14px;}
+ 
+  .chatbox{border:1px solid var(--line); border-radius:12px; padding:12px; background:#fbfcfa;}
+  .chatbox textarea{width:100%; border:none; outline:none; background:transparent; font-family:inherit; font-size:14px; resize:vertical; min-height:90px; padding:4px;}
+  .chatbox-tools{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
+  .chat-btn{border:1px solid var(--line); background:#fff; border-radius:9px; padding:8px 12px; font-size:12.5px; font-family:inherit; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .chat-btn:hover{border-color:var(--purple); color:var(--purple);}
+  .paste-hint{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
+  .photo-grid{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .photo-thumb{position:relative; width:72px; height:72px; border-radius:9px; overflow:hidden; border:1px solid var(--line);}
+  .photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-thumb .rm{position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:rgba(20,28,22,.65); color:#fff; border:none; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
+ 
+  .severity-help{font-size:11.5px; color:var(--ink-faint); margin-top:4px; line-height:1.5;}
+  .btn{border:none; border-radius:10px; padding:11px 20px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
+  .btn-primary{background:var(--purple); color:#fff;}
+  .btn-primary:hover{background:#622a72;}
+  .btn-primary:disabled{opacity:.55; cursor:not-allowed;}
+  .btn-outline{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn-outline:hover{border-color:var(--purple); color:var(--purple);}
+ 
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(20,28,22,.5); z-index:100; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:#fff; border-radius:16px; max-width:520px; width:100%; padding:26px; box-shadow:0 20px 50px rgba(20,28,22,.25);}
+  .modal h3{margin:0 0 14px; font-size:17px;}
+  .modal-summary{background:var(--gray-tint); border-radius:11px; padding:14px 16px; font-size:13.5px; line-height:1.9; margin-bottom:18px;}
+  .modal-summary b{color:var(--ink);}
+  .modal-actions{display:flex; gap:10px; justify-content:flex-end;}
+ 
+  .rrow{display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line); cursor:default;}
+  .rrow:last-child{border-bottom:none;}
+  .rrow.clickable{cursor:pointer;}
+  .rrow.clickable:hover{background:#fafbf9;}
+  .rrow .rdate{font-size:12px; color:var(--ink-faint); min-width:74px;}
+  .rrow .rmain{flex:1; min-width:0;}
+  .rrow .rdesc{font-size:13.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sev-badge{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .sev-low{background:var(--green-tint); color:var(--green);}
+  .sev-med{background:var(--amber-tint); color:var(--amber);}
+  .sev-high{background:var(--red-tint); color:var(--red);}
+  .status-icon{width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .status-icon.reported{background:var(--green-tint); color:var(--green);}
+  .status-icon.pending{background:var(--gray-tint); color:var(--ink-faint);}
+  .status-icon svg{width:13px; height:13px;}
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-faint); font-size:14px;}
+ 
+  .detail-photos{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;}
+  .detail-photos img{width:110px; height:110px; object-fit:cover; border-radius:10px; border:1px solid var(--line); cursor:pointer;}
+ 
+  .filter-chips{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+  .filter-chip{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 14px; font-size:13px; font-family:inherit; color:var(--ink-soft); cursor:pointer;}
+  .filter-chip.active{background:var(--purple); color:#fff; border-color:var(--purple);}
+  .stat-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;}
+  .stat-box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;}
+  .stat-box .num{font-size:24px; font-weight:700;}
+  .stat-box .lbl{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:13px;}
+  .bar-name{width:150px; flex-shrink:0; color:var(--ink-soft);}
+  .bar-track{flex:1; background:var(--gray-tint); border-radius:6px; height:20px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--purple); border-radius:6px;}
+  .bar-val{width:34px; text-align:right; font-weight:600; flex-shrink:0;}
+  table.lb{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.lb th{text-align:left; font-size:12px; color:var(--ink-faint); font-weight:500; padding:6px 10px; border-bottom:1px solid var(--line);}
+  table.lb td{padding:9px 10px; border-bottom:1px solid var(--line);}
+ 
+  @media (max-width:600px){
+    .field-row{flex-direction:column;}
+    .rrow .rdate{min-width:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+ 
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+      <div><h1>รายงานความเสี่ยงเบื้องต้น</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน</p></div>
+    </div>
+    <div class="topbar-right" id="whoami"></div>
+  </div>
+ 
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="report">รายงานความเสี่ยง</button>
+    <button class="tab-btn" data-tab="dash">แดชบอร์ด</button>
+  </div>
+ 
+  <div class="panel active" id="panel-report">
+    <div class="card">
+      <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> แจ้งความเสี่ยง / เหตุการณ์ใหม่</h2>
+ 
+      <div class="field-row">
+        <div class="field">
+          <label>วันเวลาที่เกิดเหตุการณ์</label>
+          <input type="datetime-local" id="f-datetime">
+        </div>
+        <div class="field">
+          <label>ผู้รายงาน</label>
+          <div class="readonly-box" id="f-reporterName">-</div>
+        </div>
+      </div>
+ 
+      <div class="field">
+        <label>ระดับความรุนแรง (NCC MERP)</label>
+        <select id="f-severity">
+          <option value="A">Category A — มีปัจจัยเสี่ยง แต่ยังไม่เกิดความผิดพลาด</option>
+          <option value="B">Category B — เกิดความผิดพลาดแล้ว แต่ยังไม่ถึงผู้ป่วย (Near miss)</option>
+          <option value="C">Category C — ยาถึงผู้ป่วยแล้ว แต่ไม่มีอาการผิดปกติ/อันตราย</option>
+          <option value="D">Category D — ยาถึงผู้ป่วย ต้องเฝ้าระวังพิเศษ แต่ยังไม่ต้องรักษา</option>
+          <option value="E">Category E — ผู้ป่วยได้รับอันตราย ต้องบำบัด/แก้ไขทางคลินิก</option>
+          <option value="F">Category F — ทำให้ผู้ป่วยนอนโรงพยาบาลนานขึ้น/ยืดระยะเวลารักษา</option>
+          <option value="G">Category G — ทำให้ผู้ป่วยพิการหรือทุพพลภาพถาวร</option>
+          <option value="H">Category H — ผู้ป่วยอยู่ในภาวะวิกฤตที่ต้องช่วยชีวิต</option>
+          <option value="I">Category I — เป็นสาเหตุทำให้ผู้ป่วยเสียชีวิต</option>
+          <option value="other">อื่นๆ (ไม่ใช่ความเสี่ยงด้านยาโดยตรง)</option>
+        </select>
+        <div class="severity-help" id="sevHelp"></div>
+      </div>
+      <div class="field" id="severityOtherField" style="display:none;">
+        <label>ระบุรายละเอียดระดับความเสี่ยง</label>
+        <input type="text" id="f-severityOther" placeholder="เช่น ความเสี่ยงด้านกระบวนการ / อุปกรณ์ / อื่นๆ">
+      </div>
+ 
+      <div class="field">
+        <label>รายละเอียดเหตุการณ์ (แนบรูปได้ ถ่ายภาพ/เลือกไฟล์/วางรูปที่คัดลอกมา)</label>
+        <div class="chatbox" id="chatbox">
+          <textarea id="f-desc" placeholder="อธิบายเหตุการณ์ที่เกิดขึ้น... (วางรูปแคปหน้าจอด้วย Ctrl+V ได้เลย)"></textarea>
+          <div class="photo-grid" id="photoGrid"></div>
+          <div class="chatbox-tools">
+            <button class="chat-btn" id="btnCamera" type="button"><svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> ถ่ายภาพ</button>
+            <button class="chat-btn" id="btnGallery" type="button"><svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> เลือกรูปจากคลัง</button>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="galleryInput" accept="image/*" multiple style="display:none;">
+          </div>
+          <div class="paste-hint">💡 แคปหน้าจอคอมพิวเตอร์แล้วกด Ctrl+V ในช่องนี้ได้เลย รูปจะแนบเข้ามาอัตโนมัติ</div>
+        </div>
+      </div>
+ 
+      <button class="btn btn-primary" id="btnReview"><svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> ตรวจทานก่อนส่ง</button>
+    </div>
+ 
+    <div class="card" style="padding:0;">
+      <h2 style="padding:20px 24px 0;">รายงานความเสี่ยงล่าสุด</h2>
+      <div id="reportListWrap"></div>
+    </div>
+  </div>
+ 
+  <div class="panel" id="panel-dash">
+    <div class="filter-chips">
+      <button class="filter-chip active" data-range="today">วันนี้</button>
+      <button class="filter-chip" data-range="week">7 วัน</button>
+      <button class="filter-chip" data-range="month">เดือนนี้</button>
+      <button class="filter-chip" data-range="custom">กำหนดเอง</button>
+    </div>
+    <div class="field-row" id="customRangeRow" style="display:none; margin-bottom:18px;">
+      <div class="field"><label>จากวันที่</label><input type="date" id="rangeFrom"></div>
+      <div class="field"><label>ถึงวันที่</label><input type="date" id="rangeTo"></div>
+    </div>
+ 
+    <div class="stat-row">
+      <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">รายงานทั้งหมด</div></div>
+      <div class="stat-box"><div class="num" id="statPending">0</div><div class="lbl">ยังไม่ส่งเข้าระบบ รพ.</div></div>
+      <div class="stat-box"><div class="num" id="statReported">0</div><div class="lbl">ส่งเข้าระบบแล้ว</div></div>
+    </div>
+ 
+    <div class="card">
+      <h2>แยกตามระดับความรุนแรง</h2>
+      <div id="severityBars"></div>
+    </div>
+ 
+    <div class="card">
+      <h2>เจ้าหน้าที่ที่รายงานเข้ามามากที่สุด</h2>
+      <table class="lb" id="leaderboardTable"><tbody></tbody></table>
+    </div>
+  </div>
+ 
+  <div class="modal-overlay" id="confirmOverlay"><div class="modal" id="confirmModalBox"></div></div>
+  <div class="modal-overlay" id="detailOverlay"><div class="modal" id="detailModalBox" style="max-width:600px;"></div></div>
+  <div class="modal-overlay" id="lightboxOverlay"><div style="max-width:90vw;max-height:90vh;" id="lightboxBox"></div></div>
+ 
+</div>
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+ 
+window.PHQAuth.requireAuth();
+function renderWhoami(name){
+  document.getElementById('whoami').innerHTML = `ผู้ใช้งาน: <b>${name}</b> &nbsp;·&nbsp; <a id="phq-logout">ออกจากระบบ</a>`;
+  document.getElementById('phq-logout').addEventListener('click', ()=>{ window.PHQAuth.clearAuth(); location.reload(); });
+  document.getElementById('f-reporterName').textContent = name;
+}
+ 
+let canReview = false;
+let reports = [];
+let pendingPhotos = []; // {filename, mimeType, base64, previewUrl}
+ 
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='dash') renderDashboard();
+  });
+});
+ 
+// ---------- Severity help text ----------
+const SEV_LABEL = {A:'Category A',B:'Category B',C:'Category C',D:'Category D',E:'Category E',F:'Category F',G:'Category G',H:'Category H',I:'Category I',other:'อื่นๆ'};
+const SEV_CLASS = {A:'sev-low',B:'sev-low',C:'sev-med',D:'sev-med',E:'sev-med',F:'sev-high',G:'sev-high',H:'sev-high',I:'sev-high',other:'sev-med'};
+document.getElementById('f-severity').addEventListener('change', updateSeverityUI);
+function updateSeverityUI(){
+  const v = document.getElementById('f-severity').value;
+  document.getElementById('severityOtherField').style.display = v==='other' ? '' : 'none';
+}
+updateSeverityUI();
+ 
+// ---------- Photo handling ----------
+function uid(){ return 'p'+Date.now()+Math.random().toString(36).slice(2,8); }
+function fileToPhoto(file){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(',')[1];
+      resolve({ id: uid(), filename: file.name || 'photo.png', mimeType: file.type || 'image/png', base64, previewUrl: dataUrl });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function renderPhotoGrid(){
+  const wrap = document.getElementById('photoGrid');
+  wrap.innerHTML = pendingPhotos.map(p=>`
+    <div class="photo-thumb" data-id="${p.id}">
+      <img src="${p.previewUrl}">
+      <button class="rm" data-id="${p.id}">✕</button>
+    </div>`).join('');
+  wrap.querySelectorAll('.rm').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      pendingPhotos = pendingPhotos.filter(p=>p.id !== b.dataset.id);
+      renderPhotoGrid();
+    });
+  });
+}
+async function addFiles(fileList){
+  const files = Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+  for(const f of files){
+    const photo = await fileToPhoto(f);
+    pendingPhotos.push(photo);
+  }
+  renderPhotoGrid();
+}
+document.getElementById('btnCamera').addEventListener('click', ()=> document.getElementById('cameraInput').click());
+document.getElementById('btnGallery').addEventListener('click', ()=> document.getElementById('galleryInput').click());
+document.getElementById('cameraInput').addEventListener('change', (e)=>{ addFiles(e.target.files); e.target.value=''; });
+document.getElementById('galleryInput').addEventListener('change', (e)=>{ addFiles(e.target.files); e.target.value=''; });
+document.getElementById('chatbox').addEventListener('paste', (e)=>{
+  const items = e.clipboardData ? e.clipboardData.items : [];
+  const imgFiles = [];
+  for(const item of items){
+    if(item.type && item.type.startsWith('image/')){
+      const file = item.getAsFile();
+      if(file) imgFiles.push(file);
+    }
+  }
+  if(imgFiles.length){ e.preventDefault(); addFiles(imgFiles); }
+});
+ 
+// ---------- Init datetime ----------
+function nowLocalInput(){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,16);
+}
+document.getElementById('f-datetime').value = nowLocalInput();
+ 
+// ---------- Review & submit flow ----------
+document.getElementById('btnReview').addEventListener('click', ()=>{
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+  const desc = document.getElementById('f-desc').value.trim();
+  if(!desc){ alert('กรุณากรอกรายละเอียดเหตุการณ์ก่อน'); return; }
+  const severity = document.getElementById('f-severity').value;
+  const severityOther = document.getElementById('f-severityOther').value.trim();
+  if(severity==='other' && !severityOther){ alert('กรุณาระบุรายละเอียดระดับความเสี่ยงที่เลือก "อื่นๆ"'); return; }
+  const datetime = document.getElementById('f-datetime').value;
+ 
+  const sevText = severity==='other' ? ('อื่นๆ — '+severityOther) : `${SEV_LABEL[severity]}`;
+  const box = document.getElementById('confirmModalBox');
+  box.innerHTML = `
+    <h3>ตรวจทานรายงานก่อนส่ง</h3>
+    <div class="modal-summary">
+      <div>📅 วันเวลาเหตุการณ์: <b>${fmtDT(datetime)}</b></div>
+      <div>👤 ผู้รายงาน: <b>${auth.name}</b></div>
+      <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
+      <div>📝 รายละเอียด: <b>${escapeHtml(desc)}</b></div>
+      <div>📷 รูปแนบ: <b>${pendingPhotos.length} รูป</b></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnEditAgain">แก้ไขอีกครั้ง</button>
+      <button class="btn btn-primary" id="btnConfirmSend">ยืนยันส่งรายงาน</button>
+    </div>`;
+  document.getElementById('confirmOverlay').classList.add('active');
+  document.getElementById('btnEditAgain').addEventListener('click', ()=> document.getElementById('confirmOverlay').classList.remove('active'));
+  document.getElementById('btnConfirmSend').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btnConfirmSend');
+    btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+    const report = { datetime, reporterCode: auth.code, severity, severityOther, desc, source:'manual' };
+    const photos = pendingPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64}));
+    try{
+      const res = await fetch(API_URL, {
+        method:'POST',
+        body: JSON.stringify({ action:'addReport', report, photos })
+      });
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.error||'unknown');
+      document.getElementById('confirmOverlay').classList.remove('active');
+      document.getElementById('f-desc').value = '';
+      document.getElementById('f-severityOther').value = '';
+      document.getElementById('f-severity').value = 'A';
+      updateSeverityUI();
+      pendingPhotos = [];
+      renderPhotoGrid();
+      document.getElementById('f-datetime').value = nowLocalInput();
+      await loadReports();
+      alert('ส่งรายงานความเสี่ยงเรียบร้อยแล้ว');
+    }catch(e){
+      alert('ส่งไม่สำเร็จ: '+e.message);
+    }
+    btn.disabled = false; btn.textContent = 'ยืนยันส่งรายงาน';
+  });
+});
+ 
+// ---------- Helpers ----------
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDT(iso){
+  if(!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleString('th-TH', {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function truncate(s, n){ s = s||''; return s.length>n ? s.slice(0,n)+'…' : s; }
+ 
+// ---------- Load & render report list ----------
+async function loadReports(){
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'getAll'}) });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'unknown');
+    reports = data.reports || [];
+    reports.sort((a,b)=> new Date(b.datetime) - new Date(a.datetime));
+    renderReportList();
+  }catch(e){
+    document.getElementById('reportListWrap').innerHTML = `<div class="empty">โหลดข้อมูลไม่สำเร็จ: ${e.message}</div>`;
+  }
+}
+function renderReportList(){
+  const wrap = document.getElementById('reportListWrap');
+  if(!reports.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
+  wrap.innerHTML = reports.map(r=>{
+    const statusIcon = r.status==='reported'
+      ? `<div class="status-icon reported" title="ส่งเข้าระบบ รพ. แล้ว"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
+      : `<div class="status-icon pending" title="ยังไม่ส่งเข้าระบบ รพ."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>`;
+    const sevText = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity];
+    return `
+    <div class="rrow ${canReview?'clickable':''}" data-id="${r.id}">
+      <div class="rdate">${fmtDT(r.datetime).split(' ')[0]}</div>
+      <span class="sev-badge ${SEV_CLASS[r.severity]}">${sevText}</span>
+      <div class="rmain"><div class="rdesc">${escapeHtml(truncate(r.desc, 60))}</div></div>
+      ${statusIcon}
+    </div>`;
+  }).join('');
+  if(canReview){
+    wrap.querySelectorAll('.rrow').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
+  }
+}
+ 
+// ---------- Reviewer detail modal ----------
+function openDetail(id){
+  const r = reports.find(x=>x.id===id);
+  if(!r) return;
+  const sevText = r.severity==='other' ? ('อื่นๆ — '+(r.severityOther||'')) : SEV_LABEL[r.severity];
+  const photosHtml = (r.photos||[]).map(fid=>
+    `<img src="https://drive.google.com/thumbnail?id=${fid}&sz=w400" data-full="https://drive.google.com/thumbnail?id=${fid}&sz=w1600">`
+  ).join('');
+  const box = document.getElementById('detailModalBox');
+  box.innerHTML = `
+    <h3>รายละเอียดรายงานความเสี่ยง</h3>
+    <div class="modal-summary">
+      <div>📅 วันเวลาเหตุการณ์: <b>${fmtDT(r.datetime)}</b></div>
+      <div>👤 ผู้รายงาน: <b>${escapeHtml(r.reporterName)}</b></div>
+      <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
+      <div>📝 รายละเอียด: <b>${escapeHtml(r.desc)}</b></div>
+    </div>
+    ${photosHtml ? `<div class="detail-photos">${photosHtml}</div>` : '<p style="font-size:13px;color:var(--ink-faint);">ไม่มีรูปแนบ (หรือรูปถูกลบแล้วหลังส่งเข้าระบบ รพ.)</p>'}
+    ${r.status==='reported'
+      ? `<p style="font-size:13px;color:var(--green);">✅ ส่งเข้าระบบรายงานความเสี่ยงโรงพยาบาลแล้ว โดย ${escapeHtml(r.reportedByName)} เมื่อ ${fmtDT(r.reportedAt)}</p>`
+      : `<div class="modal-actions" style="justify-content:space-between;">
+           <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
+           <button class="btn btn-primary" id="btnMarkReported">ทำเครื่องหมายว่ารายงานเข้าระบบ รพ. แล้ว</button>
+         </div>`}
+  `;
+  document.getElementById('detailOverlay').classList.add('active');
+  const closeBtn = document.getElementById('btnCloseDetail');
+  if(closeBtn) closeBtn.addEventListener('click', ()=> document.getElementById('detailOverlay').classList.remove('active'));
+  box.querySelectorAll('.detail-photos img').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      document.getElementById('lightboxBox').innerHTML = `<img src="${img.dataset.full}" style="max-width:100%;max-height:90vh;border-radius:10px;">`;
+      document.getElementById('lightboxOverlay').classList.add('active');
+    });
+  });
+  const markBtn = document.getElementById('btnMarkReported');
+  if(markBtn) markBtn.addEventListener('click', async ()=>{
+    const auth = window.PHQAuth.getAuth();
+    if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+    if(!confirm('ยืนยันว่าได้รายงานเหตุการณ์นี้เข้าระบบรายงานความเสี่ยงของโรงพยาบาลแล้ว?\n(รูปภาพที่แนบไว้จะถูกลบออกจากระบบถาวรหลังจากนี้)')) return;
+    markBtn.disabled = true; markBtn.textContent = 'กำลังบันทึก...';
+    try{
+      const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'markReported', id:r.id, code:auth.code}) });
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.error||'unknown');
+      document.getElementById('detailOverlay').classList.remove('active');
+      await loadReports();
+    }catch(e){
+      alert('บันทึกไม่สำเร็จ: '+e.message);
+      markBtn.disabled = false; markBtn.textContent = 'ทำเครื่องหมายว่ารายงานเข้าระบบ รพ. แล้ว';
+    }
+  });
+}
+document.getElementById('detailOverlay').addEventListener('click', e=>{ if(e.target.id==='detailOverlay') e.currentTarget.classList.remove('active'); });
+document.getElementById('lightboxOverlay').addEventListener('click', e=>{ e.currentTarget.classList.remove('active'); });
+document.getElementById('confirmOverlay').addEventListener('click', e=>{ if(e.target.id==='confirmOverlay') e.currentTarget.classList.remove('active'); });
+ 
+// ---------- Dashboard ----------
+let dashRange = 'today';
+document.querySelectorAll('.filter-chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    ch.classList.add('active');
+    dashRange = ch.dataset.range;
+    document.getElementById('customRangeRow').style.display = dashRange==='custom' ? '' : 'none';
+    renderDashboard();
+  });
+});
+document.getElementById('rangeFrom').addEventListener('change', renderDashboard);
+document.getElementById('rangeTo').addEventListener('change', renderDashboard);
+ 
+function getRangeBounds(){
+  const now = new Date();
+  let from, to;
+  if(dashRange==='today'){ from = new Date(now.getFullYear(),now.getMonth(),now.getDate()); to = new Date(from); to.setDate(to.getDate()+1); }
+  else if(dashRange==='week'){ to = new Date(now); to.setDate(to.getDate()+1); from = new Date(now); from.setDate(from.getDate()-7); }
+  else if(dashRange==='month'){ from = new Date(now.getFullYear(), now.getMonth(), 1); to = new Date(now.getFullYear(), now.getMonth()+1, 1); }
+  else {
+    const f = document.getElementById('rangeFrom').value, t = document.getElementById('rangeTo').value;
+    from = f ? new Date(f) : new Date(0);
+    to = t ? new Date(new Date(t).getTime()+86400000) : new Date();
+  }
+  return {from, to};
+}
+function renderDashboard(){
+  const {from, to} = getRangeBounds();
+  const rows = reports.filter(r=>{ const d = new Date(r.datetime); return d>=from && d<to; });
+ 
+  document.getElementById('statTotal').textContent = rows.length;
+  document.getElementById('statPending').textContent = rows.filter(r=>r.status!=='reported').length;
+  document.getElementById('statReported').textContent = rows.filter(r=>r.status==='reported').length;
+ 
+  const bySev = {};
+  rows.forEach(r=>{ const k = r.severity==='other'?'อื่นๆ':SEV_LABEL[r.severity]; bySev[k] = (bySev[k]||0)+1; });
+  const maxSev = Math.max(1, ...Object.values(bySev));
+  const sevKeys = Object.keys(bySev).sort((a,b)=> bySev[b]-bySev[a]);
+  document.getElementById('severityBars').innerHTML = sevKeys.length ? sevKeys.map(k=>`
+    <div class="bar-row">
+      <div class="bar-name">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(bySev[k]/maxSev*100)}%"></div></div>
+      <div class="bar-val">${bySev[k]}</div>
+    </div>`).join('') : '<p style="font-size:13px;color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</p>';
+ 
+  const byStaff = {};
+  rows.forEach(r=>{ byStaff[r.reporterName] = (byStaff[r.reporterName]||0)+1; });
+  const staffKeys = Object.keys(byStaff).sort((a,b)=> byStaff[b]-byStaff[a]);
+  const tbody = document.querySelector('#leaderboardTable tbody');
+  tbody.innerHTML = staffKeys.length ? staffKeys.map(k=>`<tr><td>${escapeHtml(k)}</td><td style="text-align:right;font-weight:600;">${byStaff[k]}</td></tr>`).join('')
+    : '<tr><td style="color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</td></tr>';
+}
+ 
+// ---------- Init ----------
+// ---------- Init ----------
+(function(){ const a = window.PHQAuth.getAuth(); if(a) renderWhoami(a.name); })();
+document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
+ 
+async function initPermissionAndLoad(){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth) return;
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'checkPermission', code:auth.code}) });
+    const data = await res.json();
+    canReview = !!(data.ok && data.valid && data.canReview);
+  }catch(e){ canReview = false; }
+  await loadReports();
+}
+initPermissionAndLoad();
+document.addEventListener('phq-auth-success', initPermissionAndLoad);
+</script>
+</body>
+</html>
+ 
