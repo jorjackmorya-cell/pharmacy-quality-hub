@@ -108,6 +108,13 @@
   .infogrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:18px 26px; background:var(--card); border-bottom:1px solid var(--line);}
   .infogrid .item{font-size:13px;}
   .infogrid .item span{display:block; color:var(--ink-faint); font-size:11px; margin-bottom:2px;}
+  .infogrid-edit{padding:18px 26px 6px; background:var(--card); border-bottom:1px solid var(--line);}
+  .infogrid-edit .field{margin-bottom:14px;}
+  .edit-actions{display:flex; gap:8px; padding:0 0 18px;}
+  .edit-toggle-btn{background:none; border:1px solid var(--line); color:var(--ink-soft); font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:9px; cursor:pointer; display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .edit-toggle-btn:hover{border-color:var(--teal); color:var(--teal-dark);}
+  .edit-toggle-btn svg{width:14px; height:14px;}
+  .detail-head-actions{display:flex; align-items:center; gap:8px;}
   .stage{margin:20px 26px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; position:relative;}
   .stage.locked{opacity:.5; pointer-events:none;}
   .stage-title{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
@@ -273,6 +280,7 @@ const CONFIG_KEY = 'cytisine-apiurl-v1';
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
 let patients = [];
 let currentId = null;
+let editMode = false;
 let refreshTimer = null;
 
 const SIDE_EFFECTS = ['คลื่นไส้','ปากแห้ง','เวียนศีรษะ','นอนไม่หลับ','หงุดหงิด/กระวนกระวาย','อาหารไม่ย่อย','ไม่มีอาการ'];
@@ -555,8 +563,8 @@ function cardHtml(p){
 }
 
 // ---------- Detail overlay ----------
-function openDetail(id){ currentId = id; renderDetail(); document.getElementById('overlay').classList.add('active'); }
-function closeDetail(){ document.getElementById('overlay').classList.remove('active'); currentId = null; renderAll(); }
+function openDetail(id){ currentId = id; editMode = false; renderDetail(); document.getElementById('overlay').classList.add('active'); }
+function closeDetail(){ document.getElementById('overlay').classList.remove('active'); currentId = null; editMode = false; renderAll(); }
 document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeDetail(); });
 
 function chipsHtml(stageKey, chosen, groupClass, dataAttr){
@@ -584,9 +592,50 @@ function renderDetail(){
   box.innerHTML = `
     <div class="detail-head">
       <div><h2>${p.name}</h2><div class="hn">HN ${p.hn} · เริ่มยา ${fmtDate(p.startDate)}</div></div>
-      <button class="close-x" id="closeDetailBtn"><i class="ti ti-x"></i></button>
+      <div class="detail-head-actions">
+        ${!editMode ? `<button class="edit-toggle-btn" id="editInfoBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg> แก้ไขข้อมูล</button>` : ''}
+        <button class="close-x" id="closeDetailBtn"><i class="ti ti-x"></i></button>
+      </div>
     </div>
     ${closedBanner}
+    ${editMode ? `
+    <div class="infogrid-edit">
+      <div class="grid2">
+        <div class="field"><label>วันที่มารับบริการ / ได้รับยา Cytisine วันแรก</label><input type="date" id="e-startDate" value="${p.startDate||''}"></div>
+        <div class="field"><label>HN</label><input type="text" id="e-hn" value="${p.hn||''}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>ชื่อ-สกุลผู้ป่วย</label><input type="text" id="e-name" value="${p.name||''}"></div>
+        <div class="field"><label>เบอร์โทรศัพท์</label><input type="tel" id="e-phone" value="${p.phone||''}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>จำนวนบุหรี่ที่สูบในปัจจุบัน (มวน/วัน)</label><input type="number" id="e-cig" min="0" value="${p.cig!=='-'&&p.cig!=null?p.cig:''}"></div>
+        <div class="field"><label>วันนัดพบแพทย์ครั้งถัดไป (ถ้ามี)</label><input type="date" id="e-nextAppt" value="${p.nextAppt||''}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>วิธีรับประทานยา Cytisine</label><input type="text" id="e-regimen" value="${p.regimen||''}"></div>
+        <div class="field"><label>จำนวนเม็ดยาที่ได้รับ</label><input type="number" id="e-tablets" min="0" value="${p.tablets!=='-'&&p.tablets!=null?p.tablets:''}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>จำนวนครั้งที่เคยพยายามเลิกบุหรี่ด้วยตัวเอง</label><input type="number" id="e-quitCount" min="0" value="${p.quitCount||0}"></div>
+        <div class="field"><label>ระยะเวลาที่เคยเลิกได้นานที่สุด</label>
+          <div class="field-row">
+            <input type="number" id="e-quitDurVal" min="0" style="flex:1" value="${p.quitDurVal||''}">
+            <select id="e-quitDurUnit" style="flex:1">
+              <option value="วัน" ${p.quitDurUnit==='วัน'?'selected':''}>วัน</option>
+              <option value="สัปดาห์" ${p.quitDurUnit==='สัปดาห์'?'selected':''}>สัปดาห์</option>
+              <option value="เดือน" ${(!p.quitDurUnit||p.quitDurUnit==='เดือน')?'selected':''}>เดือน</option>
+              <option value="ปี" ${p.quitDurUnit==='ปี'?'selected':''}>ปี</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="btn btn-primary" id="saveInfoBtn"><i class="ti ti-check"></i> บันทึกการแก้ไข</button>
+        <button class="btn btn-outline" id="cancelInfoBtn">ยกเลิก</button>
+      </div>
+    </div>
+    ` : `
     <div class="infogrid">
       <div class="item"><span>เบอร์โทร</span><a class="call-link" href="tel:${p.phone}"><i class="ti ti-phone"></i> ${p.phone}</a></div>
       <div class="item"><span>สูบปัจจุบัน</span>${p.cig} มวน/วัน</div>
@@ -596,6 +645,7 @@ function renderDetail(){
       <div class="item"><span>เคยเลิกมาก่อน</span>${p.quitCount} ครั้ง</div>
       <div class="item"><span>เคยเลิกได้นานสุด</span>${p.quitDurVal ? p.quitDurVal+' '+p.quitDurUnit : '-'}</div>
     </div>
+    `}
 
     <div class="stage" id="stage5">
       <div class="stage-title"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 1 — Day 5</h3><span class="date">${fmtDate(p.day5Date)}</span></div>
@@ -652,6 +702,31 @@ function renderDetail(){
   `;
 
   box.querySelector('#closeDetailBtn').addEventListener('click', closeDetail);
+  const editBtn = box.querySelector('#editInfoBtn');
+  if(editBtn) editBtn.addEventListener('click', ()=>{ editMode = true; renderDetail(); });
+  const cancelBtn = box.querySelector('#cancelInfoBtn');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ editMode = false; renderDetail(); });
+  const saveInfoBtn = box.querySelector('#saveInfoBtn');
+  if(saveInfoBtn) saveInfoBtn.addEventListener('click', async ()=>{
+    const name = document.getElementById('e-name').value.trim();
+    const hn = document.getElementById('e-hn').value.trim();
+    if(!name || !hn){ alert('กรุณากรอกชื่อและ HN ให้ครบ'); return; }
+    p.startDate = document.getElementById('e-startDate').value || p.startDate;
+    p.hn = hn;
+    p.name = name;
+    p.phone = document.getElementById('e-phone').value.trim();
+    p.cig = document.getElementById('e-cig').value || '-';
+    p.nextAppt = document.getElementById('e-nextAppt').value || '';
+    p.regimen = document.getElementById('e-regimen').value || '-';
+    p.tablets = document.getElementById('e-tablets').value || '-';
+    p.quitCount = document.getElementById('e-quitCount').value || '0';
+    p.quitDurVal = document.getElementById('e-quitDurVal').value || '';
+    p.quitDurUnit = document.getElementById('e-quitDurUnit').value;
+    saveInfoBtn.disabled = true; saveInfoBtn.textContent = 'กำลังบันทึก...';
+    await syncPatient(p);
+    editMode = false;
+    renderDetail();
+  });
   box.querySelectorAll('.opt-btn[data-field]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const stage = btn.dataset.stage, field = btn.dataset.field, val = btn.dataset.val;
