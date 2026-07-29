@@ -821,7 +821,8 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 
 // ---------- Init ----------
 loadPatients();
-refreshTimer = setInterval(()=>loadPatients(true), 25000);
+refreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadPatients(true); }, 25000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') loadPatients(true); });
 </script>
 </body>
 </html>
