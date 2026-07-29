@@ -180,10 +180,12 @@
       location.reload();
     });
   }
-  if(auth) renderWhoami(auth.name);
-  document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
+  if(auth){ renderWhoami(auth.name); initDashboardStats(); }
+  document.addEventListener('phq-auth-success', (e)=>{ renderWhoami(e.detail.name); initDashboardStats(); });
 
   // ---------- Live mini-dashboard on each card ----------
+  // หมายเหตุ: initDashboardStats() ถูกเรียกเฉพาะหลังยืนยันตัวตนสำเร็จเท่านั้น (ดูด้านบน)
+  // เพื่อป้องกันไม่ให้ข้อมูลสถิติผู้ป่วยถูกดึงมาแสดง/ค้างอยู่ในหน่วยความจำหน้าเว็บก่อนล็อกอิน
   const OFFHOURS_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
   const CYTISINE_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
 
@@ -224,31 +226,38 @@
     else setStat('cytisineStats', 'ok', `<i class="ti ti-circle-check"></i> ติดตามครบทุกเคสวันนี้`);
   }
 
-  fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
-    renderDrpStats(data.drpEntries || []);
-    renderStockStats(data.refillEntries || []);
-  }).catch(()=>{
-    setStat('drpStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
-    setStat('stockStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
-  });
-
-  fetch(CYTISINE_API_URL).then(r=>r.json()).then(data=>{
-    renderCytisineStats(data.patients || []);
-  }).catch(()=>{
-    setStat('cytisineStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
-  });
-
   const MEDRECONCILE_API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
   function renderMedReconcileStats(patients){
     const holding = patients.filter(p => p.caseStatus === 'holding').length;
     if(holding > 0) setStat('medReconcileStats', 'urgent', `<i class="ti ti-shopping-bag"></i> ยังฝากยาไว้ <b>${holding}</b> ราย`);
     else setStat('medReconcileStats', 'ok', `<i class="ti ti-circle-check"></i> ไม่มีผู้ป่วยฝากยาไว้`);
   }
-  fetch(MEDRECONCILE_API_URL).then(r=>r.json()).then(data=>{
-    renderMedReconcileStats(data.patients || []);
-  }).catch(()=>{
-    setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
-  });
+
+  var statsLoaded = false;
+  function initDashboardStats(){
+    if(statsLoaded) return; // กันไม่ให้ยิง fetch ซ้ำถ้าถูกเรียกมากกว่าหนึ่งครั้ง
+    statsLoaded = true;
+
+    fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
+      renderDrpStats(data.drpEntries || []);
+      renderStockStats(data.refillEntries || []);
+    }).catch(()=>{
+      setStat('drpStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+      setStat('stockStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    });
+
+    fetch(CYTISINE_API_URL).then(r=>r.json()).then(data=>{
+      renderCytisineStats(data.patients || []);
+    }).catch(()=>{
+      setStat('cytisineStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    });
+
+    fetch(MEDRECONCILE_API_URL).then(r=>r.json()).then(data=>{
+      renderMedReconcileStats(data.patients || []);
+    }).catch(()=>{
+      setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    });
+  }
 </script>
 </body>
 </html>
