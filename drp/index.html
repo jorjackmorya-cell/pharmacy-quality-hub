@@ -243,6 +243,39 @@ function downloadCsv(csv, filename){
 // ---------- backend helpers (Google Apps Script Web App via fetch) ----------
 // URL นี้ใช้ร่วมกับระบบ "บันทึกเติมยา ER Stock" — มาจากการ Deploy Code.gs ตัวเดียวกัน (แผ่นชีตเดียวกัน คนละแท็บ)
 const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
+const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+let linkedRiskRefs = new Set();
+async function loadLinkedRiskRefs(){
+  try{
+    const res = await fetch(RISKREPORT_API_URL);
+    const data = await res.json();
+    linkedRiskRefs = new Set((data.reports||[]).filter(r=>r.sourceRef).map(r=>r.sourceRef));
+  }catch(e){ /* ถ้าดึงไม่สำเร็จ ปล่อยให้ปุ่มกดได้ตามปกติ ไม่บล็อกการใช้งานหลัก */ }
+}
+async function pushToRiskReport(entry){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ showToast('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return false; }
+  const desc = `[ทบทวนใบสั่งยานอกเวลา] ${DRP_TYPE_LABEL[entry.type]||entry.type} — ${entry.desc||'(ไม่มีรายละเอียดเพิ่มเติม)'}`;
+  const report = {
+    datetime: entry.date + 'T00:00',
+    reporterCode: auth.code,
+    severity: entry.severity,
+    severityOther: '',
+    desc,
+    source: 'DRP',
+    sourceRef: entry.id
+  };
+  try{
+    const res = await fetch(RISKREPORT_API_URL, { method:'POST', body: JSON.stringify({action:'addReport', report, photos:[]}) });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'unknown');
+    linkedRiskRefs.add(entry.id);
+    return true;
+  }catch(e){
+    showToast('ส่งเข้าระบบรายงานความเสี่ยงไม่สำเร็จ: '+e.message);
+    return false;
+  }
+}
 
 async function apiCall(action, payload){
   const res = await fetch(API_URL, {
@@ -580,10 +613,27 @@ function renderDrpReport(){
       <td><span class="badge ${SEV_CLASS[e.severity]}">${SEV_LABEL[e.severity]}</span></td>
       <td>${escapeHtml(e.pharmacist||'-')}</td>
       <td>${escapeHtml(e.desc||'-')}</td>
-      <td><button class="del-btn" data-id="${e.id}">ลบ</button></td>
+      <td style="display:flex; gap:6px; align-items:center;">
+        ${e.severity && e.severity!=='none' ? (
+          linkedRiskRefs.has(e.id)
+            ? `<span class="badge sev-low" style="white-space:nowrap;">ส่งแล้ว ✓</span>`
+            : `<button class="risk-link-btn" data-id="${e.id}" style="border:1px solid #DDE3D8; background:#fff; border-radius:8px; padding:5px 9px; font-size:12px; font-family:inherit; color:#7A3B8F; cursor:pointer; white-space:nowrap;">ส่งเข้าระบบรายงานความเสี่ยง</button>`
+        ) : ''}
+        <button class="del-btn" data-id="${e.id}">ลบ</button>
+      </td>
     </tr>`).join('');
   tbody.querySelectorAll('.del-btn').forEach(b=>{
     b.addEventListener('click', ()=>deleteDrp(b.dataset.id));
+  });
+  tbody.querySelectorAll('.risk-link-btn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const entry = drpEntries.find(x=>x.id===b.dataset.id);
+      if(!entry) return;
+      b.disabled = true; b.textContent = 'กำลังส่ง...';
+      const ok = await pushToRiskReport(entry);
+      if(ok){ showToast('ส่งเข้าระบบรายงานความเสี่ยงสำเร็จ'); renderDrpReport(); }
+      else { b.disabled = false; b.textContent = 'ส่งเข้าระบบรายงานความเสี่ยง'; }
+    });
   });
 }
 
@@ -591,6 +641,7 @@ function renderDrpReport(){
 (async function init(){
   document.getElementById('drp-status').textContent = 'กำลังโหลดข้อมูล...';
   await loadAll();
+  await loadLinkedRiskRefs();
   renderDrpReport();
   document.getElementById('drp-status').textContent = '';
 })();
@@ -598,6 +649,7 @@ function renderDrpReport(){
 // รีเฟรชข้อมูลอัตโนมัติทุก 30 วินาที (หยุดพักถ้าสลับไปแท็บอื่น เพื่อเห็นเคสใหม่แบบเรียลไทม์)
 async function refreshDrpData(){
   await loadAll();
+  await loadLinkedRiskRefs();
   renderDrpReport();
 }
 setInterval(()=>{ if(document.visibilityState === 'visible') refreshDrpData(); }, 30000);
