@@ -276,10 +276,10 @@
   }
 
   var statsLoaded = false;
-  function initDashboardStats(){
-    if(statsLoaded) return; // กันไม่ให้ยิง fetch ซ้ำถ้าถูกเรียกมากกว่าหนึ่งครั้ง
-    statsLoaded = true;
+  var refreshTimer = null;
+  var REFRESH_INTERVAL_MS = 60000; // รีเฟรชสถิติทุก 60 วินาที เพื่อเห็นข้อมูลใกล้เคียงเรียลไทม์
 
+  function fetchAllStats(){
     fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
       renderDrpStats(data.drpEntries || []);
       renderStockStats(data.refillEntries || []);
@@ -298,6 +298,22 @@
       renderMedReconcileStats(data.patients || []);
     }).catch(()=>{
       setStat('medReconcileStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+    });
+  }
+
+  function initDashboardStats(){
+    if(statsLoaded) return; // กันไม่ให้เริ่มตัวจับเวลาซ้ำถ้าถูกเรียกมากกว่าหนึ่งครั้ง
+    statsLoaded = true;
+
+    fetchAllStats();
+
+    refreshTimer = setInterval(()=>{
+      if(document.visibilityState === 'visible') fetchAllStats();
+    }, REFRESH_INTERVAL_MS);
+
+    // ถ้าสลับกลับมาที่แท็บนี้หลังจากไปทำอย่างอื่น ให้ดึงข้อมูลใหม่ทันทีแทนที่จะรอรอบถัดไป
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState === 'visible') fetchAllStats();
     });
   }
 
