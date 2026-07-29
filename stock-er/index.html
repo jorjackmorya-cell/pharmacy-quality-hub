@@ -598,6 +598,15 @@ function renderRefillReport(){
   renderRefillReport();
   document.getElementById('rf-status').textContent = '';
 })();
+
+// รีเฟรชข้อมูลอัตโนมัติทุก 30 วินาที (หยุดพักถ้าสลับไปแท็บอื่น เพื่อเห็นเคสใหม่แบบเรียลไทม์)
+async function refreshStockData(){
+  await loadAll();
+  renderNurseFilter();
+  renderRefillReport();
+}
+setInterval(()=>{ if(document.visibilityState === 'visible') refreshStockData(); }, 30000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') refreshStockData(); });
 </script>
 </body>
 </html>
