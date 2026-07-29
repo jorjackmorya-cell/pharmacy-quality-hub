@@ -594,6 +594,14 @@ function renderDrpReport(){
   renderDrpReport();
   document.getElementById('drp-status').textContent = '';
 })();
+
+// รีเฟรชข้อมูลอัตโนมัติทุก 30 วินาที (หยุดพักถ้าสลับไปแท็บอื่น เพื่อเห็นเคสใหม่แบบเรียลไทม์)
+async function refreshDrpData(){
+  await loadAll();
+  renderDrpReport();
+}
+setInterval(()=>{ if(document.visibilityState === 'visible') refreshDrpData(); }, 30000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') refreshDrpData(); });
 </script>
 </body>
 </html>
