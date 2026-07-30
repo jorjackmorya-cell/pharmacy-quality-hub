@@ -523,7 +523,6 @@ async function renderRequestsPanel(){
   wrap.innerHTML = `
     <div class="card">
       <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg> ส่งคำขอล่วงหน้า</h2>
-      <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ขอได้ล่วงหน้าไม่จำกัด (แม้ข้ามปี) เพื่อให้ผู้จัดเวรเห็นตอนจัดตารางเดือนถัดไป</p>
       <div class="field-row">
         <div class="field"><label>วันเริ่ม</label><input type="date" id="reqStart"></div>
         <div class="field"><label>วันสิ้นสุด</label><input type="date" id="reqEnd"></div>
@@ -540,7 +539,6 @@ async function renderRequestsPanel(){
     </div>
     <div class="card">
       <h2>คำขอทั้งหมด (ทุกคนมองเห็น)</h2>
-      <p style="font-size:12.5px; color:var(--ink-soft); margin-top:0;">แสดงคำขอของทุกคน เพื่อให้วางแผนอยู่เวร/ลาร่วมกันได้ง่ายขึ้น ลบได้เฉพาะคำขอของตัวเอง</p>
       ${allRowsHtml}
     </div>
     ${managerSectionHtml}`;
