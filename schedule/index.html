@@ -722,6 +722,14 @@ function openDayEditModal(date){
 }
 
 // ---------- แท็บ: รายงานเบิกค่าเวร ----------
+function dropdownOptionsHtml(presets, currentValue, allowOther){
+  const isKnown = presets.includes(currentValue);
+  let html = '<option value="">— เลือก —</option>';
+  html += presets.map(p=>`<option value="${p}" ${p===currentValue?'selected':''}>${p}</option>`).join('');
+  if(allowOther) html += `<option value="__other__" ${(currentValue && !isKnown)?'selected':''}>อื่นๆ (พิมพ์เอง)</option>`;
+  return html;
+}
+
 async function renderReportsPanel(){
   const wrap = document.getElementById('panel-reports');
   if(!canManage){
@@ -736,6 +744,10 @@ async function renderReportsPanel(){
     ]);
   }catch(e){
     wrap.innerHTML = `<div class="card"><div class="no-access" style="color:var(--red);">⚠️ โหลดข้อมูลไม่สำเร็จ: ${e.message}</div></div>`;
+    return;
+  }
+  if(!settings.ok || !status.ok){
+    wrap.innerHTML = `<div class="card"><div class="no-access" style="color:var(--red);">⚠️ โหลดข้อมูลไม่สำเร็จ: ${settings.error || status.error || 'unknown'}</div></div>`;
     return;
   }
   const s = settings.settings || {};
@@ -768,12 +780,35 @@ async function renderReportsPanel(){
     <div class="card">
       <h2>ตั้งค่าชื่อผู้ลงนาม (ใช้ในทุกรายงาน)</h2>
       <div class="field-row">
-        <div class="field"><label>ชื่อหัวหน้ากลุ่มงาน</label><input type="text" id="setHeadName" value="${s.headName||''}" placeholder="เช่น นางสาวมัทนา สมบัติวัฒนาเวศ"></div>
-        <div class="field"><label>ตำแหน่งหัวหน้ากลุ่มงาน</label><input type="text" id="setHeadPosition" value="${s.headPosition||''}" placeholder="เช่น เภสัชกรชำนาญการพิเศษ"></div>
+        <div class="field">
+          <label>ชื่อหัวหน้ากลุ่มงาน</label>
+          <select id="setHeadName" class="dropdown-other-select" data-other-target="setHeadNameOther">
+            ${dropdownOptionsHtml(['นางสาวมัทนา สมบัติวัฒนาเวศ'], s.headName, true)}
+          </select>
+          <input type="text" id="setHeadNameOther" value="${!['นางสาวมัทนา สมบัติวัฒนาเวศ',''].includes(s.headName||'')?(s.headName||''):''}" placeholder="พิมพ์ชื่อเอง" style="margin-top:6px; display:${(s.headName && s.headName!=='นางสาวมัทนา สมบัติวัฒนาเวศ')?'':'none'};">
+        </div>
+        <div class="field">
+          <label>ตำแหน่งหัวหน้ากลุ่มงาน</label>
+          <select id="setHeadPosition">
+            ${dropdownOptionsHtml(['ชำนาญการ','ชำนาญการพิเศษ','เชี่ยวชาญ'], s.headPosition, false)}
+          </select>
+        </div>
       </div>
       <div class="field-row">
-        <div class="field"><label>ชื่อผู้จ่ายเงิน</label><input type="text" id="setPayerName" value="${s.payerName||''}" placeholder="เช่น นางสาวเนรัชราพร สิทธิกัณย์"></div>
-        <div class="field"><label>ตำแหน่งผู้จ่ายเงิน</label><input type="text" id="setPayerPosition" value="${s.payerPosition||''}" placeholder="เช่น เจ้าพนักงานธุรการชำนาญงาน"></div>
+        <div class="field">
+          <label>ชื่อผู้จ่ายเงิน</label>
+          <select id="setPayerName" class="dropdown-other-select" data-other-target="setPayerNameOther">
+            ${dropdownOptionsHtml(['นางสาวเนรัชราพร สิทธิกัณย์'], s.payerName, true)}
+          </select>
+          <input type="text" id="setPayerNameOther" value="${!['นางสาวเนรัชราพร สิทธิกัณย์',''].includes(s.payerName||'')?(s.payerName||''):''}" placeholder="พิมพ์ชื่อเอง" style="margin-top:6px; display:${(s.payerName && s.payerName!=='นางสาวเนรัชราพร สิทธิกัณย์')?'':'none'};">
+        </div>
+        <div class="field">
+          <label>ตำแหน่งผู้จ่ายเงิน</label>
+          <select id="setPayerPosition" class="dropdown-other-select" data-other-target="setPayerPositionOther">
+            ${dropdownOptionsHtml(['เจ้าพนักงานธุรการชำนาญงาน'], s.payerPosition, true)}
+          </select>
+          <input type="text" id="setPayerPositionOther" value="${!['เจ้าพนักงานธุรการชำนาญงาน',''].includes(s.payerPosition||'')?(s.payerPosition||''):''}" placeholder="พิมพ์ตำแหน่งเอง" style="margin-top:6px; display:${(s.payerPosition && s.payerPosition!=='เจ้าพนักงานธุรการชำนาญงาน')?'':'none'};">
+        </div>
       </div>
       <button class="btn btn-primary" id="btnSaveSettings">บันทึกการตั้งค่า</button>
       <span id="settingsSavedMsg" style="font-size:13px; color:var(--green); margin-left:10px;"></span>
@@ -796,12 +831,24 @@ async function renderReportsPanel(){
   document.getElementById('btnDlWithdrawal').addEventListener('click', ()=> downloadReport('generateWithdrawalReport', {}));
   document.getElementById('btnDlOT').addEventListener('click', ()=> downloadReport('generateOTLetter', {}));
 
+  wrap.querySelectorAll('.dropdown-other-select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const otherInput = document.getElementById(sel.dataset.otherTarget);
+      if(otherInput) otherInput.style.display = sel.value === '__other__' ? '' : 'none';
+    });
+  });
+  function resolveDropdownValue(selectId, otherId){
+    const sel = document.getElementById(selectId);
+    if(sel.value === '__other__') return document.getElementById(otherId).value;
+    return sel.value;
+  }
+
   document.getElementById('btnSaveSettings').addEventListener('click', async ()=>{
     const payload = {
-      headName: document.getElementById('setHeadName').value,
+      headName: resolveDropdownValue('setHeadName','setHeadNameOther'),
       headPosition: document.getElementById('setHeadPosition').value,
-      payerName: document.getElementById('setPayerName').value,
-      payerPosition: document.getElementById('setPayerPosition').value,
+      payerName: resolveDropdownValue('setPayerName','setPayerNameOther'),
+      payerPosition: resolveDropdownValue('setPayerPosition','setPayerPositionOther'),
     };
     const res = await apiCall('saveSettings', payload);
     document.getElementById('settingsSavedMsg').textContent = res.ok ? 'บันทึกแล้ว ✓' : 'บันทึกไม่สำเร็จ';
