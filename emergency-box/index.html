@@ -26,16 +26,16 @@
   .brand h1{font-size:19px; font-weight:600; margin:0; line-height:1.3;}
   .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
   .icon{width:16px; height:16px; vertical-align:-3px; flex-shrink:0;}
- 
+
   .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:20px; flex-wrap:wrap;}
   .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s;}
   .tab-btn.active{background:var(--accent); color:#fff;}
   .panel{display:none;}
   .panel.active{display:block;}
- 
+
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px;}
   .card h2{font-size:16px; margin:0 0 18px;}
- 
+
   .box-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:16px;}
   .box-card{border-radius:var(--radius); padding:18px 20px; border:1px solid var(--line); overflow:hidden;}
   .box-card .card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:3px;}
@@ -58,13 +58,13 @@
   .risk-expired .loc, .risk-expired .expiry-label, .risk-expired .expiry-drug{color:#F3C9C9;}
   .risk-expired .expiry-date{color:#fff;}
   .risk-expired .badge{background:#fff; color:#7A1616;}
- 
+
   .field{margin-bottom:14px;}
   .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
   .field select, .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
   .field-row{display:flex; gap:12px; flex-wrap:wrap;}
   .field-row .field{flex:1; min-width:160px;}
- 
+
   table.items{width:100%; border-collapse:collapse; font-size:13.5px;}
   table.items th{text-align:left; font-size:11.5px; color:var(--ink-faint); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line);}
   table.items td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
@@ -72,7 +72,7 @@
   .row-warning td{background:var(--amber-tint);}
   .row-urgent td{background:#FCE4D6;}
   .row-expired td{background:#7A1616; color:#fff;}
- 
+
   .btn{border:none; border-radius:10px; padding:10px 18px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;}
   .btn-primary{background:var(--accent); color:#fff;}
   .btn-primary:hover{background:#8f2a17;}
@@ -80,7 +80,7 @@
   .btn-outline:hover{border-color:var(--accent); color:var(--accent);}
   .btn-danger-outline{background:#fff; border:1px solid var(--line); color:var(--red); padding:5px 10px; font-size:12px;}
   .btn-sm{padding:5px 10px; font-size:12px;}
- 
+
   .empty{padding:30px 20px; text-align:center; color:var(--ink-faint); font-size:14px;}
   .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:16px;}
   .legend span{display:inline-flex; align-items:center; gap:5px;}
@@ -92,36 +92,36 @@
   <a href="../" style="display:inline-flex; align-items:center; gap:6px; font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; color:#3B4FA0; text-decoration:none;">← หน้ารวมเครื่องมือ</a>
 </div>
 <div class="app">
- 
+
   <div class="topbar">
     <div class="brand">
       <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg></div>
       <div><h1>ระบบจัดการยากล่อง Emergency Box</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน (ทดลองใช้งาน — ยังไม่ผูก auth)</p></div>
     </div>
   </div>
- 
+
   <div class="tabs" id="tabsWrap">
     <button class="tab-btn active" data-tab="dashboard">หน้าแรก</button>
     <button class="tab-btn" data-tab="edit">แก้ไขรายการยา</button>
     <button class="tab-btn" data-tab="refill">รายงานการเติมยา</button>
   </div>
- 
+
   <div class="panel active" id="panel-dashboard"></div>
   <div class="panel" id="panel-edit"></div>
   <div class="panel" id="panel-refill"></div>
- 
+
 </div>
- 
+
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzHgfp3ajroq3dkVbBtG2YJgOlFEhNkTdmXemrhEpLwb-P3DjGX-N8cSWijCzMrvqC8/exec';
- 
+
 function apiCall(action, extra){
   return fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({action}, extra||{})) }).then(r=>r.json());
 }
- 
+
 let formulary = [];
 let currentBoxId = null;
- 
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -133,7 +133,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab === 'refill') renderRefillPanel();
   });
 });
- 
+
 // ---------- แท็บ: หน้าแรก (Dashboard) ----------
 async function renderDashboard(){
   const wrap = document.getElementById('panel-dashboard');
@@ -142,7 +142,7 @@ async function renderDashboard(){
   try{ res = await apiCall('getDashboard'); }
   catch(e){ wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ: ${e.message}</div></div>`; return; }
   if(!res.ok){ wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ: ${res.error}</div></div>`; return; }
- 
+
   const cardsHtml = res.boxes.length ? res.boxes.map(b=>{
     const riskLabel = {ok:'ปกติ', warning:'ใกล้หมดอายุ (≤3 เดือน)', urgent:'ใกล้หมดอายุมาก (≤30 วัน)', expired:'หมดอายุแล้ว'}[b.riskLevel] || '';
     return `
@@ -157,7 +157,7 @@ async function renderDashboard(){
       <div class="expiry-drug">${b.earliestExpiryDrug || ''}</div>
     </div>`;
   }).join('') : '<div class="empty">ยังไม่มีข้อมูลกล่องยา</div>';
- 
+
   wrap.innerHTML = `
     <div class="card">
       <h2>ภาพรวมกล่องยาฉุกเฉินทั้งหมด</h2>
@@ -170,12 +170,12 @@ async function renderDashboard(){
       <div class="box-grid">${cardsHtml}</div>
     </div>`;
 }
- 
+
 // ---------- แท็บ: แก้ไขรายการยา ----------
 async function renderEditPanel(){
   const wrap = document.getElementById('panel-edit');
   wrap.innerHTML = '<div class="card"><div class="empty">กำลังโหลด...</div></div>';
- 
+
   let boxesRes, formularyRes;
   try{
     [boxesRes, formularyRes] = await Promise.all([apiCall('getBoxes'), apiCall('getFormulary')]);
@@ -190,7 +190,7 @@ async function renderEditPanel(){
   const boxes = boxesRes.boxes;
   formulary = formularyRes.drugs;
   if(!currentBoxId && boxes.length) currentBoxId = boxes[0].id;
- 
+
   wrap.innerHTML = `
     <div class="card">
       <div class="field">
@@ -200,7 +200,7 @@ async function renderEditPanel(){
         </select>
       </div>
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-outline" id="btnExport">📄 Export ปริ้นติดหน้ากล่อง</button>
+        <button class="btn btn-outline" id="btnExport">📄 เปิดเอกสารสำหรับปริ้น</button>
         <button class="btn btn-outline" id="btnAddDrug">+ เพิ่มรายการยา</button>
       </div>
     </div>
@@ -208,14 +208,14 @@ async function renderEditPanel(){
       <h2>รายการยาในกล่อง</h2>
       <div id="itemsTableWrap"></div>
     </div>`;
- 
+
   document.getElementById('boxSelect').addEventListener('change', (e)=>{ currentBoxId = e.target.value; renderItemsTable(); });
   document.getElementById('btnExport').addEventListener('click', doExport);
   document.getElementById('btnAddDrug').addEventListener('click', ()=> addBlankRow());
- 
+
   await renderItemsTable();
 }
- 
+
 async function renderItemsTable(){
   const tableWrap = document.getElementById('itemsTableWrap');
   tableWrap.innerHTML = '<div class="empty">กำลังโหลด...</div>';
@@ -223,7 +223,7 @@ async function renderItemsTable(){
   if(!res.ok){ tableWrap.innerHTML = `<div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ</div>`; return; }
   renderTableRows(res.items);
 }
- 
+
 function riskRowClass(expDate){
   if(!expDate) return '';
   const d = new Date(expDate); d.setHours(0,0,0,0);
@@ -234,7 +234,7 @@ function riskRowClass(expDate){
   if(diffDays <= 90) return 'row-warning';
   return '';
 }
- 
+
 function drugOptionsHtml(selectedCode){
   const opts = ['<option value="">— พิมพ์ค้นหา/เลือกยา —</option>'];
   formulary.forEach(d=>{
@@ -242,7 +242,7 @@ function drugOptionsHtml(selectedCode){
   });
   return opts.join('');
 }
- 
+
 function renderTableRows(items){
   const tableWrap = document.getElementById('itemsTableWrap');
   if(!items.length){
@@ -268,7 +268,7 @@ function renderTableRows(items){
       ${formulary.map(d=>`<option value="${d.name}" data-code="${d.code}" data-unit="${d.unit}">`).join('')}
     </datalist>
     <div style="margin-top:16px;"><button class="btn btn-primary" id="btnSaveAll">บันทึกการเปลี่ยนแปลง</button> <span id="saveMsg" style="font-size:13px; color:var(--green); margin-left:8px;"></span></div>`;
- 
+
   tableWrap.querySelectorAll('.btn-del').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const tr = btn.closest('tr');
@@ -278,10 +278,10 @@ function renderTableRows(items){
       tr.remove();
     });
   });
- 
+
   document.getElementById('btnSaveAll').addEventListener('click', saveAllRows);
 }
- 
+
 function addBlankRow(){
   const tbody = document.querySelector('#itemsTableWrap table.items tbody');
   if(!tbody){
@@ -300,7 +300,7 @@ function addBlankRow(){
   tbody.appendChild(tr);
   tr.querySelector('.btn-del').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) tr.remove(); });
 }
- 
+
 async function saveAllRows(){
   const rows = document.querySelectorAll('#itemsTableWrap table.items tbody tr');
   const msg = document.getElementById('saveMsg');
@@ -332,28 +332,20 @@ async function saveAllRows(){
     msg.textContent = 'บันทึกไม่สำเร็จ: ' + e.message; msg.style.color = 'var(--red)';
   }
 }
- 
+
 async function doExport(){
   const btn = document.getElementById('btnExport');
-  btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...';
+  btn.disabled = true; btn.textContent = 'กำลังสร้างเอกสาร...';
   try{
     const res = await apiCall('exportBoxDocx', {boxId: currentBoxId});
     if(!res.ok) throw new Error(res.error || 'unknown');
-    const bytes = atob(res.base64);
-    const arr = new Uint8Array(bytes.length);
-    for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
-    const blob = new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = res.filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+    window.open(res.url, '_blank');
   }catch(e){
-    alert('สร้างไฟล์ไม่สำเร็จ: ' + e.message);
+    alert('สร้างเอกสารไม่สำเร็จ: ' + e.message);
   }
-  btn.disabled = false; btn.textContent = '📄 Export ปริ้นติดหน้ากล่อง';
+  btn.disabled = false; btn.textContent = '📄 เปิดเอกสารสำหรับปริ้น';
 }
- 
+
 // ---------- แท็บ: รายงานการเติมยา ----------
 async function renderRefillPanel(){
   const wrap = document.getElementById('panel-refill');
@@ -371,11 +363,11 @@ async function renderRefillPanel(){
       </div>
     </div>
     <div class="card"><div id="rfTableWrap"><div class="empty">เลือกช่วงวันที่แล้วกด "แสดงรายงาน"</div></div></div>`;
- 
+
   document.getElementById('btnRfLoad').addEventListener('click', loadRefillTable);
   document.getElementById('btnRfExport').addEventListener('click', exportRefillCsv);
 }
- 
+
 async function loadRefillTable(){
   const tableWrap = document.getElementById('rfTableWrap');
   const dateFrom = document.getElementById('rfFrom').value;
@@ -399,7 +391,7 @@ async function loadRefillTable(){
       </tbody>
     </table>`;
 }
- 
+
 async function exportRefillCsv(){
   const dateFrom = document.getElementById('rfFrom').value;
   const dateTo = document.getElementById('rfTo').value;
@@ -422,10 +414,9 @@ async function exportRefillCsv(){
   }
   btn.disabled = false; btn.textContent = '⬇️ ดาวน์โหลด CSV';
 }
- 
+
 // ---------- Init ----------
 renderDashboard();
 </script>
 </body>
 </html>
- 
