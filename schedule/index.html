@@ -30,22 +30,22 @@
   .topbar-right a{color:var(--red); cursor:pointer; text-decoration:underline;}
   .icon{width:16px; height:16px; vertical-align:-3px; flex-shrink:0;}
   .icon-sm{width:14px; height:14px; vertical-align:-2px; flex-shrink:0;}
- 
+
   .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:20px; flex-wrap:wrap;}
   .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s; display:flex; align-items:center; gap:6px;}
   .tab-btn.active{background:var(--accent); color:#fff;}
   .panel{display:none;}
   .panel.active{display:block;}
- 
+
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px;}
   .card h2{font-size:16px; margin:0 0 18px; display:flex; align-items:center; gap:8px;}
- 
+
   .month-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
   .month-nav .label{font-size:19px; font-weight:700;}
   .month-nav-btns{display:flex; gap:8px;}
   .nav-btn{border:1px solid var(--line); background:#fff; border-radius:9px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);}
   .nav-btn:hover{border-color:var(--accent); color:var(--accent);}
- 
+
   .day-row{display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line);}
   .day-row:last-child{border-bottom:none;}
   .day-date{width:70px; flex-shrink:0; font-size:13.5px;}
@@ -59,7 +59,7 @@
   .slot select{width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--ink);}
   .slot select:focus{border-color:var(--accent); outline:none;}
   .save-indicator{font-size:11px; color:var(--green); width:60px; text-align:right; flex-shrink:0;}
- 
+
   .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
   .cal-dow{text-align:center; font-size:12px; font-weight:700; color:var(--ink-faint); padding:6px 0;}
   .cal-cell{border:1px solid var(--line); border-radius:9px; min-height:90px; padding:6px; font-size:11.5px; background:#fff;}
@@ -70,7 +70,7 @@
   .cal-name{display:block; margin-bottom:2px; line-height:1.35; padding:1px 4px; border-radius:4px; background:rgba(255,255,255,.6);}
   .cal-name.morning{color:var(--accent);}
   .cal-name.evening{color:var(--ink-soft);}
- 
+
   .btn{border:none; border-radius:10px; padding:11px 20px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
   .btn-primary{background:var(--accent); color:#fff;}
   .btn-primary:hover{background:#2e3d80;}
@@ -78,18 +78,18 @@
   .btn-outline{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
   .btn-outline:hover{border-color:var(--accent); color:var(--accent);}
   .btn-danger-outline{background:#fff; border:1px solid var(--line); color:var(--red);}
- 
+
   .field{margin-bottom:16px;}
   .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
   .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
   .field-row{display:flex; gap:12px; flex-wrap:wrap;}
   .field-row .field{flex:1; min-width:160px;}
- 
+
   .list-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
   .list-row:last-child{border-bottom:none;}
   .empty{padding:30px 20px; text-align:center; color:var(--ink-faint); font-size:14px;}
   .no-access{padding:60px 20px; text-align:center; color:var(--ink-faint);}
- 
+
   @media (max-width:700px){
     .day-row{flex-wrap:wrap;}
     .day-slots{width:100%;}
@@ -103,7 +103,7 @@
   <a href="../" style="display:inline-flex; align-items:center; gap:6px; font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; color:#3B4FA0; text-decoration:none;">← หน้ารวมเครื่องมือ</a>
 </div>
 <div class="app">
- 
+
   <div class="topbar">
     <div class="brand">
       <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></div>
@@ -111,32 +111,32 @@
     </div>
     <div class="topbar-right" id="whoami"></div>
   </div>
- 
+
   <div class="tabs" id="tabsWrap">
     <button class="tab-btn active" data-tab="calendar">ปฏิทินเวร</button>
     <button class="tab-btn" data-tab="build">จัดตารางเวร</button>
     <button class="tab-btn" data-tab="requests">ขอหยุด/ขออยู่เวร</button>
     <button class="tab-btn" data-tab="settings">วันหยุด/เทศกาล</button>
   </div>
- 
+
   <div class="panel active" id="panel-calendar"></div>
   <div class="panel" id="panel-build"></div>
   <div class="panel" id="panel-requests"></div>
   <div class="panel" id="panel-settings"></div>
- 
+
 </div>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwxiTiv0pi9inZNK8GryA07Lm4CmLPa0MxJQH0KaP_Jk7RSgMUgQrkc1WuOp8C1nWuyhw/exec';
- 
+
 window.PHQAuth.requireAuth();
 function renderWhoami(name){
   document.getElementById('whoami').innerHTML = `ผู้ใช้งาน: <b>${name}</b> &nbsp;·&nbsp; <a id="phq-logout">ออกจากระบบ</a>`;
   document.getElementById('phq-logout').addEventListener('click', ()=>{ window.PHQAuth.clearAuth(); location.reload(); });
 }
- 
+
 const THAI_MONTHS = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const THAI_DOW = ['อา','จ','อ','พ','พฤ','ศ','ส'];
- 
+
 let canManage = false;
 let myPosition = '';
 let staffList = [];
@@ -146,11 +146,11 @@ let monthDayInfo = [];
 let holidays = [];
 let festivals = [];
 let monthRequests = [];
- 
+
 function apiCall(action, extra){
   return fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({action}, extra||{})) }).then(r=>r.json());
 }
- 
+
 // ---------- Tabs ----------
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -163,14 +163,14 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='requests') renderRequestsPanel();
   });
 });
- 
+
 function initMonth(){
   const now = new Date();
   curYear = now.getFullYear();
   curMonth = now.getMonth()+1;
 }
 initMonth();
- 
+
 function monthLabel(){ return THAI_MONTHS[curMonth] + ' ' + (curYear+543); }
 function changeMonth(delta){
   curMonth += delta;
@@ -178,7 +178,7 @@ function changeMonth(delta){
   if(curMonth<1){ curMonth=12; curYear--; }
   loadMonthAndRender();
 }
- 
+
 async function loadMonthAndRender(){
   const data = await apiCall('getMonth', {year:curYear, month:curMonth});
   if(!data.ok){ alert('โหลดตารางเวรไม่สำเร็จ: '+data.error); return; }
@@ -189,19 +189,19 @@ async function loadMonthAndRender(){
   if(activeTab==='build') renderBuildPanel();
   if(activeTab==='calendar') renderCalendarPanel();
 }
- 
+
 // คืนคำขอ (ถ้ามี) ของรหัสพนักงานคนหนึ่งที่ครอบคลุมวันที่ระบุ
 function requestFor(code, date){
   return monthRequests.find(r => r.code===code && date>=r.startDate && date<=r.endDate);
 }
- 
+
 function shiftFor(date, slotType){
   return monthShifts.find(s=>s.date===date && s.slotType===slotType);
 }
 function dayInfoFor(date){
   return monthDayInfo.find(d=>d.date===date);
 }
- 
+
 // ---------- แท็บ 1: จัดตารางเวร ----------
 function renderBuildPanel(){
   const wrap = document.getElementById('panel-build');
@@ -211,14 +211,14 @@ function renderBuildPanel(){
   }
   const pharmacists = staffList.filter(s=>s.position==='pharmacist');
   const technicians = staffList.filter(s=>s.position==='technician');
- 
+
   let rowsHtml = '';
   monthDayInfo.forEach(d=>{
     const dt = new Date(d.date+'T00:00:00');
     const dayNum = dt.getDate();
     const dow = THAI_DOW[dt.getDay()];
     const badges = (d.isHoliday?'<span class="day-badge badge-holiday">วันหยุด</span>':'') + (d.isFestival?' <span class="day-badge badge-festival">เทศกาล</span>':'');
- 
+
     let slotsHtml = '';
     if(d.isHoliday){
       const mp = shiftFor(d.date,'morning-pharmacist');
@@ -228,7 +228,7 @@ function renderBuildPanel(){
     }
     const et = shiftFor(d.date,'evening-technician');
     slotsHtml += slotSelectHtml(d.date,'evening-technician','บ่าย (จนท.)', technicians, et?et.actualCode:'');
- 
+
     rowsHtml += `
       <div class="day-row" data-date="${d.date}">
         <div class="day-date"><b>${dayNum}</b>${dow} ${badges}</div>
@@ -236,7 +236,7 @@ function renderBuildPanel(){
         <div class="save-indicator" id="save-${d.date}"></div>
       </div>`;
   });
- 
+
   wrap.innerHTML = `
     <div class="card">
       <div class="month-nav">
@@ -251,7 +251,7 @@ function renderBuildPanel(){
       <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ดาวน์โหลดเป็นไฟล์ Excel พร้อมพิมพ์ให้เจ้าหน้าที่เซ็นชื่อ (จัดหน้าและฟอนต์ TH Sarabun New ให้อัตโนมัติ)</p>
       <button class="btn btn-primary" id="btnExport">ดาวน์โหลด Excel</button>
     </div>`;
- 
+
   document.getElementById('prevMonth').addEventListener('click', ()=>changeMonth(-1));
   document.getElementById('nextMonth').addEventListener('click', ()=>changeMonth(1));
   wrap.querySelectorAll('select').forEach(sel=>{
@@ -259,7 +259,7 @@ function renderBuildPanel(){
   });
   document.getElementById('btnExport').addEventListener('click', doExport);
 }
- 
+
 function slotSelectHtml(date, slotType, label, options, selectedCode){
   return `
     <div class="slot">
@@ -275,7 +275,7 @@ function slotSelectHtml(date, slotType, label, options, selectedCode){
       </select>
     </div>`;
 }
- 
+
 async function onSlotChange(sel){
   const date = sel.dataset.date, slotType = sel.dataset.slot, code = sel.value;
   const indicator = document.getElementById('save-'+date);
@@ -295,7 +295,7 @@ async function onSlotChange(sel){
     alert('บันทึกไม่สำเร็จ: '+e.message);
   }
 }
- 
+
 async function doExport(){
   const btn = document.getElementById('btnExport');
   btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...';
@@ -316,7 +316,7 @@ async function doExport(){
   }
   btn.disabled = false; btn.textContent = 'ดาวน์โหลด Excel';
 }
- 
+
 // ---------- แท็บ 2: ปฏิทินเวร ----------
 function renderCalendarPanel(){
   const wrap = document.getElementById('panel-calendar');
@@ -335,7 +335,7 @@ function renderCalendarPanel(){
     if(et) names += `<span class="cal-name evening">${et.actualName}</span>`;
     cellsHtml += `<div class="cal-cell ${cls}"><div class="cal-daynum">${dt.getDate()}</div>${names}</div>`;
   });
- 
+
   wrap.innerHTML = `
     <div class="card">
       <div class="month-nav">
@@ -351,7 +351,7 @@ function renderCalendarPanel(){
   document.getElementById('prevMonth2').addEventListener('click', ()=>changeMonth(-1));
   document.getElementById('nextMonth2').addEventListener('click', ()=>changeMonth(1));
 }
- 
+
 // ---------- แท็บ 3: วันหยุด/เทศกาล ----------
 async function renderSettingsPanel(){
   const wrap = document.getElementById('panel-settings');
@@ -362,7 +362,7 @@ async function renderSettingsPanel(){
   const [hRes, fRes] = await Promise.all([apiCall('getHolidays'), apiCall('getFestivalPeriods')]);
   holidays = hRes.holidays || [];
   festivals = fRes.periods || [];
- 
+
   wrap.innerHTML = `
     <div class="card">
       <h2>วันหยุดราชการ (นอกเหนือเสาร์-อาทิตย์)</h2>
@@ -387,7 +387,7 @@ async function renderSettingsPanel(){
         ${festivals.length ? festivals.map(f=>`<div class="list-row"><span>${f.startDate} ถึง ${f.endDate} — ${f.label||''}</span><button class="btn-danger-outline btn" data-id="${f.id}" style="padding:4px 10px; font-size:12px;">ลบ</button></div>`).join('') : '<div class="empty">ยังไม่มีช่วงเทศกาลที่กำหนด</div>'}
       </div>
     </div>`;
- 
+
   document.getElementById('btnAddHoliday').addEventListener('click', async ()=>{
     const date = document.getElementById('newHolidayDate').value;
     const label = document.getElementById('newHolidayLabel').value;
@@ -410,24 +410,24 @@ async function renderSettingsPanel(){
     b.addEventListener('click', async ()=>{ await apiCall('removeFestivalPeriod', {id:b.dataset.id}); renderSettingsPanel(); });
   });
 }
- 
+
 // ---------- แท็บ: ขอหยุด/ขออยู่เวร ----------
 let allStaffRequests = [];
 async function renderRequestsPanel(){
   const wrap = document.getElementById('panel-requests');
   const auth = window.PHQAuth.getAuth();
   if(!auth){ wrap.innerHTML = '<div class="card"><div class="no-access">กรุณาเข้าสู่ระบบใหม่</div></div>'; return; }
- 
+
   const res = await apiCall('getStaffRequests');
   allStaffRequests = res.requests || [];
   const myRequests = allStaffRequests.filter(r=>r.code===auth.code).sort((a,b)=> b.startDate.localeCompare(a.startDate));
- 
+
   const myRowsHtml = myRequests.length ? myRequests.map(r=>`
     <div class="list-row">
       <span>${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
       <button class="btn-danger-outline btn" data-id="${r.id}" style="padding:4px 10px; font-size:12px;">ลบ</button>
     </div>`).join('') : '<div class="empty">คุณยังไม่เคยส่งคำขอ</div>';
- 
+
   let managerSectionHtml = '';
   if(canManage){
     const others = allStaffRequests.slice().sort((a,b)=> b.startDate.localeCompare(a.startDate));
@@ -440,7 +440,7 @@ async function renderRequestsPanel(){
           </div>`).join('') : '<div class="empty">ยังไม่มีใครส่งคำขอ</div>'}
       </div>`;
   }
- 
+
   wrap.innerHTML = `
     <div class="card">
       <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg> ส่งคำขอล่วงหน้า</h2>
@@ -464,7 +464,7 @@ async function renderRequestsPanel(){
       ${myRowsHtml}
     </div>
     ${managerSectionHtml}`;
- 
+
   document.getElementById('btnAddRequest').addEventListener('click', async ()=>{
     const startDate = document.getElementById('reqStart').value;
     const endDate = document.getElementById('reqEnd').value;
@@ -486,11 +486,11 @@ async function renderRequestsPanel(){
     });
   });
 }
- 
+
 // ---------- Init ----------
 (function(){ const a = window.PHQAuth.getAuth(); if(a) renderWhoami(a.name); })();
 document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
- 
+
 async function initApp(){
   const auth = window.PHQAuth.getAuth();
   if(!auth) return;
@@ -518,4 +518,3 @@ document.addEventListener('phq-auth-success', initApp);
 </script>
 </body>
 </html>
- 
