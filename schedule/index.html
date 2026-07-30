@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดตารางเวร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="../shared/auth.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --accent:#3B4FA0; --accent-tint:#E8EAF6;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --red:#A32D2D; --red-tint:#FCEBEB;
+    --green:#3B6D11; --green-tint:#EAF3DE;
+    --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
+    --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sarabun','Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .app{max-width:1080px; margin:0 auto; padding:0 20px 80px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:14px; padding-top:14px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:12px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;}
+  .brand-mark svg{width:22px; height:22px;}
+  .brand h1{font-size:19px; font-weight:600; margin:0; line-height:1.3;}
+  .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
+  .topbar-right{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft);}
+  .topbar-right a{color:var(--red); cursor:pointer; text-decoration:underline;}
+  .icon{width:16px; height:16px; vertical-align:-3px; flex-shrink:0;}
+  .icon-sm{width:14px; height:14px; vertical-align:-2px; flex-shrink:0;}
+ 
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:20px; flex-wrap:wrap;}
+  .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s; display:flex; align-items:center; gap:6px;}
+  .tab-btn.active{background:var(--accent); color:#fff;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+ 
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px;}
+  .card h2{font-size:16px; margin:0 0 18px; display:flex; align-items:center; gap:8px;}
+ 
+  .month-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
+  .month-nav .label{font-size:19px; font-weight:700;}
+  .month-nav-btns{display:flex; gap:8px;}
+  .nav-btn{border:1px solid var(--line); background:#fff; border-radius:9px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);}
+  .nav-btn:hover{border-color:var(--accent); color:var(--accent);}
+ 
+  .day-row{display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line);}
+  .day-row:last-child{border-bottom:none;}
+  .day-date{width:70px; flex-shrink:0; font-size:13.5px;}
+  .day-date b{display:block; font-size:16px;}
+  .day-badge{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:999px; margin-top:2px; display:inline-block;}
+  .badge-holiday{background:var(--amber-tint); color:var(--amber);}
+  .badge-festival{background:var(--red-tint); color:var(--red);}
+  .day-slots{flex:1; display:flex; gap:10px; flex-wrap:wrap;}
+  .slot{flex:1; min-width:160px;}
+  .slot label{display:block; font-size:11px; color:var(--ink-faint); margin-bottom:3px;}
+  .slot select{width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--ink);}
+  .slot select:focus{border-color:var(--accent); outline:none;}
+  .save-indicator{font-size:11px; color:var(--green); width:60px; text-align:right; flex-shrink:0;}
+ 
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-dow{text-align:center; font-size:12px; font-weight:700; color:var(--ink-faint); padding:6px 0;}
+  .cal-cell{border:1px solid var(--line); border-radius:9px; min-height:90px; padding:6px; font-size:11.5px; background:#fff;}
+  .cal-cell.empty{background:transparent; border:none;}
+  .cal-cell.holiday{background:var(--amber-tint); border-color:#EBD8B4;}
+  .cal-cell.festival{background:var(--red-tint); border-color:#F3D9D9;}
+  .cal-daynum{font-weight:700; font-size:13px; margin-bottom:4px;}
+  .cal-name{display:block; margin-bottom:2px; line-height:1.35; padding:1px 4px; border-radius:4px; background:rgba(255,255,255,.6);}
+  .cal-name.morning{color:var(--accent);}
+  .cal-name.evening{color:var(--ink-soft);}
+ 
+  .btn{border:none; border-radius:10px; padding:11px 20px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:hover{background:#2e3d80;}
+  .btn-primary:disabled{opacity:.55; cursor:not-allowed;}
+  .btn-outline{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn-outline:hover{border-color:var(--accent); color:var(--accent);}
+  .btn-danger-outline{background:#fff; border:1px solid var(--line); color:var(--red);}
+ 
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
+  .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
+  .field-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .field-row .field{flex:1; min-width:160px;}
+ 
+  .list-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .list-row:last-child{border-bottom:none;}
+  .empty{padding:30px 20px; text-align:center; color:var(--ink-faint); font-size:14px;}
+  .no-access{padding:60px 20px; text-align:center; color:var(--ink-faint);}
+ 
+  @media (max-width:700px){
+    .day-row{flex-wrap:wrap;}
+    .day-slots{width:100%;}
+    .cal-grid{grid-template-columns:repeat(7,minmax(0,1fr)); font-size:10px;}
+    .cal-cell{min-height:64px; padding:3px;}
+  }
+</style>
+</head>
+<body>
+<div style="padding:14px 20px 0; max-width:1080px; margin:0 auto;">
+  <a href="../" style="display:inline-flex; align-items:center; gap:6px; font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; color:#3B4FA0; text-decoration:none;">← หน้ารวมเครื่องมือ</a>
+</div>
+<div class="app">
+ 
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></div>
+      <div><h1>ระบบจัดตารางเวร</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน</p></div>
+    </div>
+    <div class="topbar-right" id="whoami"></div>
+  </div>
+ 
+  <div class="tabs" id="tabsWrap">
+    <button class="tab-btn active" data-tab="calendar">ปฏิทินเวร</button>
+    <button class="tab-btn" data-tab="build">จัดตารางเวร</button>
+    <button class="tab-btn" data-tab="requests">ขอหยุด/ขออยู่เวร</button>
+    <button class="tab-btn" data-tab="settings">วันหยุด/เทศกาล</button>
+  </div>
+ 
+  <div class="panel active" id="panel-calendar"></div>
+  <div class="panel" id="panel-build"></div>
+  <div class="panel" id="panel-requests"></div>
+  <div class="panel" id="panel-settings"></div>
+ 
+</div>
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwxiTiv0pi9inZNK8GryA07Lm4CmLPa0MxJQH0KaP_Jk7RSgMUgQrkc1WuOp8C1nWuyhw/exec';
+ 
+window.PHQAuth.requireAuth();
+function renderWhoami(name){
+  document.getElementById('whoami').innerHTML = `ผู้ใช้งาน: <b>${name}</b> &nbsp;·&nbsp; <a id="phq-logout">ออกจากระบบ</a>`;
+  document.getElementById('phq-logout').addEventListener('click', ()=>{ window.PHQAuth.clearAuth(); location.reload(); });
+}
+ 
+const THAI_MONTHS = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THAI_DOW = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+ 
+let canManage = false;
+let myPosition = '';
+let staffList = [];
+let curYear, curMonth; // curMonth: 1-12
+let monthShifts = [];
+let monthDayInfo = [];
+let holidays = [];
+let festivals = [];
+let monthRequests = [];
+ 
+function apiCall(action, extra){
+  return fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({action}, extra||{})) }).then(r=>r.json());
+}
+ 
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='calendar') renderCalendarPanel();
+    if(btn.dataset.tab==='settings') renderSettingsPanel();
+    if(btn.dataset.tab==='requests') renderRequestsPanel();
+  });
+});
+ 
+function initMonth(){
+  const now = new Date();
+  curYear = now.getFullYear();
+  curMonth = now.getMonth()+1;
+}
+initMonth();
+ 
+function monthLabel(){ return THAI_MONTHS[curMonth] + ' ' + (curYear+543); }
+function changeMonth(delta){
+  curMonth += delta;
+  if(curMonth>12){ curMonth=1; curYear++; }
+  if(curMonth<1){ curMonth=12; curYear--; }
+  loadMonthAndRender();
+}
+ 
+async function loadMonthAndRender(){
+  const data = await apiCall('getMonth', {year:curYear, month:curMonth});
+  if(!data.ok){ alert('โหลดตารางเวรไม่สำเร็จ: '+data.error); return; }
+  monthShifts = data.shifts;
+  monthDayInfo = data.dayInfo;
+  monthRequests = data.requests || [];
+  const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+  if(activeTab==='build') renderBuildPanel();
+  if(activeTab==='calendar') renderCalendarPanel();
+}
+ 
+// คืนคำขอ (ถ้ามี) ของรหัสพนักงานคนหนึ่งที่ครอบคลุมวันที่ระบุ
+function requestFor(code, date){
+  return monthRequests.find(r => r.code===code && date>=r.startDate && date<=r.endDate);
+}
+ 
+function shiftFor(date, slotType){
+  return monthShifts.find(s=>s.date===date && s.slotType===slotType);
+}
+function dayInfoFor(date){
+  return monthDayInfo.find(d=>d.date===date);
+}
+ 
+// ---------- แท็บ 1: จัดตารางเวร ----------
+function renderBuildPanel(){
+  const wrap = document.getElementById('panel-build');
+  if(!canManage){
+    wrap.innerHTML = `<div class="card"><div class="no-access">เฉพาะผู้มีหน้าที่จัดตารางเวรเท่านั้นที่เข้าหน้านี้ได้ครับ<br>ดูตารางเวรได้ที่แท็บ "ปฏิทินเวร"</div></div>`;
+    return;
+  }
+  const pharmacists = staffList.filter(s=>s.position==='pharmacist');
+  const technicians = staffList.filter(s=>s.position==='technician');
+ 
+  let rowsHtml = '';
+  monthDayInfo.forEach(d=>{
+    const dt = new Date(d.date+'T00:00:00');
+    const dayNum = dt.getDate();
+    const dow = THAI_DOW[dt.getDay()];
+    const badges = (d.isHoliday?'<span class="day-badge badge-holiday">วันหยุด</span>':'') + (d.isFestival?' <span class="day-badge badge-festival">เทศกาล</span>':'');
+ 
+    let slotsHtml = '';
+    if(d.isHoliday){
+      const mp = shiftFor(d.date,'morning-pharmacist');
+      const mt = shiftFor(d.date,'morning-technician');
+      slotsHtml += slotSelectHtml(d.date,'morning-pharmacist','เช้า (เภสัชกร)', pharmacists, mp?mp.actualCode:'');
+      slotsHtml += slotSelectHtml(d.date,'morning-technician','เช้า (จนท.)', technicians, mt?mt.actualCode:'');
+    }
+    const et = shiftFor(d.date,'evening-technician');
+    slotsHtml += slotSelectHtml(d.date,'evening-technician','บ่าย (จนท.)', technicians, et?et.actualCode:'');
+ 
+    rowsHtml += `
+      <div class="day-row" data-date="${d.date}">
+        <div class="day-date"><b>${dayNum}</b>${dow} ${badges}</div>
+        <div class="day-slots">${slotsHtml}</div>
+        <div class="save-indicator" id="save-${d.date}"></div>
+      </div>`;
+  });
+ 
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="label">${monthLabel()}</div>
+        <button class="nav-btn" id="nextMonth"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+      </div>
+      ${rowsHtml}
+    </div>
+    <div class="card">
+      <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> ส่งออกตารางเซ็นชื่อ</h2>
+      <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ดาวน์โหลดเป็นไฟล์ Excel พร้อมพิมพ์ให้เจ้าหน้าที่เซ็นชื่อ (จัดหน้าและฟอนต์ TH Sarabun New ให้อัตโนมัติ)</p>
+      <button class="btn btn-primary" id="btnExport">ดาวน์โหลด Excel</button>
+    </div>`;
+ 
+  document.getElementById('prevMonth').addEventListener('click', ()=>changeMonth(-1));
+  document.getElementById('nextMonth').addEventListener('click', ()=>changeMonth(1));
+  wrap.querySelectorAll('select').forEach(sel=>{
+    sel.addEventListener('change', ()=>onSlotChange(sel));
+  });
+  document.getElementById('btnExport').addEventListener('click', doExport);
+}
+ 
+function slotSelectHtml(date, slotType, label, options, selectedCode){
+  return `
+    <div class="slot">
+      <label>${label}</label>
+      <select data-date="${date}" data-slot="${slotType}">
+        <option value="">— ยังไม่กำหนด —</option>
+        ${options.map(o=>{
+          const req = requestFor(o.code, date);
+          let tag = '';
+          if(req) tag = req.type==='unavailable' ? ' ⚠️ ขอไม่อยู่เวร' : ' ✓ ขออยู่เวร';
+          return `<option value="${o.code}" ${o.code===selectedCode?'selected':''}>${o.name}${tag}</option>`;
+        }).join('')}
+      </select>
+    </div>`;
+}
+ 
+async function onSlotChange(sel){
+  const date = sel.dataset.date, slotType = sel.dataset.slot, code = sel.value;
+  const indicator = document.getElementById('save-'+date);
+  indicator.textContent = 'กำลังบันทึก...';
+  try{
+    if(!code){
+      await apiCall('deleteShift', {date, slotType});
+    }else{
+      const res = await apiCall('saveShift', {date, slotType, code});
+      if(!res.ok) throw new Error(res.error||'unknown');
+    }
+    indicator.textContent = 'บันทึกแล้ว ✓';
+    setTimeout(()=>{ indicator.textContent=''; }, 2000);
+    await loadMonthAndRender();
+  }catch(e){
+    indicator.textContent = '';
+    alert('บันทึกไม่สำเร็จ: '+e.message);
+  }
+}
+ 
+async function doExport(){
+  const btn = document.getElementById('btnExport');
+  btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...';
+  try{
+    const res = await apiCall('exportMonthXlsx', {year:curYear, month:curMonth});
+    if(!res.ok) throw new Error(res.error||'unknown');
+    const bytes = atob(res.base64);
+    const arr = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = res.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('สร้างไฟล์ไม่สำเร็จ: '+e.message);
+  }
+  btn.disabled = false; btn.textContent = 'ดาวน์โหลด Excel';
+}
+ 
+// ---------- แท็บ 2: ปฏิทินเวร ----------
+function renderCalendarPanel(){
+  const wrap = document.getElementById('panel-calendar');
+  const firstDow = new Date(curYear, curMonth-1, 1).getDay();
+  let cellsHtml = '';
+  for(let i=0;i<firstDow;i++) cellsHtml += '<div class="cal-cell empty"></div>';
+  monthDayInfo.forEach(d=>{
+    const dt = new Date(d.date+'T00:00:00');
+    const cls = d.isFestival ? 'festival' : (d.isHoliday ? 'holiday' : '');
+    const mp = shiftFor(d.date,'morning-pharmacist');
+    const mt = shiftFor(d.date,'morning-technician');
+    const et = shiftFor(d.date,'evening-technician');
+    let names = '';
+    if(mp) names += `<span class="cal-name morning">${mp.actualName}</span>`;
+    if(mt) names += `<span class="cal-name morning">${mt.actualName}</span>`;
+    if(et) names += `<span class="cal-name evening">${et.actualName}</span>`;
+    cellsHtml += `<div class="cal-cell ${cls}"><div class="cal-daynum">${dt.getDate()}</div>${names}</div>`;
+  });
+ 
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="label">${monthLabel()}</div>
+        <button class="nav-btn" id="nextMonth2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+      </div>
+      <div class="cal-grid">
+        ${THAI_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+        ${cellsHtml}
+      </div>
+    </div>`;
+  document.getElementById('prevMonth2').addEventListener('click', ()=>changeMonth(-1));
+  document.getElementById('nextMonth2').addEventListener('click', ()=>changeMonth(1));
+}
+ 
+// ---------- แท็บ 3: วันหยุด/เทศกาล ----------
+async function renderSettingsPanel(){
+  const wrap = document.getElementById('panel-settings');
+  if(!canManage){
+    wrap.innerHTML = `<div class="card"><div class="no-access">เฉพาะผู้มีหน้าที่จัดตารางเวรเท่านั้นที่เข้าหน้านี้ได้ครับ</div></div>`;
+    return;
+  }
+  const [hRes, fRes] = await Promise.all([apiCall('getHolidays'), apiCall('getFestivalPeriods')]);
+  holidays = hRes.holidays || [];
+  festivals = fRes.periods || [];
+ 
+  wrap.innerHTML = `
+    <div class="card">
+      <h2>วันหยุดราชการ (นอกเหนือเสาร์-อาทิตย์)</h2>
+      <div class="field-row">
+        <div class="field"><label>วันที่</label><input type="date" id="newHolidayDate"></div>
+        <div class="field"><label>ชื่อวันหยุด</label><input type="text" id="newHolidayLabel" placeholder="เช่น วันแม่แห่งชาติ"></div>
+      </div>
+      <button class="btn btn-primary" id="btnAddHoliday">เพิ่มวันหยุด</button>
+      <div style="margin-top:16px;" id="holidayList">
+        ${holidays.length ? holidays.map(h=>`<div class="list-row"><span>${h.date} — ${h.label||''}</span><button class="btn-danger-outline btn" data-date="${h.date}" style="padding:4px 10px; font-size:12px;">ลบ</button></div>`).join('') : '<div class="empty">ยังไม่มีวันหยุดเพิ่มเติม</div>'}
+      </div>
+    </div>
+    <div class="card">
+      <h2>ช่วงเทศกาลพิเศษ (อัตราค่าเวร 1.5 เท่า)</h2>
+      <div class="field-row">
+        <div class="field"><label>วันเริ่ม</label><input type="date" id="newFestStart"></div>
+        <div class="field"><label>วันสิ้นสุด</label><input type="date" id="newFestEnd"></div>
+        <div class="field"><label>ชื่อเทศกาล</label><input type="text" id="newFestLabel" placeholder="เช่น ปีใหม่ 2570"></div>
+      </div>
+      <button class="btn btn-primary" id="btnAddFest">เพิ่มช่วงเทศกาล</button>
+      <div style="margin-top:16px;" id="festList">
+        ${festivals.length ? festivals.map(f=>`<div class="list-row"><span>${f.startDate} ถึง ${f.endDate} — ${f.label||''}</span><button class="btn-danger-outline btn" data-id="${f.id}" style="padding:4px 10px; font-size:12px;">ลบ</button></div>`).join('') : '<div class="empty">ยังไม่มีช่วงเทศกาลที่กำหนด</div>'}
+      </div>
+    </div>`;
+ 
+  document.getElementById('btnAddHoliday').addEventListener('click', async ()=>{
+    const date = document.getElementById('newHolidayDate').value;
+    const label = document.getElementById('newHolidayLabel').value;
+    if(!date){ alert('กรุณาเลือกวันที่'); return; }
+    await apiCall('addHoliday', {date, label});
+    renderSettingsPanel();
+  });
+  wrap.querySelectorAll('#holidayList button').forEach(b=>{
+    b.addEventListener('click', async ()=>{ await apiCall('removeHoliday', {date:b.dataset.date}); renderSettingsPanel(); });
+  });
+  document.getElementById('btnAddFest').addEventListener('click', async ()=>{
+    const startDate = document.getElementById('newFestStart').value;
+    const endDate = document.getElementById('newFestEnd').value;
+    const label = document.getElementById('newFestLabel').value;
+    if(!startDate || !endDate){ alert('กรุณาเลือกวันเริ่มและวันสิ้นสุด'); return; }
+    await apiCall('addFestivalPeriod', {startDate, endDate, label});
+    renderSettingsPanel();
+  });
+  wrap.querySelectorAll('#festList button').forEach(b=>{
+    b.addEventListener('click', async ()=>{ await apiCall('removeFestivalPeriod', {id:b.dataset.id}); renderSettingsPanel(); });
+  });
+}
+ 
+// ---------- แท็บ: ขอหยุด/ขออยู่เวร ----------
+let allStaffRequests = [];
+async function renderRequestsPanel(){
+  const wrap = document.getElementById('panel-requests');
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ wrap.innerHTML = '<div class="card"><div class="no-access">กรุณาเข้าสู่ระบบใหม่</div></div>'; return; }
+ 
+  const res = await apiCall('getStaffRequests');
+  allStaffRequests = res.requests || [];
+  const myRequests = allStaffRequests.filter(r=>r.code===auth.code).sort((a,b)=> b.startDate.localeCompare(a.startDate));
+ 
+  const myRowsHtml = myRequests.length ? myRequests.map(r=>`
+    <div class="list-row">
+      <span>${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
+      <button class="btn-danger-outline btn" data-id="${r.id}" style="padding:4px 10px; font-size:12px;">ลบ</button>
+    </div>`).join('') : '<div class="empty">คุณยังไม่เคยส่งคำขอ</div>';
+ 
+  let managerSectionHtml = '';
+  if(canManage){
+    const others = allStaffRequests.slice().sort((a,b)=> b.startDate.localeCompare(a.startDate));
+    managerSectionHtml = `
+      <div class="card">
+        <h2>คำขอทั้งหมด (สำหรับใช้จัดเวร)</h2>
+        ${others.length ? others.map(r=>`
+          <div class="list-row">
+            <span><b>${r.name}</b>: ${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
+          </div>`).join('') : '<div class="empty">ยังไม่มีใครส่งคำขอ</div>'}
+      </div>`;
+  }
+ 
+  wrap.innerHTML = `
+    <div class="card">
+      <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg> ส่งคำขอล่วงหน้า</h2>
+      <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ขอได้ล่วงหน้าไม่จำกัด (แม้ข้ามปี) เพื่อให้ผู้จัดเวรเห็นตอนจัดตารางเดือนถัดไป</p>
+      <div class="field-row">
+        <div class="field"><label>วันเริ่ม</label><input type="date" id="reqStart"></div>
+        <div class="field"><label>วันสิ้นสุด</label><input type="date" id="reqEnd"></div>
+        <div class="field">
+          <label>ประเภทคำขอ</label>
+          <select id="reqType" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px;">
+            <option value="unavailable">ขอไม่อยู่เวร (ติดธุระ/ลา)</option>
+            <option value="available">ขออยู่เวร (สมัครใจอยู่)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input type="text" id="reqNote" placeholder="เช่น ลาพักผ่อนต่างจังหวัด"></div>
+      <button class="btn btn-primary" id="btnAddRequest">ส่งคำขอ</button>
+    </div>
+    <div class="card">
+      <h2>คำขอของฉัน</h2>
+      ${myRowsHtml}
+    </div>
+    ${managerSectionHtml}`;
+ 
+  document.getElementById('btnAddRequest').addEventListener('click', async ()=>{
+    const startDate = document.getElementById('reqStart').value;
+    const endDate = document.getElementById('reqEnd').value;
+    const type = document.getElementById('reqType').value;
+    const note = document.getElementById('reqNote').value;
+    if(!startDate || !endDate){ alert('กรุณาเลือกวันเริ่มและวันสิ้นสุด'); return; }
+    if(endDate < startDate){ alert('วันสิ้นสุดต้องไม่ก่อนวันเริ่ม'); return; }
+    const btn = document.getElementById('btnAddRequest');
+    btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+    const res2 = await apiCall('addStaffRequest', {code:auth.code, startDate, endDate, type, note});
+    if(!res2.ok){ alert('ส่งคำขอไม่สำเร็จ: '+res2.error); btn.disabled=false; btn.textContent='ส่งคำขอ'; return; }
+    renderRequestsPanel();
+  });
+  wrap.querySelectorAll('.card:nth-child(2) button[data-id]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('ยืนยันลบคำขอนี้?')) return;
+      await apiCall('deleteStaffRequest', {id:b.dataset.id, code:auth.code});
+      renderRequestsPanel();
+    });
+  });
+}
+ 
+// ---------- Init ----------
+(function(){ const a = window.PHQAuth.getAuth(); if(a) renderWhoami(a.name); })();
+document.addEventListener('phq-auth-success', (e)=> renderWhoami(e.detail.name));
+ 
+async function initApp(){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth) return;
+  try{
+    const perm = await apiCall('checkPermission', {code:auth.code});
+    canManage = !!(perm.ok && perm.valid && perm.canManage);
+    myPosition = perm.position || '';
+  }catch(e){ canManage = false; }
+  try{
+    const staffRes = await apiCall('getStaffList');
+    staffList = staffRes.staff || [];
+  }catch(e){ staffList = []; }
+  if(!canManage){
+    document.querySelectorAll('.tab-btn').forEach(b=>{
+      if(b.dataset.tab==='calendar'){ b.classList.add('active'); }
+      else b.classList.remove('active');
+    });
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-calendar').classList.add('active');
+  }
+  await loadMonthAndRender();
+}
+initApp();
+document.addEventListener('phq-auth-success', initApp);
+</script>
+</body>
+</html>
+ 
