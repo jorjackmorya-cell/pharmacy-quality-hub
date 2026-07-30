@@ -313,15 +313,16 @@ async function renderEditPanel(){
         <label>เลือกกล่อง</label>
         <div style="display:flex; gap:10px;">
           <select id="boxSelect" style="flex:1;">
-            ${allBoxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
+            ${allBoxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''} style="${b.status==='suspended'?'color:#9a9a95;':''}">${b.code} — ${b.name}${b.status==='suspended'?' (ระงับการใช้งาน)':''}</option>`).join('')}
           </select>
           <button class="btn btn-outline" id="btnAddBox" style="white-space:nowrap;">+ เพิ่มกล่อง Emergency Box</button>
         </div>
       </div>
-      <div style="display:flex; gap:10px; margin-bottom:16px;">
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
         <button class="btn btn-outline" id="btnExport">📄 เปิดเอกสารสำหรับปริ้น</button>
         <button class="btn btn-outline" id="btnAddDrug">+ เพิ่มรายการยา</button>
-        <button class="btn-danger-outline btn" id="btnDeleteBox" style="margin-left:auto;">🗑️ ยกเลิกกล่องนี้</button>
+        <div id="statusActionWrap" style="margin-left:auto; display:flex; gap:10px;"></div>
+        <button class="btn-danger-outline btn" id="btnDeleteBox">🗑️ ยกเลิกกล่องนี้</button>
       </div>
       <div id="boxInfoFields">${renderBoxInfoFields(currentBox)}</div>
     </div>
@@ -330,11 +331,14 @@ async function renderEditPanel(){
       <div id="itemsTableWrap"></div>
     </div>`;
 
+  renderStatusActionButton(currentBox);
+
   document.getElementById('boxSelect').addEventListener('change', (e)=>{
     currentBoxId = e.target.value;
     const box = allBoxes.find(b=>b.id===currentBoxId) || {};
     document.getElementById('boxInfoFields').innerHTML = renderBoxInfoFields(box);
     wirePackedBySelect();
+    renderStatusActionButton(box);
     renderItemsTable();
   });
   document.getElementById('btnExport').addEventListener('click', doExport);
@@ -344,6 +348,18 @@ async function renderEditPanel(){
   wirePackedBySelect();
 
   await renderItemsTable();
+}
+
+function renderStatusActionButton(box){
+  const wrap = document.getElementById('statusActionWrap');
+  if(!wrap) return;
+  if((box.status||'active') === 'suspended'){
+    wrap.innerHTML = `<button class="btn btn-primary" id="btnReactivateBox">▶️ กลับมาใช้กล่อง</button>`;
+    document.getElementById('btnReactivateBox').addEventListener('click', confirmReactivateBox);
+  }else{
+    wrap.innerHTML = `<button class="btn btn-outline" id="btnSuspendBox">⏸️ ระงับใช้กล่องนี้</button>`;
+    document.getElementById('btnSuspendBox').addEventListener('click', confirmSuspendBox);
+  }
 }
 
 function openAddBoxModal(){
@@ -398,6 +414,62 @@ async function submitDeleteBox(boxId){
   const res = await apiCall('deleteBox', { id: boxId });
   if(!res.ok){ alert('ลบไม่สำเร็จ: ' + res.error); return; }
   currentBoxId = null;
+  await renderEditPanel();
+}
+
+function confirmSuspendBox(){
+  const box = allBoxes.find(b=>b.id===currentBoxId);
+  if(!box) return;
+  showModal(`
+    <h3>ระงับใช้กล่องนี้?</h3>
+    <p>กล่อง <b>"${box.code} — ${box.name}"</b> จะถูกซ่อนจากหน้าแรกและหน้ารวม Hub ชั่วคราว แต่ข้อมูลยังอยู่ครบ
+    ยังเลือกดู/แก้ไขได้จาก dropdown เลือกกล่อง (จะขึ้นสีเทาพร้อมข้อความ "ระงับการใช้งาน") และกลับมาใช้ใหม่ได้ทุกเมื่อ</p>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitSuspendBox('${box.id}')">ตกลง ระงับใช้กล่องนี้</button>
+    </div>`);
+}
+
+async function submitSuspendBox(boxId){
+  closeModal();
+  const res = await apiCall('updateBox', { id: boxId, status: 'suspended' });
+  if(!res.ok){ alert('ระงับใช้ไม่สำเร็จ: ' + res.error); return; }
+  await renderEditPanel();
+}
+
+function confirmReactivateBox(){
+  const box = allBoxes.find(b=>b.id===currentBoxId);
+  if(!box) return;
+  // ต้องอัปเดตวันหมดอายุยาทุกรายการให้ไม่หมดอายุก่อน ถึงจะกลับมาใช้กล่องได้
+  const rows = document.querySelectorAll('#itemsTableWrap table.items tbody tr');
+  const today = new Date().toISOString().slice(0,10);
+  let hasExpired = false, hasEmpty = false;
+  rows.forEach(tr=>{
+    const exp = tr.querySelector('.f-exp').value;
+    if(!exp) hasEmpty = true;
+    else if(exp < today) hasExpired = true;
+  });
+  if(hasExpired){
+    alert('มีรายการยาที่วันหมดอายุยังเป็นวันในอดีตอยู่ กรุณาอัปเดตวันหมดอายุ (และกด "บันทึกการเปลี่ยนแปลง") ให้เป็นปัจจุบันก่อนกลับมาใช้กล่องนี้');
+    return;
+  }
+  if(hasEmpty){
+    alert('มีรายการยาที่ยังไม่ได้ระบุวันหมดอายุ กรุณากรอกให้ครบก่อนกลับมาใช้กล่องนี้');
+    return;
+  }
+  showModal(`
+    <h3>ยืนยันการใช้กล่อง</h3>
+    <p>กล่อง <b>"${box.code} — ${box.name}"</b> จะกลับมาแสดงในหน้าแรกและหน้ารวม Hub ตามปกติ</p>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitReactivateBox('${box.id}')">ยืนยันการใช้กล่อง</button>
+    </div>`);
+}
+
+async function submitReactivateBox(boxId){
+  closeModal();
+  const res = await apiCall('updateBox', { id: boxId, status: 'active' });
+  if(!res.ok){ alert('กลับมาใช้กล่องไม่สำเร็จ: ' + res.error); return; }
   await renderEditPanel();
 }
 
