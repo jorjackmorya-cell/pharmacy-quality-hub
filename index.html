@@ -89,15 +89,24 @@
   .ticker-wrap:hover .ticker-track{animation-play-state:paused;}
   @keyframes ticker-scroll{ from{transform:translateX(0);} to{transform:translateX(-100%);} }
   @media (prefers-reduced-motion: reduce){ .ticker-track{animation:none; padding-left:0;} }
-  .summary-item{display:flex; align-items:center; gap:13px; padding:18px 20px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); transition:.2s;}
-  .summary-icon{width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:var(--gray-tint); color:var(--ink-faint); flex-shrink:0; transition:.2s;}
-  .summary-icon svg{width:19px; height:19px;}
+  .summary-item{display:flex; align-items:center; gap:11px; padding:14px 16px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); transition:.2s;}
+  .summary-icon{width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--gray-tint); color:var(--ink-faint); flex-shrink:0; transition:.2s;}
+  .summary-icon svg{width:16px; height:16px;}
   .summary-item.urgent{background:#FCF6F6; border-color:#F3D9D9;}
   .summary-item.urgent .summary-icon{background:#FCEBEB; color:#A32D2D;}
   .summary-item.ok .summary-icon{background:#EAF3DE; color:#3B6D11;}
-  .summary-num{font-size:23px; font-weight:700; color:var(--ink); display:block; line-height:1.15; letter-spacing:-.01em;}
+  .summary-num{font-size:20px; font-weight:700; color:var(--ink); display:block; line-height:1.15; letter-spacing:-.01em;}
   .summary-item.urgent .summary-num{color:#A32D2D;}
-  .summary-label{font-size:12px; color:var(--ink-soft); display:block; margin-top:2px; line-height:1.4;}
+  .summary-label{font-size:11.5px; color:var(--ink-soft); display:block; margin-top:2px; line-height:1.4;}
+  .summary-item.featured{
+    grid-column: span 2; background:#FBEAE6; border:1.5px solid #E2A99A; padding:16px 20px;
+    box-shadow:0 2px 10px rgba(181,52,29,.12);
+  }
+  .summary-item.featured .summary-icon{width:40px; height:40px; background:#B5341D; color:#fff;}
+  .summary-item.featured .summary-icon svg{width:20px; height:20px;}
+  .summary-item.featured .summary-num{font-size:16px; color:#8A2814;}
+  .summary-item.featured .summary-label{font-size:11.5px; color:#A34530; font-weight:600;}
+  @media (max-width:720px){ .summary-item.featured{grid-column:span 1;} }
 </style>
 </head>
 <body>
@@ -121,6 +130,10 @@
   </div>
 
   <div class="summary-bar" id="summaryBar">
+    <div class="summary-item featured" id="sumEmbox">
+      <div class="summary-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M12 2v20M2 12h20" opacity="0"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg></div>
+      <div><span class="summary-num">กำลังโหลด...</span><span class="summary-label">ยาใกล้หมดอายุที่สุด (Emergency Box)</span></div>
+    </div>
     <div class="summary-item" id="sumDrp">
       <div class="summary-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
       <div><span class="summary-num">–</span><span class="summary-label">ใบสั่งยาทบทวนวันนี้ (DRP)</span></div>
@@ -145,6 +158,17 @@
 
   <div class="grid">
 
+    <a class="card live" href="./risk-report/" style="--accent:#7A3B8F; --accent-tint:#F1E7F5;">
+      <div class="card-body">
+        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+        <h3>รายงานความเสี่ยงเบื้องต้น</h3>
+        <p>บันทึกความเสี่ยง/Near miss พร้อมรูปถ่าย ก่อนส่งต่อเข้าระบบรายงานความเสี่ยงของโรงพยาบาล</p>
+        <div class="mini-stats loading" id="riskReportStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot"><span class="foot-metric" id="riskReportPendingTotal">กำลังโหลด...</span></div>
+        <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+      </div>
+    </a>
+
     <a class="card live" href="./drp/" style="--accent:#7C3A5D; --accent-tint:#F3E7EC;">
       <div class="card-body">
         <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
@@ -156,13 +180,13 @@
       </div>
     </a>
 
-    <a class="card live" href="./risk-report/" style="--accent:#7A3B8F; --accent-tint:#F1E7F5;">
+    <a class="card live" href="./emergency-box/" style="--accent:#B5341D; --accent-tint:#FBEAE6;">
       <div class="card-body">
-        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
-        <h3>รายงานความเสี่ยงเบื้องต้น</h3>
-        <p>บันทึกความเสี่ยง/Near miss พร้อมรูปถ่าย ก่อนส่งต่อเข้าระบบรายงานความเสี่ยงของโรงพยาบาล</p>
-        <div class="mini-stats loading" id="riskReportStats">กำลังโหลดสถิติวันนี้...</div>
-        <div class="card-foot"><span class="foot-metric" id="riskReportPendingTotal">กำลังโหลด...</span></div>
+        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg></div>
+        <h3>ระบบจัดการยากล่อง Emergency Box</h3>
+        <p>ติดตามวันหมดอายุยาในกล่องฉุกเฉินทุกจุด แก้ไขรายการยา และพิมพ์ป้ายติดหน้ากล่องได้ทันที</p>
+        <div class="mini-stats loading" id="emboxStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot"><span class="foot-metric" id="emboxMonthSummary">กำลังโหลด...</span></div>
         <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
       </div>
     </a>
@@ -178,17 +202,6 @@
       </div>
     </a>
 
-    <a class="card live" href="./cytisine/" style="--accent:#0F6E56; --accent-tint:#E1F5EE;">
-      <div class="card-body">
-        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h13"/><path d="M18 8c0-2.5-2-2.5-2-5"/><path d="m2 2 20 20"/><path d="M21 12a1 1 0 0 1 1 1v2a1 1 0 0 1-.5.866"/><path d="M22 8c0-2.5-2-2.5-2-5"/><path d="M7 12v4"/></svg></div>
-        <h3>ติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</h3>
-        <p>บันทึกและติดตามผู้ป่วยที่ได้รับยา Cytisine ผ่านการโทร Day 5 และ Day 25 พร้อมระบบแจ้งเตือนและรายงาน</p>
-        <div class="mini-stats loading" id="cytisineStats">กำลังโหลดสถิติวันนี้...</div>
-        <div class="card-foot"><span class="foot-metric" id="cytisineActiveTotal">กำลังโหลด...</span></div>
-        <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
-      </div>
-    </a>
-
     <a class="card live" href="./stock-er/" style="--accent:#B5651D; --accent-tint:#FBEEDF;">
       <div class="card-body">
         <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/></svg></div>
@@ -196,6 +209,17 @@
         <p>สำหรับเจ้าหน้าที่ห้องยาบันทึกการเติมยาใน ER Stock ช่วงห้องยาปิดทำการ ข้อมูลกลางใช้ร่วมกันทั้งทีม</p>
         <div class="mini-stats loading" id="stockStats">กำลังโหลดสถิติวันนี้...</div>
         <div class="card-foot"><span class="foot-metric" id="stockMonthTotal">กำลังโหลด...</span></div>
+        <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+      </div>
+    </a>
+
+    <a class="card live" href="./cytisine/" style="--accent:#0F6E56; --accent-tint:#E1F5EE;">
+      <div class="card-body">
+        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h13"/><path d="M18 8c0-2.5-2-2.5-2-5"/><path d="m2 2 20 20"/><path d="M21 12a1 1 0 0 1 1 1v2a1 1 0 0 1-.5.866"/><path d="M22 8c0-2.5-2-2.5-2-5"/><path d="M7 12v4"/></svg></div>
+        <h3>ติดตามผู้ป่วยเลิกบุหรี่ด้วย Cytisine</h3>
+        <p>บันทึกและติดตามผู้ป่วยที่ได้รับยา Cytisine ผ่านการโทร Day 5 และ Day 25 พร้อมระบบแจ้งเตือนและรายงาน</p>
+        <div class="mini-stats loading" id="cytisineStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot"><span class="foot-metric" id="cytisineActiveTotal">กำลังโหลด...</span></div>
         <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
       </div>
     </a>
@@ -302,6 +326,7 @@
   const MEDRECONCILE_API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
   const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
   const SCHEDULE_API_URL = 'https://script.google.com/macros/s/AKfycbwxiTiv0pi9inZNK8GryA07Lm4CmLPa0MxJQH0KaP_Jk7RSgMUgQrkc1WuOp8C1nWuyhw/exec';
+  const EMBOX_API_URL = 'https://script.google.com/macros/s/AKfycbzHgfp3ajroq3dkVbBtG2YJgOlFEhNkTdmXemrhEpLwb-P3DjGX-N8cSWijCzMrvqC8/exec';
   function renderMedReconcileStats(patients){
     const holding = patients.filter(p => p.caseStatus === 'holding').length;
     if(holding > 0) setStat('medReconcileStats', 'urgent', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg> ยังฝากยาไว้ <b>${holding}</b> ราย`);
@@ -352,6 +377,38 @@
         renderScheduleStats(data.shifts||[], data.dayInfo||[]);
       })
       .catch(()=>{ setStat('scheduleStats', 'loading', 'โหลดสถิติไม่สำเร็จ'); });
+  }
+
+  function renderEmboxStats(boxes){
+    const riskEl = document.getElementById('sumEmbox');
+    const numEl = riskEl.querySelector('.summary-num');
+    const top = boxes.find(b => b.earliestExpiry); // boxes มาเรียงตามวันหมดอายุใกล้สุดอยู่แล้วจาก backend
+    if(top){
+      numEl.textContent = `${top.earliestExpiryDrug} — ${top.code} (${top.earliestExpiry})`;
+    }else{
+      numEl.textContent = 'ยังไม่มีข้อมูลวันหมดอายุ';
+    }
+
+    const atRiskCount = boxes.filter(b => b.riskLevel === 'warning' || b.riskLevel === 'urgent' || b.riskLevel === 'expired').length;
+    const boxIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg>';
+    if(top){
+      setStat('emboxStats', atRiskCount > 0 ? 'urgent' : '', `${boxIcon} ใกล้หมดอายุที่สุด: <b>${top.earliestExpiryDrug}</b> (กล่อง ${top.code})`);
+    }else{
+      setStat('emboxStats', '', `${boxIcon} ยังไม่มีข้อมูลกล่องยา`);
+    }
+    setFootMetric('emboxMonthSummary', `กล่องที่มียาใกล้หมดอายุ <b>${atRiskCount}</b> จากทั้งหมด <b>${boxes.length}</b> กล่อง`);
+  }
+  function fetchEmboxStats(){
+    fetch(EMBOX_API_URL, { method:'POST', body: JSON.stringify({action:'getDashboard'}) })
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data.ok) throw new Error(data.error||'unknown');
+        renderEmboxStats(data.boxes||[]);
+      })
+      .catch(()=>{
+        setStat('emboxStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
+        document.getElementById('sumEmbox').querySelector('.summary-num').textContent = 'โหลดไม่สำเร็จ';
+      });
   }
 
   const SEV_ORDER = ['A','B','C','D','E','F','G','H','I'];
@@ -406,6 +463,7 @@
     });
 
     fetchScheduleStats();
+    fetchEmboxStats();
   }
 
   function initDashboardStats(){
