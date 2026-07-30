@@ -1,6 +1,8 @@
 /* ===== ระบบยืนยันตัวตนกลาง (ใช้ร่วมกันทุกเครื่องมือใน Hub) =====
    ตรวจสอบรหัส 6 หลักกับ Google Sheet ผ่าน Apps Script เดียวกัน (การ์ด "รหัสผ่าน" จัดการที่ Users tab)
-   ใช้ localStorage เก็บสถานะล็อกอิน — ทำงานร่วมกันได้ทุกหน้าเพราะอยู่โดเมนเดียวกัน (GitHub Pages) */
+   ใช้ sessionStorage เก็บสถานะล็อกอิน — ใช้ร่วมกันได้ทุกหน้าตราบใดที่เปิดอยู่ในแท็บ/หน้าต่างเดิม
+   แต่จะหายทันทีที่ปิดแท็บ/ปิดเบราว์เซอร์ทั้งหมด (ต่างจาก localStorage ที่ค้างอยู่ข้ามวัน) เพื่อป้องกันไม่ให้คนถัดไปที่มาใช้เครื่องต่อ
+   ใช้แอคเคาท์ค้างของคนก่อนหน้าโดยไม่ได้ตั้งใจ */
 (function () {
   // วาง URL ของ Apps Script Web App เดียวกับที่ใช้กับ ER Stock / DRP ตรงนี้ (ใช้ verifyCode action)
   const AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
@@ -9,7 +11,7 @@
 
   function getAuth() {
     let auth;
-    try { auth = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch (e) { return null; }
+    try { auth = JSON.parse(sessionStorage.getItem(AUTH_KEY)); } catch (e) { return null; }
     if (!auth) return null;
     if (!auth.at || (Date.now() - auth.at) > SESSION_MAX_AGE_MS) {
       clearAuth();
@@ -18,7 +20,7 @@
     return auth;
   }
   function clearAuth() {
-    localStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(AUTH_KEY);
   }
 
   function buildGate() {
@@ -57,7 +59,7 @@
         });
         const data = await res.json();
         if (data.ok && data.valid) {
-          localStorage.setItem(AUTH_KEY, JSON.stringify({ code, name: data.name, at: Date.now() }));
+          sessionStorage.setItem(AUTH_KEY, JSON.stringify({ code, name: data.name, at: Date.now() }));
           overlay.remove();
           document.dispatchEvent(new CustomEvent('phq-auth-success', { detail: { name: data.name } }));
         } else {
