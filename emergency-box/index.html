@@ -1,1 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการยากล่อง Emergency Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6F1; --card:#FFFFFF; --ink:#1E2A22; --ink-soft:#5B6B60; --ink-faint:#93A398; --line:#DDE3D8;
+    --accent:#B5341D; --accent-tint:#FBEAE6;
+    --amber:#BA7517; --amber-tint:#FAEEDA;
+    --red:#A32D2D; --red-tint:#FCEBEB;
+    --green:#3B6D11; --green-tint:#EAF3DE;
+    --gray-tint:#EDEDE8; --gray-ink:#5F5E5A;
+    --radius:14px; --shadow:0 1px 2px rgba(30,42,34,.06), 0 4px 16px rgba(30,42,34,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Sarabun','Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .app{max-width:1080px; margin:0 auto; padding:0 20px 80px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:14px; padding-top:14px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:12px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;}
+  .brand-mark svg{width:22px; height:22px;}
+  .brand h1{font-size:19px; font-weight:600; margin:0; line-height:1.3;}
+  .brand p{margin:0; font-size:13px; color:var(--ink-soft);}
+  .icon{width:16px; height:16px; vertical-align:-3px; flex-shrink:0;}
 
+  .tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:20px; flex-wrap:wrap;}
+  .tab-btn{border:none; background:transparent; padding:9px 16px; border-radius:999px; font-size:14px; font-family:inherit; font-weight:500; color:var(--ink-soft); cursor:pointer; transition:.15s;}
+  .tab-btn.active{background:var(--accent); color:#fff;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px;}
+  .card h2{font-size:16px; margin:0 0 18px;}
+
+  .box-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:16px;}
+  .box-card{border-radius:var(--radius); padding:18px 20px; border:1px solid var(--line); overflow:hidden;}
+  .box-card .card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:3px;}
+  .box-card .name{font-weight:700; font-size:15.5px; margin:0; line-height:1.3;}
+  .box-card .loc{font-size:12.5px; color:var(--ink-soft); margin:0 0 14px;}
+  .box-card .expiry-label{font-size:11px; color:var(--ink-faint); margin-bottom:2px;}
+  .box-card .expiry-date{font-size:19px; font-weight:700;}
+  .box-card .expiry-drug{font-size:12px; margin-top:2px;}
+  .box-card .badge{flex-shrink:0; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .risk-ok{background:var(--green-tint);}
+  .risk-ok .expiry-date{color:var(--green);}
+  .risk-ok .badge{background:var(--green-tint); color:var(--green);}
+  .risk-warning{background:var(--amber-tint);}
+  .risk-warning .expiry-date{color:var(--amber);}
+  .risk-warning .badge{background:var(--amber); color:#fff;}
+  .risk-urgent{background:#FCE4D6;}
+  .risk-urgent .expiry-date{color:#C1521A;}
+  .risk-urgent .badge{background:#C1521A; color:#fff;}
+  .risk-expired{background:#7A1616; color:#fff;}
+  .risk-expired .loc, .risk-expired .expiry-label, .risk-expired .expiry-drug{color:#F3C9C9;}
+  .risk-expired .expiry-date{color:#fff;}
+  .risk-expired .badge{background:#fff; color:#7A1616;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
+  .field select, .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
+  .field-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .field-row .field{flex:1; min-width:160px;}
+
+  table.items{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.items th{text-align:left; font-size:11.5px; color:var(--ink-faint); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line);}
+  table.items td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  table.items input, table.items select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px;}
+  .row-warning td{background:var(--amber-tint);}
+  .row-urgent td{background:#FCE4D6;}
+  .row-expired td{background:#7A1616; color:#fff;}
+
+  .btn{border:none; border-radius:10px; padding:10px 18px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-primary:hover{background:#8f2a17;}
+  .btn-outline{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn-outline:hover{border-color:var(--accent); color:var(--accent);}
+  .btn-danger-outline{background:#fff; border:1px solid var(--line); color:var(--red); padding:5px 10px; font-size:12px;}
+  .btn-sm{padding:5px 10px; font-size:12px;}
+
+  .empty{padding:30px 20px; text-align:center; color:var(--ink-faint); font-size:14px;}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:16px;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg></div>
+      <div><h1>ระบบจัดการยากล่อง Emergency Box</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน (ทดลองใช้งาน — ยังไม่ผูก auth)</p></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabsWrap">
+    <button class="tab-btn active" data-tab="dashboard">หน้าแรก</button>
+    <button class="tab-btn" data-tab="edit">แก้ไขรายการยา</button>
+    <button class="tab-btn" data-tab="refill">รายงานการเติมยา</button>
+  </div>
+
+  <div class="panel active" id="panel-dashboard"></div>
+  <div class="panel" id="panel-edit"></div>
+  <div class="panel" id="panel-refill"></div>
+
+</div>
+
+<script>
+const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+function apiCall(action, extra){
+  return fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({action}, extra||{})) }).then(r=>r.json());
+}
+
+let formulary = [];
+let currentBoxId = null;
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'dashboard') renderDashboard();
+    if(btn.dataset.tab === 'edit') renderEditPanel();
+    if(btn.dataset.tab === 'refill') renderRefillPanel();
+  });
+});
+
+// ---------- แท็บ: หน้าแรก (Dashboard) ----------
+async function renderDashboard(){
+  const wrap = document.getElementById('panel-dashboard');
+  wrap.innerHTML = '<div class="card"><div class="empty">กำลังโหลด...</div></div>';
+  let res;
+  try{ res = await apiCall('getDashboard'); }
+  catch(e){ wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ: ${e.message}</div></div>`; return; }
+  if(!res.ok){ wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ: ${res.error}</div></div>`; return; }
+
+  const cardsHtml = res.boxes.length ? res.boxes.map(b=>{
+    const riskLabel = {ok:'ปกติ', warning:'ใกล้หมดอายุ (≤3 เดือน)', urgent:'ใกล้หมดอายุมาก (≤30 วัน)', expired:'หมดอายุแล้ว'}[b.riskLevel] || '';
+    return `
+    <div class="box-card risk-${b.riskLevel}">
+      <div class="card-head">
+        <p class="name">${b.name}</p>
+        <span class="badge">${riskLabel}</span>
+      </div>
+      <p class="loc">${b.location || ''} · ${b.itemCount} รายการ</p>
+      <div class="expiry-label">วันหมดอายุที่ใกล้ที่สุด</div>
+      <div class="expiry-date">${b.earliestExpiry || '—'}</div>
+      <div class="expiry-drug">${b.earliestExpiryDrug || ''}</div>
+    </div>`;
+  }).join('') : '<div class="empty">ยังไม่มีข้อมูลกล่องยา</div>';
+
+  wrap.innerHTML = `
+    <div class="card">
+      <h2>ภาพรวมกล่องยาฉุกเฉินทั้งหมด</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--green);"></span>ปกติ</span>
+        <span><span class="dot" style="background:var(--amber);"></span>ใกล้หมดอายุ (≤3 เดือน)</span>
+        <span><span class="dot" style="background:#C1521A;"></span>ใกล้หมดอายุมาก (≤30 วัน)</span>
+        <span><span class="dot" style="background:#7A1616;"></span>หมดอายุแล้ว</span>
+      </div>
+      <div class="box-grid">${cardsHtml}</div>
+    </div>`;
+}
+
+// ---------- แท็บ: แก้ไขรายการยา ----------
+async function renderEditPanel(){
+  const wrap = document.getElementById('panel-edit');
+  wrap.innerHTML = '<div class="card"><div class="empty">กำลังโหลด...</div></div>';
+
+  let boxesRes, formularyRes;
+  try{
+    [boxesRes, formularyRes] = await Promise.all([apiCall('getBoxes'), apiCall('getFormulary')]);
+  }catch(e){
+    wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ: ${e.message}</div></div>`;
+    return;
+  }
+  if(!boxesRes.ok || !formularyRes.ok){
+    wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ</div></div>`;
+    return;
+  }
+  const boxes = boxesRes.boxes;
+  formulary = formularyRes.drugs;
+  if(!currentBoxId && boxes.length) currentBoxId = boxes[0].id;
+
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="field">
+        <label>เลือกกล่อง</label>
+        <select id="boxSelect">
+          ${boxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" id="btnExport">📄 Export ปริ้นติดหน้ากล่อง</button>
+        <button class="btn btn-outline" id="btnAddDrug">+ เพิ่มรายการยา</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>รายการยาในกล่อง</h2>
+      <div id="itemsTableWrap"></div>
+    </div>`;
+
+  document.getElementById('boxSelect').addEventListener('change', (e)=>{ currentBoxId = e.target.value; renderItemsTable(); });
+  document.getElementById('btnExport').addEventListener('click', doExport);
+  document.getElementById('btnAddDrug').addEventListener('click', ()=> addBlankRow());
+
+  await renderItemsTable();
+}
+
+async function renderItemsTable(){
+  const tableWrap = document.getElementById('itemsTableWrap');
+  tableWrap.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+  const res = await apiCall('getBoxItems', {boxId: currentBoxId});
+  if(!res.ok){ tableWrap.innerHTML = `<div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ</div>`; return; }
+  renderTableRows(res.items);
+}
+
+function riskRowClass(expDate){
+  if(!expDate) return '';
+  const d = new Date(expDate); d.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.floor((d - today) / 86400000);
+  if(diffDays < 0) return 'row-expired';
+  if(diffDays <= 30) return 'row-urgent';
+  if(diffDays <= 90) return 'row-warning';
+  return '';
+}
+
+function drugOptionsHtml(selectedCode){
+  const opts = ['<option value="">— พิมพ์ค้นหา/เลือกยา —</option>'];
+  formulary.forEach(d=>{
+    opts.push(`<option value="${d.code}" ${d.code===selectedCode?'selected':''}>${d.name}</option>`);
+  });
+  return opts.join('');
+}
+
+function renderTableRows(items){
+  const tableWrap = document.getElementById('itemsTableWrap');
+  if(!items.length){
+    tableWrap.innerHTML = '<div class="empty">ยังไม่มีรายการยาในกล่องนี้ กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น</div>';
+    return;
+  }
+  tableWrap.innerHTML = `
+    <table class="items">
+      <thead><tr><th style="width:34%">รายการยา</th><th style="width:12%">จำนวน</th><th style="width:10%">หน่วย</th><th style="width:16%">วันหมดอายุ</th><th style="width:20%">หมายเหตุ</th><th></th></tr></thead>
+      <tbody>
+        ${items.map(it=>`
+        <tr class="${riskRowClass(it.expDate)}" data-id="${it.id}">
+          <td><input list="drugDatalist" class="f-name" value="${it.drugName}" data-code="${it.drugCode}"></td>
+          <td><input class="f-qty" type="number" min="0" value="${it.qty}"></td>
+          <td><input class="f-unit" value="${it.unit}"></td>
+          <td><input class="f-exp" type="date" value="${it.expDate}"></td>
+          <td><input class="f-note" value="${it.note}"></td>
+          <td><button class="btn-danger-outline btn-sm btn-del">ลบ</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <datalist id="drugDatalist">
+      ${formulary.map(d=>`<option value="${d.name}" data-code="${d.code}" data-unit="${d.unit}">`).join('')}
+    </datalist>
+    <div style="margin-top:16px;"><button class="btn btn-primary" id="btnSaveAll">บันทึกการเปลี่ยนแปลง</button> <span id="saveMsg" style="font-size:13px; color:var(--green); margin-left:8px;"></span></div>`;
+
+  tableWrap.querySelectorAll('.btn-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      if(!confirm('ยืนยันลบรายการยานี้?')) return;
+      if(id && id !== 'new'){ await apiCall('deleteItem', {id}); }
+      tr.remove();
+    });
+  });
+
+  document.getElementById('btnSaveAll').addEventListener('click', saveAllRows);
+}
+
+function addBlankRow(){
+  const tbody = document.querySelector('#itemsTableWrap table.items tbody');
+  if(!tbody){
+    renderTableRows([{id:'new', drugName:'', drugCode:'', qty:'', unit:'', expDate:'', note:''}]);
+    return;
+  }
+  const tr = document.createElement('tr');
+  tr.dataset.id = 'new';
+  tr.innerHTML = `
+    <td><input list="drugDatalist" class="f-name" value="" data-code=""></td>
+    <td><input class="f-qty" type="number" min="0" value=""></td>
+    <td><input class="f-unit" value=""></td>
+    <td><input class="f-exp" type="date" value=""></td>
+    <td><input class="f-note" value=""></td>
+    <td><button class="btn-danger-outline btn-sm btn-del">ลบ</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('.btn-del').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) tr.remove(); });
+}
+
+async function saveAllRows(){
+  const rows = document.querySelectorAll('#itemsTableWrap table.items tbody tr');
+  const msg = document.getElementById('saveMsg');
+  msg.textContent = 'กำลังบันทึก...'; msg.style.color = 'var(--ink-soft)';
+  try{
+    for(const tr of rows){
+      const name = tr.querySelector('.f-name').value.trim();
+      if(!name) continue;
+      const nameInput = tr.querySelector('.f-name');
+      // หา drugCode จาก datalist ถ้าเลือกตรงชื่อ
+      let code = nameInput.dataset.code || '';
+      const opt = document.querySelector(`#drugDatalist option[value="${CSS.escape(name)}"]`);
+      if(opt) code = opt.dataset.code;
+      const payload = {
+        id: tr.dataset.id === 'new' ? undefined : tr.dataset.id,
+        boxId: currentBoxId,
+        drugCode: code,
+        drugName: name,
+        qty: tr.querySelector('.f-qty').value,
+        unit: tr.querySelector('.f-unit').value,
+        expDate: tr.querySelector('.f-exp').value,
+        note: tr.querySelector('.f-note').value,
+      };
+      await apiCall('saveItem', payload);
+    }
+    msg.textContent = 'บันทึกแล้ว ✓'; msg.style.color = 'var(--green)';
+    await renderItemsTable();
+  }catch(e){
+    msg.textContent = 'บันทึกไม่สำเร็จ: ' + e.message; msg.style.color = 'var(--red)';
+  }
+}
+
+async function doExport(){
+  const btn = document.getElementById('btnExport');
+  btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...';
+  try{
+    const res = await apiCall('exportBoxDocx', {boxId: currentBoxId});
+    if(!res.ok) throw new Error(res.error || 'unknown');
+    const bytes = atob(res.base64);
+    const arr = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = res.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('สร้างไฟล์ไม่สำเร็จ: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '📄 Export ปริ้นติดหน้ากล่อง';
+}
+
+// ---------- แท็บ: รายงานการเติมยา ----------
+async function renderRefillPanel(){
+  const wrap = document.getElementById('panel-refill');
+  const today = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="field-row">
+        <div class="field"><label>ตั้งแต่วันที่</label><input type="date" id="rfFrom" value="${monthAgo}"></div>
+        <div class="field"><label>ถึงวันที่</label><input type="date" id="rfTo" value="${today}"></div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" id="btnRfLoad">แสดงรายงาน</button>
+        <button class="btn btn-outline" id="btnRfExport">⬇️ ดาวน์โหลด CSV</button>
+      </div>
+    </div>
+    <div class="card"><div id="rfTableWrap"><div class="empty">เลือกช่วงวันที่แล้วกด "แสดงรายงาน"</div></div></div>`;
+
+  document.getElementById('btnRfLoad').addEventListener('click', loadRefillTable);
+  document.getElementById('btnRfExport').addEventListener('click', exportRefillCsv);
+}
+
+async function loadRefillTable(){
+  const tableWrap = document.getElementById('rfTableWrap');
+  const dateFrom = document.getElementById('rfFrom').value;
+  const dateTo = document.getElementById('rfTo').value;
+  tableWrap.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+  const res = await apiCall('getRefillLog', {dateFrom, dateTo});
+  if(!res.ok){ tableWrap.innerHTML = `<div class="empty" style="color:var(--red);">${res.error}</div>`; return; }
+  if(!res.entries.length){ tableWrap.innerHTML = '<div class="empty">ไม่มีการเติม/แก้ไขยาในช่วงนี้</div>'; return; }
+  tableWrap.innerHTML = `
+    <table class="items">
+      <thead><tr><th>วันที่-เวลา</th><th>กล่อง</th><th>รายการยา</th><th>ก่อน</th><th>หลัง</th><th>ส่วนต่าง</th></tr></thead>
+      <tbody>
+        ${res.entries.map(e=>`<tr>
+          <td>${new Date(e.timestamp).toLocaleString('th-TH')}</td>
+          <td>${e.boxCode}</td>
+          <td>${e.drugName}</td>
+          <td>${e.qtyBefore}</td>
+          <td>${e.qtyAfter}</td>
+          <td style="color:${e.delta>=0?'var(--green)':'var(--red)'}; font-weight:600;">${e.delta>0?'+':''}${e.delta}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function exportRefillCsv(){
+  const dateFrom = document.getElementById('rfFrom').value;
+  const dateTo = document.getElementById('rfTo').value;
+  const btn = document.getElementById('btnRfExport');
+  btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...';
+  try{
+    const res = await apiCall('exportRefillReport', {dateFrom, dateTo});
+    if(!res.ok) throw new Error(res.error || 'unknown');
+    const bytes = atob(res.base64);
+    const arr = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = res.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('สร้างไฟล์ไม่สำเร็จ: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '⬇️ ดาวน์โหลด CSV';
+}
+
+// ---------- Init ----------
+renderDashboard();
+</script>
+</body>
+</html>
