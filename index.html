@@ -81,6 +81,14 @@
     display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px;
     margin-bottom:40px;
   }
+  .ticker-wrap{
+    overflow:hidden; white-space:nowrap; background:var(--teal-tint); border:1px solid var(--line);
+    border-radius:12px; padding:11px 18px; margin-bottom:28px; color:var(--teal-dark);
+  }
+  .ticker-track{display:inline-block; font-size:13.5px; font-weight:600; padding-left:100%; animation:ticker-scroll 26s linear infinite;}
+  .ticker-wrap:hover .ticker-track{animation-play-state:paused;}
+  @keyframes ticker-scroll{ from{transform:translateX(0);} to{transform:translateX(-100%);} }
+  @media (prefers-reduced-motion: reduce){ .ticker-track{animation:none; padding-left:0;} }
   .summary-item{display:flex; align-items:center; gap:13px; padding:18px 20px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); transition:.2s;}
   .summary-icon{width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:var(--gray-tint); color:var(--ink-faint); flex-shrink:0; transition:.2s;}
   .summary-icon svg{width:19px; height:19px;}
@@ -106,6 +114,10 @@
       <h1>ศูนย์เครื่องมือ<span>เภสัชกรรม</span></h1>
     </div>
     <p class="lede">รวมระบบดิจิทัลที่พัฒนาขึ้นเพื่อสนับสนุนงานเภสัชกรรมและการดูแลผู้ป่วย — เลือกเครื่องมือที่ต้องการใช้งานจากรายการด้านล่าง</p>
+  </div>
+
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="scheduleTickerTrack">กำลังโหลดข้อมูลเวรวันนี้...</div>
   </div>
 
   <div class="summary-bar" id="summaryBar">
@@ -184,6 +196,17 @@
         <p>สำหรับเจ้าหน้าที่ห้องยาบันทึกการเติมยาใน ER Stock ช่วงห้องยาปิดทำการ ข้อมูลกลางใช้ร่วมกันทั้งทีม</p>
         <div class="mini-stats loading" id="stockStats">กำลังโหลดสถิติวันนี้...</div>
         <div class="card-foot"><span class="foot-metric" id="stockMonthTotal">กำลังโหลด...</span></div>
+        <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+      </div>
+    </a>
+
+    <a class="card live" href="./schedule/" style="--accent:#3B4FA0; --accent-tint:#E8EAF6;">
+      <div class="card-body">
+        <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></div>
+        <h3>ระบบจัดตารางเวร</h3>
+        <p>จัดตารางเวรห้องยา ขอหยุด/ขออยู่เวร แลก/ขายเวร และดาวน์โหลดรายงานเบิกค่าเวร</p>
+        <div class="mini-stats loading" id="scheduleStats">กำลังโหลดสถิติวันนี้...</div>
+        <div class="card-foot"><span class="foot-metric" id="scheduleMonthSummary">กำลังโหลด...</span></div>
         <span class="go">เปิดใช้งาน <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
       </div>
     </a>
@@ -278,6 +301,7 @@
 
   const MEDRECONCILE_API_URL = 'https://script.google.com/macros/s/AKfycbx9hVTd5NoDOMooZPCVurLYHuAsViSuyXgxI_ENDxgmzpjdR3uWyN9ZAWvVbNirO7YL/exec';
   const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+  const SCHEDULE_API_URL = 'https://script.google.com/macros/s/AKfycbwxiTiv0pi9inZNK8GryA07Lm4CmLPa0MxJQH0KaP_Jk7RSgMUgQrkc1WuOp8C1nWuyhw/exec';
   function renderMedReconcileStats(patients){
     const holding = patients.filter(p => p.caseStatus === 'holding').length;
     if(holding > 0) setStat('medReconcileStats', 'urgent', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg> ยังฝากยาไว้ <b>${holding}</b> ราย`);
@@ -286,6 +310,50 @@
     const wardCount = patients.filter(p => p.caseStatus === 'holding' && p.location === 'ward').length;
     setFootMetric('medReconcileAllTotal', wardCount > 0 ? `ยังอยู่ที่หอผู้ป่วย (รอเก็บ) <b>${wardCount}</b> ราย` : `ไม่มีเคสค้างที่หอผู้ป่วย`);
   }
+  const SLOT_LABELS = {'morning-pharmacist':'เช้า (เภสัชกร)','morning-technician':'เช้า (จนท.)','evening-technician':'บ่าย (จนท.)'};
+  const SLOT_ORDER = ['morning-pharmacist','morning-technician','evening-technician'];
+  function renderScheduleStats(shifts, dayInfo){
+    const today = todayStr();
+    const todays = shifts.filter(s => s.date === today);
+    const parts = SLOT_ORDER.map(st => {
+      const sh = todays.find(s => s.slotType === st);
+      return sh ? `${SLOT_LABELS[st]}: <b>${sh.actualName}</b>` : null;
+    }).filter(Boolean);
+    const calIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>';
+    if(parts.length) setStat('scheduleStats', '', `${calIcon} วันนี้เวร: ${parts.join(' · ')}`);
+    else setStat('scheduleStats', 'urgent', `${calIcon} ยังไม่ได้กำหนดเวรวันนี้`);
+
+    const tickerEl = document.getElementById('scheduleTickerTrack');
+    if(tickerEl){
+      const plainParts = SLOT_ORDER.map(st => {
+        const sh = todays.find(s => s.slotType === st);
+        return sh ? `${SLOT_LABELS[st]}: ${sh.actualName}` : null;
+      }).filter(Boolean);
+      tickerEl.textContent = plainParts.length
+        ? `📅 วันนี้เวรอยู่ — ${plainParts.join('   ·   ')}`
+        : '📅 วันนี้ยังไม่ได้กำหนดเวร กรุณาตรวจสอบที่ระบบจัดตารางเวร';
+    }
+
+    let satCount = 0, sunCount = 0, holCount = 0;
+    (dayInfo||[]).forEach(d => {
+      const dow = new Date(d.date+'T00:00:00').getDay();
+      if(dow === 6) satCount++;
+      else if(dow === 0) sunCount++;
+      else if(d.isHoliday) holCount++;
+    });
+    setFootMetric('scheduleMonthSummary', `เดือนนี้ เสาร์ <b>${satCount}</b> วัน · อาทิตย์ <b>${sunCount}</b> วัน · นักขัตฤกษ์ <b>${holCount}</b> วัน`);
+  }
+  function fetchScheduleStats(){
+    const now = new Date();
+    fetch(SCHEDULE_API_URL, { method:'POST', body: JSON.stringify({action:'getMonth', year: now.getFullYear(), month: now.getMonth()+1}) })
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data.ok) throw new Error(data.error||'unknown');
+        renderScheduleStats(data.shifts||[], data.dayInfo||[]);
+      })
+      .catch(()=>{ setStat('scheduleStats', 'loading', 'โหลดสถิติไม่สำเร็จ'); });
+  }
+
   const SEV_ORDER = ['A','B','C','D','E','F','G','H','I'];
   function highestSeverity(items){
     let best = null;
@@ -336,6 +404,8 @@
     }).catch(()=>{
       setStat('riskReportStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
     });
+
+    fetchScheduleStats();
   }
 
   function initDashboardStats(){
