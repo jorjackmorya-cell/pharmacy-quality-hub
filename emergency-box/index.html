@@ -111,7 +111,7 @@
   <div class="topbar">
     <div class="brand">
       <div class="brand-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg></div>
-      <div><h1>ระบบจัดการยากล่อง Emergency Box</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน (ทดลองใช้งาน — ยังไม่ผูก auth)</p></div>
+      <div><h1>ระบบจัดการยากล่อง Emergency Box</h1><p>ห้องยา · โรงพยาบาลเชียงม่วน</p></div>
     </div>
   </div>
 
@@ -505,11 +505,16 @@ async function saveAllRows(){
 async function doExport(){
   const btn = document.getElementById('btnExport');
   btn.disabled = true; btn.textContent = 'กำลังสร้างเอกสาร...';
+  // เปิดแท็บเปล่าทันทีตอนคลิก (ก่อน await ใดๆ) เพราะเบราว์เซอร์จะบล็อกป๊อปอัปถ้าเปิดหลังรอ network response
+  const newTab = window.open('', '_blank');
+  if(newTab) newTab.document.write('<p style="font-family:sans-serif; padding:20px;">กำลังสร้างเอกสาร กรุณารอสักครู่...</p>');
   try{
     const res = await apiCall('exportBoxDocx', {boxId: currentBoxId});
     if(!res.ok) throw new Error(res.error || 'unknown');
-    window.open(res.url, '_blank');
+    if(newTab && !newTab.closed) newTab.location.href = res.url;
+    else window.open(res.url, '_blank'); // เผื่อกรณีแท็บเปล่าถูกปิดไปก่อน
   }catch(e){
+    if(newTab && !newTab.closed) newTab.close();
     alert('สร้างเอกสารไม่สำเร็จ: ' + e.message);
   }
   btn.disabled = false; btn.textContent = '📄 เปิดเอกสารสำหรับปริ้น';
