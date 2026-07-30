@@ -70,6 +70,21 @@
   .cal-name{display:block; margin-bottom:2px; line-height:1.35; padding:1px 4px; border-radius:4px; background:rgba(255,255,255,.6);}
   .cal-name.morning{color:var(--accent);}
   .cal-name.evening{color:var(--ink-soft);}
+  .cal-name{cursor:pointer;}
+  .cal-name:hover{text-decoration:underline;}
+  .cal-name.swap-offered{background:#FFF6D6; color:#8A6D00; font-weight:600;}
+  .cal-name.swap-matched{background:#FDE7CF; color:#A0530A; font-weight:600;}
+  .cal-name.swap-confirmed{color:var(--green); font-weight:700;}
+  .swap-orig{display:block; font-size:9.5px; color:var(--ink-faint); font-weight:400; text-decoration:line-through;}
+  .cal-daynum{display:flex; align-items:center; justify-content:space-between; gap:4px;}
+  .cal-edit-btn{border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:12px; padding:0 2px;}
+  .cal-edit-btn:hover{color:var(--accent);}
+
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(20,28,22,.5); z-index:100; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:#fff; border-radius:16px; max-width:480px; width:100%; padding:26px; box-shadow:0 20px 50px rgba(20,28,22,.25);}
+  .modal h3{margin:0 0 14px; font-size:17px;}
+  .modal-actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
 
   .btn{border:none; border-radius:10px; padding:11px 20px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
   .btn-primary{background:var(--accent); color:#fff;}
@@ -117,12 +132,17 @@
     <button class="tab-btn" data-tab="build">จัดตารางเวร</button>
     <button class="tab-btn" data-tab="requests">ขอหยุด/ขออยู่เวร</button>
     <button class="tab-btn" data-tab="settings">วันหยุด/เทศกาล</button>
+    <button class="tab-btn" data-tab="reports">รายงานเบิกค่าเวร</button>
   </div>
 
   <div class="panel active" id="panel-calendar"></div>
   <div class="panel" id="panel-build"></div>
   <div class="panel" id="panel-requests"></div>
   <div class="panel" id="panel-settings"></div>
+  <div class="panel" id="panel-reports"></div>
+
+  <div class="modal-overlay" id="actionOverlay"><div class="modal" id="actionModalBox"></div></div>
+  <div class="modal-overlay" id="dayEditOverlay"><div class="modal" id="dayEditModalBox"></div></div>
 
 </div>
 <script>
@@ -167,6 +187,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='build') renderBuildPanel();
     if(btn.dataset.tab==='settings') renderSettingsPanel();
     if(btn.dataset.tab==='requests') renderRequestsPanel();
+    if(btn.dataset.tab==='reports') renderReportsPanel();
   });
 });
 
@@ -245,7 +266,6 @@ function renderBuildPanel(){
       <div class="day-row" data-date="${d.date}">
         <div class="day-date"><b>${dayNum}</b>${dow} ${badges}</div>
         <div class="day-slots">${slotsHtml}</div>
-        <div class="save-indicator" id="save-${d.date}"></div>
       </div>`;
   });
 
@@ -256,20 +276,23 @@ function renderBuildPanel(){
         <div class="label">${monthLabel()}</div>
         <button class="nav-btn" id="nextMonth"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
+      <p style="font-size:12.5px; color:var(--ink-soft); background:var(--accent-tint); padding:10px 14px; border-radius:9px; margin-bottom:16px;">💡 เลือกชื่อได้อิสระทุกวันก่อน ระบบจะ<b>ยังไม่บันทึก</b>จนกว่าจะกดปุ่ม "บันทึกตารางเวรทั้งเดือน" ด้านล่างสุด เพื่อให้ทบทวนได้ครบก่อนยืนยัน</p>
       ${rowsHtml}
+      <div style="margin-top:18px; display:flex; align-items:center; gap:14px;">
+        <button class="btn btn-primary" id="btnSaveMonth">บันทึกตารางเวรทั้งเดือน</button>
+        <span id="saveMonthStatus" style="font-size:13px; color:var(--green);"></span>
+      </div>
     </div>
     <div class="card">
       <h2><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> ส่งออกตารางเซ็นชื่อ</h2>
-      <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ดาวน์โหลดเป็นไฟล์ Excel พร้อมพิมพ์ให้เจ้าหน้าที่เซ็นชื่อ (จัดหน้าและฟอนต์ TH Sarabun New ให้อัตโนมัติ)</p>
+      <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">ดาวน์โหลดเป็นไฟล์ Excel พร้อมพิมพ์ให้เจ้าหน้าที่เซ็นชื่อ (จัดหน้าและฟอนต์ TH Sarabun New ให้อัตโนมัติ) — ควรกด "บันทึกตารางเวรทั้งเดือน" ก่อนส่งออก เพื่อให้ไฟล์ตรงกับที่จัดล่าสุด</p>
       <button class="btn btn-primary" id="btnExport">ดาวน์โหลด Excel</button>
     </div>`;
 
   document.getElementById('prevMonth').addEventListener('click', ()=>changeMonth(-1));
   document.getElementById('nextMonth').addEventListener('click', ()=>changeMonth(1));
-  wrap.querySelectorAll('select').forEach(sel=>{
-    sel.addEventListener('change', ()=>onSlotChange(sel));
-  });
   document.getElementById('btnExport').addEventListener('click', doExport);
+  document.getElementById('btnSaveMonth').addEventListener('click', saveMonthDraft);
 }
 
 function slotSelectHtml(date, slotType, label, options, selectedCode){
@@ -288,24 +311,28 @@ function slotSelectHtml(date, slotType, label, options, selectedCode){
     </div>`;
 }
 
-async function onSlotChange(sel){
-  const date = sel.dataset.date, slotType = sel.dataset.slot, code = sel.value;
-  const indicator = document.getElementById('save-'+date);
-  indicator.textContent = 'กำลังบันทึก...';
+async function saveMonthDraft(){
+  const wrap = document.getElementById('panel-build');
+  const assignments = [];
+  wrap.querySelectorAll('select').forEach(sel=>{
+    assignments.push({ date: sel.dataset.date, slotType: sel.dataset.slot, code: sel.value });
+  });
+  const filled = assignments.filter(a=>a.code).length;
+  if(!confirm(`ยืนยันบันทึกตารางเวรเดือน ${monthLabel()}?\nมีทั้งหมด ${filled} ช่องที่กำหนดชื่อไว้แล้ว\n(กด ตกลง เพื่อบันทึกจริงลง Google Sheet)`)) return;
+
+  const btn = document.getElementById('btnSaveMonth');
+  const status = document.getElementById('saveMonthStatus');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
   try{
-    if(!code){
-      await apiCall('deleteShift', {date, slotType});
-    }else{
-      const res = await apiCall('saveShift', {date, slotType, code});
-      if(!res.ok) throw new Error(res.error||'unknown');
-    }
-    indicator.textContent = 'บันทึกแล้ว ✓';
-    setTimeout(()=>{ indicator.textContent=''; }, 2000);
+    const res = await apiCall('saveMonthBulk', {year:curYear, month:curMonth, assignments});
+    if(!res.ok) throw new Error(res.error||'unknown');
+    status.textContent = `บันทึกสำเร็จ ${res.saved} รายการ ✓`;
+    if(res.errors && res.errors.length) status.textContent += ' (มีบางรายการผิดพลาด: '+res.errors.join(', ')+')';
     await loadMonthAndRender();
   }catch(e){
-    indicator.textContent = '';
     alert('บันทึกไม่สำเร็จ: '+e.message);
   }
+  btn.disabled = false; btn.textContent = 'บันทึกตารางเวรทั้งเดือน';
 }
 
 async function doExport(){
@@ -330,6 +357,26 @@ async function doExport(){
 }
 
 // ---------- แท็บ 2: ปฏิทินเวร ----------
+function cellNameHtml(shift){
+  if(!shift) return '';
+  const swapped = shift.actualCode !== shift.originalCode;
+  if(shift.swapStatus === 'offered'){
+    let note = {}; try{ note = JSON.parse(shift.swapNote||'{}'); }catch(e){}
+    const tag = note.offerType==='sell' ? '🏷️' : '🔁';
+    return `<span class="cal-name swap-offered" data-date="${shift.date}" data-slot="${shift.slotType}">${tag} ${shift.actualName}</span>`;
+  }
+  if(shift.swapStatus === 'matched'){
+    let note = {}; try{ note = JSON.parse(shift.swapNote||'{}'); }catch(e){}
+    const partner = note.partnerDate ? shiftFor(note.partnerDate, note.partnerSlotType) : null;
+    const previewName = partner ? partner.originalName : shift.actualName;
+    return `<span class="cal-name swap-matched" data-date="${shift.date}" data-slot="${shift.slotType}">🔁 ${previewName}</span>`;
+  }
+  if(shift.swapStatus === 'confirmed' && swapped){
+    return `<span class="cal-name swap-confirmed" data-date="${shift.date}" data-slot="${shift.slotType}">${shift.actualName}<span class="swap-orig">✕ ${shift.originalName}</span></span>`;
+  }
+  return `<span class="cal-name" data-date="${shift.date}" data-slot="${shift.slotType}">${shift.actualName}</span>`;
+}
+
 function renderCalendarPanel(){
   const wrap = document.getElementById('panel-calendar');
   const firstDow = new Date(curYear, curMonth-1, 1).getDay();
@@ -341,11 +388,9 @@ function renderCalendarPanel(){
     const mp = shiftFor(d.date,'morning-pharmacist');
     const mt = shiftFor(d.date,'morning-technician');
     const et = shiftFor(d.date,'evening-technician');
-    let names = '';
-    if(mp) names += `<span class="cal-name morning">${mp.actualName}</span>`;
-    if(mt) names += `<span class="cal-name morning">${mt.actualName}</span>`;
-    if(et) names += `<span class="cal-name evening">${et.actualName}</span>`;
-    cellsHtml += `<div class="cal-cell ${cls}"><div class="cal-daynum">${dt.getDate()}</div>${names}</div>`;
+    let names = cellNameHtml(mp) + cellNameHtml(mt) + cellNameHtml(et);
+    const editBtn = canManage ? `<button class="cal-edit-btn" data-date="${d.date}" title="แก้ไขเวรวันนี้">✎</button>` : '';
+    cellsHtml += `<div class="cal-cell ${cls}"><div class="cal-daynum">${dt.getDate()} ${editBtn}</div>${names}</div>`;
   });
 
   wrap.innerHTML = `
@@ -355,6 +400,7 @@ function renderCalendarPanel(){
         <div class="label">${monthLabel()}</div>
         <button class="nav-btn" id="nextMonth2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 14px;">🔁 = เสนอแลก/รอจับคู่ · 🏷️ = เสนอขาย · <span style="color:var(--green); font-weight:700;">เขียว</span> = แลก/ขายสำเร็จ · คลิกชื่อเพื่อจัดการ</p>
       <div class="cal-grid">
         ${THAI_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
         ${cellsHtml}
@@ -362,6 +408,12 @@ function renderCalendarPanel(){
     </div>`;
   document.getElementById('prevMonth2').addEventListener('click', ()=>changeMonth(-1));
   document.getElementById('nextMonth2').addEventListener('click', ()=>changeMonth(1));
+  wrap.querySelectorAll('.cal-name').forEach(el=>{
+    el.addEventListener('click', ()=> openShiftActionModal(el.dataset.date, el.dataset.slot));
+  });
+  wrap.querySelectorAll('.cal-edit-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openDayEditModal(btn.dataset.date));
+  });
 }
 
 // ---------- แท็บ 3: วันหยุด/เทศกาล ----------
@@ -509,6 +561,273 @@ async function renderRequestsPanel(){
       renderRequestsPanel();
     });
   });
+}
+
+// ---------- Modal: จัดการเวร (แลก/ขาย/ยืนยัน) ----------
+function closeActionModal(){ document.getElementById('actionOverlay').classList.remove('active'); }
+function closeDayEditModal(){ document.getElementById('dayEditOverlay').classList.remove('active'); }
+document.getElementById('actionOverlay').addEventListener('click', e=>{ if(e.target.id==='actionOverlay') closeActionModal(); });
+document.getElementById('dayEditOverlay').addEventListener('click', e=>{ if(e.target.id==='dayEditOverlay') closeDayEditModal(); });
+
+function openShiftActionModal(date, slotType){
+  const shift = shiftFor(date, slotType);
+  if(!shift) return;
+  const auth = window.PHQAuth.getAuth();
+  if(!auth) return;
+  const myCode = auth.code;
+  const box = document.getElementById('actionModalBox');
+  const slotLabel = slotType==='morning-pharmacist' ? 'เช้า (เภสัชกร)' : slotType==='morning-technician' ? 'เช้า (จนท.)' : 'บ่าย (จนท.)';
+  let bodyHtml = `<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;">📅 ${date} · ${slotLabel}<br>ผู้ปฏิบัติงาน: <b>${shift.actualName}</b></div>`;
+  let actionsHtml = '';
+
+  if(shift.swapStatus === 'none'){
+    if(myCode === shift.actualCode){
+      actionsHtml = `<button class="btn btn-outline" id="btnOfferSwap">🔁 เสนอแลกเวรนี้</button>
+        <button class="btn btn-outline" id="btnOfferSell">🏷️ เสนอขายเวรนี้</button>`;
+    }else{
+      bodyHtml += `<p style="font-size:13px; color:var(--ink-faint);">เวรนี้ยังไม่มีการเสนอแลก/ขาย</p>`;
+    }
+  }else if(shift.swapStatus === 'offered'){
+    let note = {}; try{ note = JSON.parse(shift.swapNote||'{}'); }catch(e){}
+    if(myCode === shift.actualCode){
+      bodyHtml += `<p style="font-size:13px; color:#8A6D00;">คุณเสนอ${note.offerType==='sell'?'ขาย':'แลก'}เวรนี้ไว้ รอผู้รับ</p>`;
+      actionsHtml = `<button class="btn btn-danger-outline" id="btnCancelOffer">ยกเลิกการเสนอ</button>`;
+    }else if(note.offerType === 'sell'){
+      bodyHtml += `<p style="font-size:13px; color:#8A6D00;">🏷️ เสนอขายเวรนี้ ต้องการรับซื้อไหม</p>`;
+      actionsHtml = `<button class="btn btn-primary" id="btnAcceptSell">รับซื้อเวรนี้</button>`;
+    }else{
+      const myOffers = monthShifts.filter(s=> s.actualCode===myCode && s.swapStatus==='offered');
+      const myOfferSwaps = myOffers.filter(s=>{ let n={}; try{n=JSON.parse(s.swapNote||'{}');}catch(e){} return n.offerType==='swap'; });
+      if(myOfferSwaps.length){
+        bodyHtml += `<p style="font-size:13px; color:#8A6D00;">🔁 เสนอแลกเวรนี้ไว้ เลือกเวรของคุณที่จะใช้แลก:</p>`;
+        actionsHtml = myOfferSwaps.map(s=>`<button class="btn btn-outline btn-match" data-src-date="${s.date}" data-src-slot="${s.slotType}">แลกกับเวรวันที่ ${s.date}</button>`).join('');
+      }else{
+        bodyHtml += `<p style="font-size:13px; color:var(--ink-faint);">🔁 เสนอแลกเวรนี้ไว้ — คุณต้องมีเวรของตัวเองที่เสนอแลกไว้ก่อน (ไปที่เวรของคุณ กด "เสนอแลกเวรนี้" ก่อน แล้วค่อยกลับมาจับคู่ที่นี่)</p>`;
+      }
+    }
+  }else if(shift.swapStatus === 'matched'){
+    let note = {}; try{ note = JSON.parse(shift.swapNote||'{}'); }catch(e){}
+    const partner = note.partnerDate ? shiftFor(note.partnerDate, note.partnerSlotType) : null;
+    bodyHtml += `<p style="font-size:13px; color:#A0530A;">🔁 จับคู่แลกกับ ${partner?partner.originalName:'-'} (วันที่ ${note.partnerDate||'-'}) รอยืนยัน</p>`;
+    if(myCode === shift.actualCode){
+      actionsHtml = `<button class="btn btn-primary" id="btnConfirmSwap">ยืนยันแลกเวร</button>
+        <button class="btn btn-danger-outline" id="btnCancelOffer">ยกเลิก</button>`;
+    }else{
+      bodyHtml += `<p style="font-size:12.5px; color:var(--ink-faint);">รอเจ้าของเวรอีกฝั่งกดยืนยัน</p>`;
+    }
+  }else if(shift.swapStatus === 'confirmed'){
+    bodyHtml += `<p style="font-size:13px; color:var(--green);">✅ แลก/ขายเวรสำเร็จแล้ว (เดิม: ${shift.originalName})</p>`;
+  }
+
+  box.innerHTML = `<h3>จัดการเวรนี้</h3>${bodyHtml}<div class="modal-actions">${actionsHtml}<button class="btn btn-outline" id="btnCloseAction">ปิด</button></div>`;
+  document.getElementById('actionOverlay').classList.add('active');
+  document.getElementById('btnCloseAction').addEventListener('click', closeActionModal);
+
+  const offerSwapBtn = document.getElementById('btnOfferSwap');
+  if(offerSwapBtn) offerSwapBtn.addEventListener('click', ()=> doOffer(date, slotType, 'swap'));
+  const offerSellBtn = document.getElementById('btnOfferSell');
+  if(offerSellBtn) offerSellBtn.addEventListener('click', ()=> doOffer(date, slotType, 'sell'));
+  const cancelBtn = document.getElementById('btnCancelOffer');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=> doCancelSwap(date, slotType));
+  const acceptSellBtn = document.getElementById('btnAcceptSell');
+  if(acceptSellBtn) acceptSellBtn.addEventListener('click', ()=> doAcceptSell(date, slotType));
+  const confirmBtn = document.getElementById('btnConfirmSwap');
+  if(confirmBtn) confirmBtn.addEventListener('click', ()=> doConfirmSwap(date, slotType));
+  box.querySelectorAll('.btn-match').forEach(b=>{
+    b.addEventListener('click', ()=> doMatchSwap(b.dataset.srcDate, b.dataset.srcSlot, date, slotType));
+  });
+}
+
+async function doOffer(date, slotType, offerType){
+  const auth = window.PHQAuth.getAuth();
+  const res = await apiCall('offerShift', {date, slotType, code:auth.code, offerType});
+  if(!res.ok){ alert('ไม่สำเร็จ: '+res.error); return; }
+  closeActionModal();
+  await loadMonthAndRender();
+}
+async function doCancelSwap(date, slotType){
+  const auth = window.PHQAuth.getAuth();
+  const res = await apiCall('cancelSwap', {date, slotType, code:auth.code});
+  if(!res.ok){ alert('ไม่สำเร็จ: '+res.error); return; }
+  closeActionModal();
+  await loadMonthAndRender();
+}
+async function doAcceptSell(date, slotType){
+  const auth = window.PHQAuth.getAuth();
+  if(!confirm('ยืนยันรับซื้อเวรนี้?')) return;
+  const res = await apiCall('acceptSell', {date, slotType, buyerCode:auth.code});
+  if(!res.ok){ alert('ไม่สำเร็จ: '+res.error); return; }
+  closeActionModal();
+  await loadMonthAndRender();
+}
+async function doConfirmSwap(date, slotType){
+  if(!confirm('ยืนยันแลกเวรนี้? หลังยืนยันจะเปลี่ยนชื่อผู้ปฏิบัติงานทันที')) return;
+  const auth = window.PHQAuth.getAuth();
+  const res = await apiCall('confirmSwap', {date, slotType, code:auth.code});
+  if(!res.ok){ alert('ไม่สำเร็จ: '+res.error); return; }
+  closeActionModal();
+  await loadMonthAndRender();
+}
+async function doMatchSwap(sourceDate, sourceSlotType, targetDate, targetSlotType){
+  const auth = window.PHQAuth.getAuth();
+  const res = await apiCall('matchSwap', {sourceDate, sourceSlotType, targetDate, targetSlotType, code:auth.code});
+  if(!res.ok){ alert('ไม่สำเร็จ: '+res.error); return; }
+  closeActionModal();
+  await loadMonthAndRender();
+}
+
+// ---------- Modal: แก้ไขเวรวันนี้ (เฉพาะผู้จัดเวร) ----------
+function openDayEditModal(date){
+  const dayInfo = dayInfoFor(date);
+  if(!dayInfo) return;
+  const pharmacists = staffList.filter(s=>s.position==='pharmacist');
+  const technicians = staffList.filter(s=>s.position==='technician');
+  let slotsHtml = '';
+  if(dayInfo.isHoliday){
+    const mp = shiftFor(date,'morning-pharmacist');
+    const mt = shiftFor(date,'morning-technician');
+    slotsHtml += slotSelectHtml(date,'morning-pharmacist','เช้า (เภสัชกร)', pharmacists, mp?mp.actualCode:'');
+    slotsHtml += slotSelectHtml(date,'morning-technician','เช้า (จนท.)', technicians, mt?mt.actualCode:'');
+  }
+  const et = shiftFor(date,'evening-technician');
+  slotsHtml += slotSelectHtml(date,'evening-technician','บ่าย (จนท.)', technicians, et?et.actualCode:'');
+
+  const box = document.getElementById('dayEditModalBox');
+  box.innerHTML = `
+    <h3>แก้ไขเวรวันที่ ${date}</h3>
+    <div style="display:flex; flex-direction:column; gap:14px;">${slotsHtml}</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btnSaveDayEdit">บันทึก</button>
+      <button class="btn btn-outline" id="btnCloseDayEdit">ยกเลิก</button>
+    </div>`;
+  document.getElementById('dayEditOverlay').classList.add('active');
+  document.getElementById('btnCloseDayEdit').addEventListener('click', closeDayEditModal);
+  document.getElementById('btnSaveDayEdit').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btnSaveDayEdit');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    const selects = box.querySelectorAll('select');
+    try{
+      for(const sel of selects){
+        const d = sel.dataset.date, st = sel.dataset.slot, code = sel.value;
+        if(code) await apiCall('saveShift', {date:d, slotType:st, code});
+        else await apiCall('deleteShift', {date:d, slotType:st});
+      }
+      closeDayEditModal();
+      await loadMonthAndRender();
+    }catch(e){
+      alert('บันทึกไม่สำเร็จ: '+e.message);
+      btn.disabled = false; btn.textContent = 'บันทึก';
+    }
+  });
+}
+
+// ---------- แท็บ: รายงานเบิกค่าเวร ----------
+async function renderReportsPanel(){
+  const wrap = document.getElementById('panel-reports');
+  if(!canManage){
+    wrap.innerHTML = `<div class="card"><div class="no-access">เฉพาะผู้มีหน้าที่จัดตารางเวรเท่านั้นที่เข้าหน้านี้ได้ครับ</div></div>`;
+    return;
+  }
+  let settings, status;
+  try{
+    [settings, status] = await Promise.all([
+      apiCall('getSettings'),
+      apiCall('getMonthConfirmationStatus', {year:curYear, month:curMonth})
+    ]);
+  }catch(e){
+    wrap.innerHTML = `<div class="card"><div class="no-access" style="color:var(--red);">⚠️ โหลดข้อมูลไม่สำเร็จ: ${e.message}</div></div>`;
+    return;
+  }
+  const s = settings.settings || {};
+
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="label">${monthLabel()}</div>
+        <button class="nav-btn" id="nextMonth3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+      </div>
+      ${status.confirmed
+        ? `<p style="font-size:13px; color:var(--green); background:var(--green-tint); padding:10px 14px; border-radius:9px;">✅ ยืนยันการขึ้นเวรเดือนนี้แล้ว โดย ${status.confirmedBy}</p>`
+        : status.ready
+          ? `<p style="font-size:13px; color:var(--ink-soft); background:var(--accent-tint); padding:10px 14px; border-radius:9px;">พร้อมยืนยัน — ไม่มีเวรที่ค้างแลก/รอยืนยันแล้ว</p>
+             <button class="btn btn-primary" id="btnConfirmMonth">ยืนยันการขึ้นเวรเดือน ${monthLabel()}</button>`
+          : `<p style="font-size:13px; color:var(--red); background:var(--red-tint); padding:10px 14px; border-radius:9px;">⚠️ ยังมีเวร ${status.pendingCount} รายการที่รอแลก/รอยืนยันอยู่ ต้องจัดการให้เสร็จก่อนยืนยันเดือนนี้ (ไปที่แท็บ "ปฏิทินเวร")</p>`}
+    </div>
+
+    <div class="card" style="${status.confirmed?'':'opacity:.5; pointer-events:none;'}">
+      <h2>ดาวน์โหลดรายงาน</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin-top:0;">${status.confirmed?'':'ต้องยืนยันการขึ้นเวรเดือนนี้ก่อน จึงจะดาวน์โหลดรายงานได้'}</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <button class="btn btn-outline" id="btnDlSchedule">📅 ตารางเวร-${monthLabel()}.xlsx</button>
+        <button class="btn btn-outline" id="btnDlWithdrawal">💰 หลักฐานตั้งเบิก-${monthLabel()}.xlsx</button>
+        <button class="btn btn-outline" id="btnDlOT">📄 หนังสือขออนุมัติเบิก OT.docx</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ตั้งค่าชื่อผู้ลงนาม (ใช้ในทุกรายงาน)</h2>
+      <div class="field-row">
+        <div class="field"><label>ชื่อหัวหน้ากลุ่มงาน</label><input type="text" id="setHeadName" value="${s.headName||''}" placeholder="เช่น นางสาวมัทนา สมบัติวัฒนาเวศ"></div>
+        <div class="field"><label>ตำแหน่งหัวหน้ากลุ่มงาน</label><input type="text" id="setHeadPosition" value="${s.headPosition||''}" placeholder="เช่น เภสัชกรชำนาญการพิเศษ"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>ชื่อผู้จ่ายเงิน</label><input type="text" id="setPayerName" value="${s.payerName||''}" placeholder="เช่น นางสาวเนรัชราพร สิทธิกัณย์"></div>
+        <div class="field"><label>ตำแหน่งผู้จ่ายเงิน</label><input type="text" id="setPayerPosition" value="${s.payerPosition||''}" placeholder="เช่น เจ้าพนักงานธุรการชำนาญงาน"></div>
+      </div>
+      <button class="btn btn-primary" id="btnSaveSettings">บันทึกการตั้งค่า</button>
+      <span id="settingsSavedMsg" style="font-size:13px; color:var(--green); margin-left:10px;"></span>
+    </div>`;
+
+  document.getElementById('prevMonth3').addEventListener('click', ()=>{ changeMonth(-1); renderReportsPanel(); });
+  document.getElementById('nextMonth3').addEventListener('click', ()=>{ changeMonth(1); renderReportsPanel(); });
+
+  const confirmBtn = document.getElementById('btnConfirmMonth');
+  if(confirmBtn) confirmBtn.addEventListener('click', async ()=>{
+    if(!confirm(`ยืนยันการขึ้นเวรเดือน ${monthLabel()}?\nหลังยืนยันแล้ว จะสามารถดาวน์โหลดรายงานเบิกค่าเวรได้`)) return;
+    const auth = window.PHQAuth.getAuth();
+    confirmBtn.disabled = true; confirmBtn.textContent = 'กำลังยืนยัน...';
+    const res = await apiCall('confirmMonth', {year:curYear, month:curMonth, code:auth.code});
+    if(!res.ok){ alert('ยืนยันไม่สำเร็จ: '+res.error); confirmBtn.disabled=false; confirmBtn.textContent='ยืนยันการขึ้นเวรเดือน '+monthLabel(); return; }
+    renderReportsPanel();
+  });
+
+  document.getElementById('btnDlSchedule').addEventListener('click', ()=> downloadReport('exportMonthXlsx', {}));
+  document.getElementById('btnDlWithdrawal').addEventListener('click', ()=> downloadReport('generateWithdrawalReport', {}));
+  document.getElementById('btnDlOT').addEventListener('click', ()=> downloadReport('generateOTLetter', {}));
+
+  document.getElementById('btnSaveSettings').addEventListener('click', async ()=>{
+    const payload = {
+      headName: document.getElementById('setHeadName').value,
+      headPosition: document.getElementById('setHeadPosition').value,
+      payerName: document.getElementById('setPayerName').value,
+      payerPosition: document.getElementById('setPayerPosition').value,
+    };
+    const res = await apiCall('saveSettings', payload);
+    document.getElementById('settingsSavedMsg').textContent = res.ok ? 'บันทึกแล้ว ✓' : 'บันทึกไม่สำเร็จ';
+    setTimeout(()=>{ document.getElementById('settingsSavedMsg').textContent=''; }, 2500);
+  });
+}
+
+async function downloadReport(action, extra){
+  try{
+    const res = await apiCall(action, Object.assign({year:curYear, month:curMonth}, extra));
+    if(!res.ok) throw new Error(res.error||'unknown');
+    const bytes = atob(res.base64);
+    const arr = new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
+    const mime = res.filename.endsWith('.docx')
+      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const blob = new Blob([arr], {type:mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = res.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('สร้างไฟล์ไม่สำเร็จ: '+e.message);
+  }
 }
 
 // ---------- Init ----------
