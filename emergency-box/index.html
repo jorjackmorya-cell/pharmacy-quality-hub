@@ -85,6 +85,21 @@
   .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin-bottom:16px;}
   .legend span{display:inline-flex; align-items:center; gap:5px;}
   .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+  .box-card{cursor:pointer; transition:transform .12s, box-shadow .12s;}
+  .box-card:hover{transform:translateY(-2px); box-shadow:0 4px 14px rgba(30,42,34,.12);}
+  .drug-chip{display:inline-block; padding:2px 9px; border-radius:7px; font-weight:600; margin-top:2px;}
+  .risk-expired .drug-chip{background:#E8792A; color:#fff;}
+  .risk-urgent .drug-chip{background:#8C1F1F; color:#fff;}
+  .risk-warning .drug-chip{background:#C1521A; color:#fff;}
+  .risk-ok .drug-chip{background:#2C5209; color:#fff;}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(20,26,20,.45); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .modal-box{background:#fff; border-radius:16px; padding:26px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  .modal-box h3{margin:0 0 14px; font-size:17px;}
+  .modal-close-row{display:flex; justify-content:flex-end; gap:10px; margin-top:20px;}
+  .summary-line{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px;}
+  .summary-line b{text-align:right;}
 </style>
 </head>
 <body>
@@ -121,6 +136,12 @@ function apiCall(action, extra){
 
 let formulary = [];
 let currentBoxId = null;
+const STAFF_LIST = [
+  {code:'555555', name:'โชติวัฒน์ แก้วกลางเมือง'},
+  {code:'666666', name:'เกียรติคุณ อุ่นกันทะ'},
+  {code:'777777', name:'ภัทรียาพร คำมาปัน'},
+];
+const UNIT_OPTIONS = ['capsule','chewable tablet','tablet','bottle','vial','ampule','bag','cartridge','jar','patch','tube','suppository','sachet'];
 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -146,7 +167,7 @@ async function renderDashboard(){
   const cardsHtml = res.boxes.length ? res.boxes.map(b=>{
     const riskLabel = {ok:'ปกติ', warning:'ใกล้หมดอายุ (≤3 เดือน)', urgent:'ใกล้หมดอายุมาก (≤30 วัน)', expired:'หมดอายุแล้ว'}[b.riskLevel] || '';
     return `
-    <div class="box-card risk-${b.riskLevel}">
+    <div class="box-card risk-${b.riskLevel}" onclick="openBoxDetail('${b.id}')">
       <div class="card-head">
         <p class="name">${b.name}</p>
         <span class="badge">${riskLabel}</span>
@@ -154,7 +175,7 @@ async function renderDashboard(){
       <p class="loc">${b.location || ''} · ${b.itemCount} รายการ</p>
       <div class="expiry-label">วันหมดอายุที่ใกล้ที่สุด</div>
       <div class="expiry-date">${b.earliestExpiry || '—'}</div>
-      <div class="expiry-drug">${b.earliestExpiryDrug || ''}</div>
+      ${b.earliestExpiryDrug ? `<span class="drug-chip">${b.earliestExpiryDrug}</span>` : ''}
     </div>`;
   }).join('') : '<div class="empty">ยังไม่มีข้อมูลกล่องยา</div>';
 
@@ -171,7 +192,101 @@ async function renderDashboard(){
     </div>`;
 }
 
+// ---------- Modal helper (ใช้ร่วมกันหลายจุด) ----------
+function showModal(innerHtml){
+  const existing = document.getElementById('modalOverlay');
+  if(existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modalOverlay';
+  overlay.innerHTML = `<div class="modal-box">${innerHtml}</div>`;
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+}
+function closeModal(){
+  const el = document.getElementById('modalOverlay');
+  if(el) el.remove();
+}
+
+// ---------- รายละเอียดกล่อง (คลิกจากการ์ดหน้าแรก) ----------
+async function openBoxDetail(boxId){
+  showModal('<div class="empty">กำลังโหลด...</div>');
+  const [boxesRes, itemsRes] = await Promise.all([apiCall('getBoxes'), apiCall('getBoxItems', {boxId})]);
+  if(!boxesRes.ok || !itemsRes.ok){ showModal('<div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ</div>'); return; }
+  const box = boxesRes.boxes.find(b=>b.id===boxId);
+  const items = itemsRes.items.slice().sort((a,b)=> (a.expDate||'9999').localeCompare(b.expDate||'9999'));
+  const earliestId = items.length ? items[0].id : null;
+
+  const rowsHtml = items.length ? items.map(it=>`
+    <tr style="${it.id===earliestId ? 'font-weight:700; text-decoration:underline; background:var(--amber-tint);' : ''}">
+      <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${it.drugName}</td>
+      <td style="padding:6px 8px; border-bottom:1px solid var(--line); text-align:center;">${it.qty} ${it.unit||''}</td>
+      <td style="padding:6px 8px; border-bottom:1px solid var(--line); text-align:center;">${it.expDate ? it.expDate.split('-').reverse().join('/') : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="3" class="empty">ไม่มีรายการยา</td></tr>';
+
+  showModal(`
+    <h3>${box ? box.name : ''}</h3>
+    <p style="color:var(--ink-soft); font-size:13px; margin-top:-8px;">${box ? box.location : ''} — เรียงตามวันหมดอายุใกล้สุดก่อน (แถวไฮไลท์ = ใกล้หมดอายุที่สุด)</p>
+    <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+      <thead><tr><th style="text-align:left; padding:6px 8px; font-size:11.5px; color:var(--ink-faint);">รายการยา</th><th style="padding:6px 8px; font-size:11.5px; color:var(--ink-faint);">จำนวน</th><th style="padding:6px 8px; font-size:11.5px; color:var(--ink-faint);">วันหมดอายุ</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">ปิด</button>
+      <button class="btn btn-primary" onclick="closeModal(); jumpToEdit('${boxId}')">แก้ไขรายการยา</button>
+    </div>`);
+}
+
+function jumpToEdit(boxId){
+  currentBoxId = boxId;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="edit"]').classList.add('active');
+  document.getElementById('panel-edit').classList.add('active');
+  renderEditPanel();
+}
+
 // ---------- แท็บ: แก้ไขรายการยา ----------
+let allBoxes = [];
+
+function packedByOptionsHtml(currentName){
+  const matched = STAFF_LIST.some(s => s.name === currentName);
+  return STAFF_LIST.map(s=>`<option value="${s.name}" ${currentName===s.name?'selected':''}>${s.name}</option>`).join('')
+    + `<option value="__other__" ${!matched && currentName ? 'selected':''}>อื่นๆ (พิมพ์เอง)</option>`;
+}
+
+function renderBoxInfoFields(box){
+  const matched = STAFF_LIST.some(s => s.name === box.packedBy);
+  const today = new Date().toISOString().slice(0,10);
+  return `
+    <div class="field-row">
+      <div class="field">
+        <label>ผู้บรรจุ</label>
+        <select id="packedBySelect">${packedByOptionsHtml(box.packedBy)}</select>
+        <input id="packedByOther" placeholder="พิมพ์ชื่อผู้บรรจุ" style="margin-top:6px; ${matched || !box.packedBy ? 'display:none;' : ''}" value="${!matched ? (box.packedBy||'') : ''}">
+      </div>
+      <div class="field">
+        <label>ว/ด/ป ที่บรรจุ</label>
+        <input type="date" id="packedDateInput" value="${today}">
+      </div>
+      <div class="field">
+        <label>ว/ด/ป ที่ส่งคืนห้องยา</label>
+        <input type="text" id="returnDateDisplay" value="${fmtDateDisplaySafe(box.returnDate)}" disabled style="background:#F5F6F1;">
+      </div>
+    </div>`;
+}
+
+function fmtDateDisplaySafe(v){
+  if(!v) return 'ยังไม่คำนวณ';
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return String(v);
+  let y = d.getFullYear();
+  if(y > 2400) y -= 543; // กันบั๊กปี พ.ศ./ค.ศ. จากข้อมูลเก่า
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${y}`;
+}
+
 async function renderEditPanel(){
   const wrap = document.getElementById('panel-edit');
   wrap.innerHTML = '<div class="card"><div class="empty">กำลังโหลด...</div></div>';
@@ -187,33 +302,58 @@ async function renderEditPanel(){
     wrap.innerHTML = `<div class="card"><div class="empty" style="color:var(--red);">โหลดไม่สำเร็จ</div></div>`;
     return;
   }
-  const boxes = boxesRes.boxes;
+  allBoxes = boxesRes.boxes;
   formulary = formularyRes.drugs;
-  if(!currentBoxId && boxes.length) currentBoxId = boxes[0].id;
+  if(!currentBoxId && allBoxes.length) currentBoxId = allBoxes[0].id;
+  const currentBox = allBoxes.find(b=>b.id===currentBoxId) || {};
 
   wrap.innerHTML = `
     <div class="card">
       <div class="field">
         <label>เลือกกล่อง</label>
         <select id="boxSelect">
-          ${boxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
+          ${allBoxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
         </select>
       </div>
-      <div style="display:flex; gap:10px;">
+      <div style="display:flex; gap:10px; margin-bottom:16px;">
         <button class="btn btn-outline" id="btnExport">📄 เปิดเอกสารสำหรับปริ้น</button>
         <button class="btn btn-outline" id="btnAddDrug">+ เพิ่มรายการยา</button>
       </div>
+      <div id="boxInfoFields">${renderBoxInfoFields(currentBox)}</div>
     </div>
     <div class="card">
       <h2>รายการยาในกล่อง</h2>
       <div id="itemsTableWrap"></div>
     </div>`;
 
-  document.getElementById('boxSelect').addEventListener('change', (e)=>{ currentBoxId = e.target.value; renderItemsTable(); });
+  document.getElementById('boxSelect').addEventListener('change', (e)=>{
+    currentBoxId = e.target.value;
+    const box = allBoxes.find(b=>b.id===currentBoxId) || {};
+    document.getElementById('boxInfoFields').innerHTML = renderBoxInfoFields(box);
+    wirePackedBySelect();
+    renderItemsTable();
+  });
   document.getElementById('btnExport').addEventListener('click', doExport);
   document.getElementById('btnAddDrug').addEventListener('click', ()=> addBlankRow());
+  wirePackedBySelect();
 
   await renderItemsTable();
+}
+
+function wirePackedBySelect(){
+  const sel = document.getElementById('packedBySelect');
+  const other = document.getElementById('packedByOther');
+  if(!sel) return;
+  sel.addEventListener('change', ()=>{
+    other.style.display = sel.value === '__other__' ? 'block' : 'none';
+  });
+}
+
+function getPackedByValue(){
+  const sel = document.getElementById('packedBySelect');
+  const other = document.getElementById('packedByOther');
+  if(!sel) return '';
+  return sel.value === '__other__' ? (other.value||'').trim() : sel.value;
 }
 
 async function renderItemsTable(){
@@ -257,7 +397,7 @@ function renderTableRows(items){
         <tr class="${riskRowClass(it.expDate)}" data-id="${it.id}">
           <td><input list="drugDatalist" class="f-name" value="${it.drugName}" data-code="${it.drugCode}"></td>
           <td><input class="f-qty" type="number" min="0" value="${it.qty}"></td>
-          <td><input class="f-unit" value="${it.unit}"></td>
+          <td><input class="f-unit" list="unitDatalist" value="${it.unit}"></td>
           <td><input class="f-exp" type="date" value="${it.expDate}"></td>
           <td><input class="f-note" value="${it.note}"></td>
           <td><button class="btn-danger-outline btn-sm btn-del">ลบ</button></td>
@@ -266,6 +406,9 @@ function renderTableRows(items){
     </table>
     <datalist id="drugDatalist">
       ${formulary.map(d=>`<option value="${d.name}" data-code="${d.code}" data-unit="${d.unit}">`).join('')}
+    </datalist>
+    <datalist id="unitDatalist">
+      ${UNIT_OPTIONS.map(u=>`<option value="${u}">`).join('')}
     </datalist>
     <div style="margin-top:16px;"><button class="btn btn-primary" id="btnSaveAll">บันทึกการเปลี่ยนแปลง</button> <span id="saveMsg" style="font-size:13px; color:var(--green); margin-left:8px;"></span></div>`;
 
@@ -293,7 +436,7 @@ function addBlankRow(){
   tr.innerHTML = `
     <td><input list="drugDatalist" class="f-name" value="" data-code=""></td>
     <td><input class="f-qty" type="number" min="0" value=""></td>
-    <td><input class="f-unit" value=""></td>
+    <td><input class="f-unit" list="unitDatalist" value=""></td>
     <td><input class="f-exp" type="date" value=""></td>
     <td><input class="f-note" value=""></td>
     <td><button class="btn-danger-outline btn-sm btn-del">ลบ</button></td>`;
@@ -305,6 +448,7 @@ async function saveAllRows(){
   const rows = document.querySelectorAll('#itemsTableWrap table.items tbody tr');
   const msg = document.getElementById('saveMsg');
   msg.textContent = 'กำลังบันทึก...'; msg.style.color = 'var(--ink-soft)';
+  let earliestExp = null, earliestName = '';
   try{
     for(const tr of rows){
       const name = tr.querySelector('.f-name').value.trim();
@@ -314,6 +458,7 @@ async function saveAllRows(){
       let code = nameInput.dataset.code || '';
       const opt = document.querySelector(`#drugDatalist option[value="${CSS.escape(name)}"]`);
       if(opt) code = opt.dataset.code;
+      const expVal = tr.querySelector('.f-exp').value;
       const payload = {
         id: tr.dataset.id === 'new' ? undefined : tr.dataset.id,
         boxId: currentBoxId,
@@ -321,13 +466,37 @@ async function saveAllRows(){
         drugName: name,
         qty: tr.querySelector('.f-qty').value,
         unit: tr.querySelector('.f-unit').value,
-        expDate: tr.querySelector('.f-exp').value,
+        expDate: expVal,
         note: tr.querySelector('.f-note').value,
       };
       await apiCall('saveItem', payload);
+      if(expVal && (!earliestExp || expVal < earliestExp)){ earliestExp = expVal; earliestName = name; }
     }
+
+    // คำนวณ ว/ด/ป ที่ส่งคืนห้องยา = 3 เดือนก่อนยาที่หมดอายุเร็วที่สุด
+    let returnDateIso = '';
+    if(earliestExp){
+      const d = new Date(earliestExp + 'T00:00:00');
+      d.setMonth(d.getMonth() - 3);
+      returnDateIso = d.toISOString().slice(0,10);
+    }
+    const packedBy = getPackedByValue();
+    const packedDate = document.getElementById('packedDateInput').value;
+    await apiCall('updateBox', { id: currentBoxId, packedBy, packedDate, returnDate: returnDateIso });
+
     msg.textContent = 'บันทึกแล้ว ✓'; msg.style.color = 'var(--green)';
     await renderItemsTable();
+    document.getElementById('returnDateDisplay').value = fmtDateDisplaySafe(returnDateIso);
+
+    const boxName = (allBoxes.find(b=>b.id===currentBoxId)||{}).name || '';
+    showModal(`
+      <h3>บันทึกข้อมูลกล่องเรียบร้อย</h3>
+      <div class="summary-line"><span>กล่อง</span><b>${boxName}</b></div>
+      <div class="summary-line"><span>ยาที่อายุสั้นที่สุด</span><b>${earliestName || '—'}${earliestExp ? ' ('+fmtDateDisplaySafe(earliestExp)+')' : ''}</b></div>
+      <div class="summary-line"><span>ผู้บรรจุ</span><b>${packedBy || '—'}</b></div>
+      <div class="summary-line"><span>ว/ด/ป ที่บรรจุ</span><b>${packedDate ? fmtDateDisplaySafe(packedDate) : '—'}</b></div>
+      <div class="summary-line"><span>ว/ด/ป ที่ส่งคืนห้องยา</span><b>${returnDateIso ? fmtDateDisplaySafe(returnDateIso) : '—'}</b></div>
+      <div class="modal-close-row"><button class="btn btn-primary" onclick="closeModal()">ตกลง</button></div>`);
   }catch(e){
     msg.textContent = 'บันทึกไม่สำเร็จ: ' + e.message; msg.style.color = 'var(--red)';
   }
@@ -359,28 +528,75 @@ async function renderRefillPanel(){
       </div>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" id="btnRfLoad">แสดงรายงาน</button>
-        <button class="btn btn-outline" id="btnRfExport">⬇️ ดาวน์โหลด CSV</button>
+        <button class="btn btn-outline" id="btnRfExport">⬇️ ดาวน์โหลด CSV (รายการดิบ)</button>
       </div>
     </div>
-    <div class="card"><div id="rfTableWrap"><div class="empty">เลือกช่วงวันที่แล้วกด "แสดงรายงาน"</div></div></div>`;
+    <div class="card"><h2>1. จำนวนการเติมยารวมต่อรายการ</h2><div id="rfQtyByDrug"><div class="empty">เลือกช่วงวันที่แล้วกด "แสดงรายงาน"</div></div></div>
+    <div class="card"><h2>2. ความทันเวลาก่อนยาหมดอายุ</h2><div id="rfTimeliness"></div></div>
+    <div class="card"><h2>3. กล่องยาที่มียาใกล้หมดอายุในช่วงที่เลือก</h2><div id="rfNearExpiry"></div></div>
+    <div class="card"><h2>4. รายการยาที่ถูกเติม/แก้ไขบ่อยที่สุด</h2><div id="rfMostFrequent"></div></div>
+    <div class="card"><h2>5. รายงานผู้บรรจุ (สถานะปัจจุบันแต่ละกล่อง)</h2><div id="rfPacker"></div></div>
+    <div class="card"><h2>รายการดิบ (log ทั้งหมด)</h2><div id="rfTableWrap"></div></div>`;
 
   document.getElementById('btnRfLoad').addEventListener('click', loadRefillTable);
   document.getElementById('btnRfExport').addEventListener('click', exportRefillCsv);
 }
 
+function emptyOr(rows, html){ return rows && rows.length ? html : '<div class="empty">ไม่มีข้อมูลในช่วงนี้</div>'; }
+
 async function loadRefillTable(){
-  const tableWrap = document.getElementById('rfTableWrap');
   const dateFrom = document.getElementById('rfFrom').value;
   const dateTo = document.getElementById('rfTo').value;
-  tableWrap.innerHTML = '<div class="empty">กำลังโหลด...</div>';
-  const res = await apiCall('getRefillLog', {dateFrom, dateTo});
-  if(!res.ok){ tableWrap.innerHTML = `<div class="empty" style="color:var(--red);">${res.error}</div>`; return; }
-  if(!res.entries.length){ tableWrap.innerHTML = '<div class="empty">ไม่มีการเติม/แก้ไขยาในช่วงนี้</div>'; return; }
-  tableWrap.innerHTML = `
+  ['rfQtyByDrug','rfTimeliness','rfNearExpiry','rfMostFrequent','rfPacker','rfTableWrap'].forEach(id=>{
+    document.getElementById(id).innerHTML = '<div class="empty">กำลังโหลด...</div>';
+  });
+
+  const [logRes, bundleRes] = await Promise.all([
+    apiCall('getRefillLog', {dateFrom, dateTo}),
+    apiCall('getRefillReportBundle', {dateFrom, dateTo}),
+  ]);
+  if(!logRes.ok || !bundleRes.ok){
+    const err = (!logRes.ok ? logRes.error : bundleRes.error) || 'unknown';
+    ['rfQtyByDrug','rfTimeliness','rfNearExpiry','rfMostFrequent','rfPacker','rfTableWrap'].forEach(id=>{
+      document.getElementById(id).innerHTML = `<div class="empty" style="color:var(--red);">${err}</div>`;
+    });
+    return;
+  }
+
+  // 1) จำนวนการเติมยารวมต่อรายการ
+  document.getElementById('rfQtyByDrug').innerHTML = emptyOr(bundleRes.refillQtyByDrug, `
+    <table class="items"><thead><tr><th>รายการยา</th><th>จำนวนที่เติมรวม</th><th>จำนวนครั้ง</th></tr></thead>
+    <tbody>${bundleRes.refillQtyByDrug.map(r=>`<tr><td>${r.drugName}</td><td style="text-align:center; font-weight:600;">+${r.totalQty}</td><td style="text-align:center;">${r.count}</td></tr>`).join('')}</tbody></table>`);
+
+  // 2) ความทันเวลา
+  document.getElementById('rfTimeliness').innerHTML = emptyOr(bundleRes.timeliness, `
+    <table class="items"><thead><tr><th>วันที่เติม</th><th>กล่อง</th><th>รายการยา</th><th>วันหมดอายุ</th><th>สถานะ</th></tr></thead>
+    <tbody>${bundleRes.timeliness.map(r=>{
+      const color = r.status.includes('หลังยาหมดอายุ') ? 'var(--red)' : r.status.includes('ใกล้') ? 'var(--amber)' : 'var(--green)';
+      return `<tr><td>${new Date(r.timestamp).toLocaleDateString('th-TH')}</td><td>${r.boxCode}</td><td>${r.drugName}</td><td>${r.expDate||'—'}</td><td style="color:${color}; font-weight:600;">${r.status}</td></tr>`;
+    }).join('')}</tbody></table>`);
+
+  // 3) กล่องใกล้หมดอายุในช่วงที่เลือก
+  document.getElementById('rfNearExpiry').innerHTML = emptyOr(bundleRes.nearExpiryBoxes, `
+    <table class="items"><thead><tr><th>กล่อง</th><th>รายการยา</th><th>วันหมดอายุ</th></tr></thead>
+    <tbody>${bundleRes.nearExpiryBoxes.map(r=>`<tr><td>${r.boxCode} — ${r.boxName}</td><td>${r.drugName}</td><td>${r.expDate}</td></tr>`).join('')}</tbody></table>`);
+
+  // 4) ยาที่เติม/แก้ไขบ่อยที่สุด
+  document.getElementById('rfMostFrequent').innerHTML = emptyOr(bundleRes.mostFrequentDrugs, `
+    <table class="items"><thead><tr><th>รายการยา</th><th>จำนวนครั้งที่ถูกแก้ไข</th></tr></thead>
+    <tbody>${bundleRes.mostFrequentDrugs.map(r=>`<tr><td>${r.drugName}</td><td style="text-align:center; font-weight:600;">${r.changeCount}</td></tr>`).join('')}</tbody></table>`);
+
+  // 5) รายงานผู้บรรจุ
+  document.getElementById('rfPacker').innerHTML = emptyOr(bundleRes.packerSummary, `
+    <table class="items"><thead><tr><th>กล่อง</th><th>ผู้บรรจุ</th><th>ว/ด/ป ที่บรรจุ</th><th>ว/ด/ป ที่ส่งคืน</th></tr></thead>
+    <tbody>${bundleRes.packerSummary.map(r=>`<tr><td>${r.boxCode} — ${r.boxName}</td><td>${r.packedBy||'—'}</td><td>${r.packedDate||'—'}</td><td>${r.returnDate||'—'}</td></tr>`).join('')}</tbody></table>`);
+
+  // รายการดิบ
+  document.getElementById('rfTableWrap').innerHTML = emptyOr(logRes.entries, `
     <table class="items">
       <thead><tr><th>วันที่-เวลา</th><th>กล่อง</th><th>รายการยา</th><th>ก่อน</th><th>หลัง</th><th>ส่วนต่าง</th></tr></thead>
       <tbody>
-        ${res.entries.map(e=>`<tr>
+        ${logRes.entries.map(e=>`<tr>
           <td>${new Date(e.timestamp).toLocaleString('th-TH')}</td>
           <td>${e.boxCode}</td>
           <td>${e.drugName}</td>
@@ -389,7 +605,7 @@ async function loadRefillTable(){
           <td style="color:${e.delta>=0?'var(--green)':'var(--red)'}; font-weight:600;">${e.delta>0?'+':''}${e.delta}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>`);
 }
 
 async function exportRefillCsv(){
