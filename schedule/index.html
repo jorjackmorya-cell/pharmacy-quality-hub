@@ -225,7 +225,7 @@ async function loadMonthAndRender(){
 
 // คืนคำขอ (ถ้ามี) ของรหัสพนักงานคนหนึ่งที่ครอบคลุมวันที่ระบุ
 function requestFor(code, date){
-  return monthRequests.find(r => r.code===code && date>=r.startDate && date<=r.endDate);
+  return monthRequests.find(r => String(r.code).trim()===String(code).trim() && date>=r.startDate && date<=r.endDate);
 }
 
 function shiftFor(date, slotType){
@@ -304,8 +304,17 @@ function slotSelectHtml(date, slotType, label, options, selectedCode){
         ${options.map(o=>{
           const req = requestFor(o.code, date);
           let tag = '';
-          if(req) tag = req.type==='unavailable' ? ' ⚠️ ขอไม่อยู่เวร' : ' ✓ ขออยู่เวร';
-          return `<option value="${o.code}" ${o.code===selectedCode?'selected':''}>${o.name}${tag}</option>`;
+          let optStyle = '';
+          if(req){
+            if(req.type==='unavailable'){
+              tag = ' ⚠️ ขอไม่อยู่เวร';
+              optStyle = 'style="color:#9a9a95; background:#EDEDE8;"';
+            }else{
+              tag = ' ✓ ขออยู่เวร';
+              optStyle = 'style="color:#3B6D11; font-weight:600;"';
+            }
+          }
+          return `<option value="${o.code}" ${optStyle} ${o.code===selectedCode?'selected':''}>${o.name}${tag}</option>`;
         }).join('')}
       </select>
     </div>`;
@@ -496,26 +505,20 @@ async function renderRequestsPanel(){
     return;
   }
   allStaffRequests = res.requests || [];
-  const myRequests = allStaffRequests.filter(r=>r.code===auth.code).sort((a,b)=> b.startDate.localeCompare(a.startDate));
+  const myCode = String(auth.code).trim();
+  const allRequestsSorted = allStaffRequests.slice().sort((a,b)=> b.startDate.localeCompare(a.startDate));
 
-  const myRowsHtml = myRequests.length ? myRequests.map(r=>`
+  const allRowsHtml = allRequestsSorted.length ? allRequestsSorted.map(r=>{
+    const isMine = String(r.code).trim() === myCode;
+    const delBtn = isMine ? `<button class="btn-danger-outline btn" data-id="${r.id}" style="padding:4px 10px; font-size:12px;">ลบ</button>` : '';
+    return `
     <div class="list-row">
-      <span>${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
-      <button class="btn-danger-outline btn" data-id="${r.id}" style="padding:4px 10px; font-size:12px;">ลบ</button>
-    </div>`).join('') : '<div class="empty">คุณยังไม่เคยส่งคำขอ</div>';
+      <span><b>${r.name}</b>${isMine?' <span style="color:var(--accent); font-size:11.5px;">(ของฉัน)</span>':''}: ${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
+      ${delBtn}
+    </div>`;
+  }).join('') : '<div class="empty">ยังไม่มีใครส่งคำขอ</div>';
 
   let managerSectionHtml = '';
-  if(canManage){
-    const others = allStaffRequests.slice().sort((a,b)=> b.startDate.localeCompare(a.startDate));
-    managerSectionHtml = `
-      <div class="card">
-        <h2>คำขอทั้งหมด (สำหรับใช้จัดเวร)</h2>
-        ${others.length ? others.map(r=>`
-          <div class="list-row">
-            <span><b>${r.name}</b>: ${r.startDate} ถึง ${r.endDate} — <b>${r.type==='unavailable'?'ขอไม่อยู่เวร':'ขออยู่เวร'}</b>${r.note?(' ('+r.note+')'):''}</span>
-          </div>`).join('') : '<div class="empty">ยังไม่มีใครส่งคำขอ</div>'}
-      </div>`;
-  }
 
   wrap.innerHTML = `
     <div class="card">
@@ -536,8 +539,9 @@ async function renderRequestsPanel(){
       <button class="btn btn-primary" id="btnAddRequest">ส่งคำขอ</button>
     </div>
     <div class="card">
-      <h2>คำขอของฉัน</h2>
-      ${myRowsHtml}
+      <h2>คำขอทั้งหมด (ทุกคนมองเห็น)</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin-top:0;">แสดงคำขอของทุกคน เพื่อให้วางแผนอยู่เวร/ลาร่วมกันได้ง่ายขึ้น ลบได้เฉพาะคำขอของตัวเอง</p>
+      ${allRowsHtml}
     </div>
     ${managerSectionHtml}`;
 
@@ -554,7 +558,7 @@ async function renderRequestsPanel(){
     if(!res2.ok){ alert('ส่งคำขอไม่สำเร็จ: '+res2.error); btn.disabled=false; btn.textContent='ส่งคำขอ'; return; }
     renderRequestsPanel();
   });
-  wrap.querySelectorAll('.card:nth-child(2) button[data-id]').forEach(b=>{
+  wrap.querySelectorAll('button[data-id]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       if(!confirm('ยืนยันลบคำขอนี้?')) return;
       await apiCall('deleteStaffRequest', {id:b.dataset.id, code:auth.code});
