@@ -311,13 +311,17 @@ async function renderEditPanel(){
     <div class="card">
       <div class="field">
         <label>เลือกกล่อง</label>
-        <select id="boxSelect">
-          ${allBoxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
-        </select>
+        <div style="display:flex; gap:10px;">
+          <select id="boxSelect" style="flex:1;">
+            ${allBoxes.map(b=>`<option value="${b.id}" ${b.id===currentBoxId?'selected':''}>${b.code} — ${b.name}</option>`).join('')}
+          </select>
+          <button class="btn btn-outline" id="btnAddBox" style="white-space:nowrap;">+ เพิ่มกล่อง Emergency Box</button>
+        </div>
       </div>
       <div style="display:flex; gap:10px; margin-bottom:16px;">
         <button class="btn btn-outline" id="btnExport">📄 เปิดเอกสารสำหรับปริ้น</button>
         <button class="btn btn-outline" id="btnAddDrug">+ เพิ่มรายการยา</button>
+        <button class="btn-danger-outline btn" id="btnDeleteBox" style="margin-left:auto;">🗑️ ยกเลิกกล่องนี้</button>
       </div>
       <div id="boxInfoFields">${renderBoxInfoFields(currentBox)}</div>
     </div>
@@ -335,9 +339,66 @@ async function renderEditPanel(){
   });
   document.getElementById('btnExport').addEventListener('click', doExport);
   document.getElementById('btnAddDrug').addEventListener('click', ()=> addBlankRow());
+  document.getElementById('btnAddBox').addEventListener('click', openAddBoxModal);
+  document.getElementById('btnDeleteBox').addEventListener('click', confirmDeleteBox);
   wirePackedBySelect();
 
   await renderItemsTable();
+}
+
+function openAddBoxModal(){
+  showModal(`
+    <h3>เพิ่มกล่อง Emergency Box ใหม่</h3>
+    <div class="field"><label>รหัสกล่อง (เช่น ER-02, LR-02)</label><input id="newBoxCode" placeholder="รหัสกล่อง"></div>
+    <div class="field"><label>ชื่อกล่อง</label><input id="newBoxName" placeholder="เช่น Emergency Box - ห้องผ่าตัด"></div>
+    <div class="field"><label>จุดที่ตั้ง</label><input id="newBoxLocation" placeholder="เช่น ห้องผ่าตัด (OR)"></div>
+    <p id="addBoxErr" style="color:var(--red); font-size:13px; display:none;"></p>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitAddBox()">สร้างกล่อง</button>
+    </div>`);
+}
+
+async function submitAddBox(){
+  const code = document.getElementById('newBoxCode').value.trim();
+  const name = document.getElementById('newBoxName').value.trim();
+  const location = document.getElementById('newBoxLocation').value.trim();
+  const errEl = document.getElementById('addBoxErr');
+  if(!code || !name){
+    errEl.textContent = 'กรุณากรอกรหัสกล่องและชื่อกล่อง';
+    errEl.style.display = 'block';
+    return;
+  }
+  const res = await apiCall('addBox', { code, name, location, boxType: 'standard' });
+  if(!res.ok){
+    errEl.textContent = 'สร้างไม่สำเร็จ: ' + res.error;
+    errEl.style.display = 'block';
+    return;
+  }
+  closeModal();
+  currentBoxId = String(res.id);
+  await renderEditPanel(); // โหลดกล่องใหม่ขึ้นมาให้เลือกอยู่ พร้อมเพิ่มรายการยาต่อได้เลย
+}
+
+function confirmDeleteBox(){
+  const box = allBoxes.find(b=>b.id===currentBoxId);
+  if(!box) return;
+  showModal(`
+    <h3>ยืนยันยกเลิกกล่องนี้?</h3>
+    <p>คุณแน่ใจแล้วใช่ไหมว่าต้องการยกเลิกกล่อง <b>"${box.code} — ${box.name}"</b> ?</p>
+    <p style="color:var(--red); font-size:13px;">การกระทำนี้จะลบกล่องและรายการยาทั้งหมดในกล่องออกจากระบบทันที ย้อนกลับไม่ได้</p>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn" style="background:var(--red); color:#fff;" onclick="submitDeleteBox('${box.id}')">ตกลง ลบกล่องนี้</button>
+    </div>`);
+}
+
+async function submitDeleteBox(boxId){
+  closeModal();
+  const res = await apiCall('deleteBox', { id: boxId });
+  if(!res.ok){ alert('ลบไม่สำเร็จ: ' + res.error); return; }
+  currentBoxId = null;
+  await renderEditPanel();
 }
 
 function wirePackedBySelect(){
