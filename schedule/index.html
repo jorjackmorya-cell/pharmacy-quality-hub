@@ -574,7 +574,7 @@ function openShiftActionModal(date, slotType){
   if(!shift) return;
   const auth = window.PHQAuth.getAuth();
   if(!auth) return;
-  const myCode = auth.code;
+  const myCode = String(auth.code).trim();
   const box = document.getElementById('actionModalBox');
   const slotLabel = slotType==='morning-pharmacist' ? 'เช้า (เภสัชกร)' : slotType==='morning-technician' ? 'เช้า (จนท.)' : 'บ่าย (จนท.)';
   let bodyHtml = `<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;">📅 ${date} · ${slotLabel}<br>ผู้ปฏิบัติงาน: <b>${shift.actualName}</b></div>`;
@@ -596,7 +596,7 @@ function openShiftActionModal(date, slotType){
       bodyHtml += `<p style="font-size:13px; color:#8A6D00;">🏷️ เสนอขายเวรนี้ ต้องการรับซื้อไหม</p>`;
       actionsHtml = `<button class="btn btn-primary" id="btnAcceptSell">รับซื้อเวรนี้</button>`;
     }else{
-      const myOffers = monthShifts.filter(s=> s.actualCode===myCode && s.swapStatus==='offered');
+      const myOffers = monthShifts.filter(s=> String(s.actualCode).trim()===myCode && s.swapStatus==='offered');
       const myOfferSwaps = myOffers.filter(s=>{ let n={}; try{n=JSON.parse(s.swapNote||'{}');}catch(e){} return n.offerType==='swap'; });
       if(myOfferSwaps.length){
         bodyHtml += `<p style="font-size:13px; color:#8A6D00;">🔁 เสนอแลกเวรนี้ไว้ เลือกเวรของคุณที่จะใช้แลก:</p>`;
