@@ -178,9 +178,9 @@
         <div class="field"><label>ถึงวันที่</label><input type="date" id="rangeTo"></div>
       </div>
       <div class="stat-strip">
-        <div class="stat-box"><div class="num" id="rptTotal">-</div><div class="lbl">ผู้ป่วยในช่วงที่เลือก</div></div>
-        <div class="stat-box"><div class="num" id="rptReturned">-</div><div class="lbl">คืนยาแล้ว</div></div>
-        <div class="stat-box"><div class="num" id="rptErrors">-</div><div class="lbl">Medication Error ที่พบ</div></div>
+        <div class="stat-box"><div class="num" id="rptTotal">-</div><div class="lbl">ผู้ป่วยที่รับยาเดิมในช่วงนี้</div></div>
+        <div class="stat-box"><div class="num" id="rptReturned">-</div><div class="lbl">คืนยาแล้ว (นับวันที่คืนจริง)</div></div>
+        <div class="stat-box"><div class="num" id="rptErrors">-</div><div class="lbl">Med Error ที่บันทึกในช่วงนี้</div></div>
       </div>
       <button class="btn btn-primary" id="exportBtn" style="margin-bottom:16px;"><i class="ti ti-file-spreadsheet"></i> ดาวน์โหลด Excel ของช่วงนี้</button>
       <div style="overflow-x:auto;"><table class="report-table" id="reportTable"></table></div>
@@ -239,6 +239,11 @@ let dischargeReturnPhotos = [];
 let selectedReturnTypes = [];
 let editingIntake = false;
 let editingErrors = null;
+let editIntakeNewPhotos = [];
+let editIntakeRemovedIds = [];
+let editingReturn = false;
+let editReturnNewPhotos = [];
+let editReturnRemovedIds = [];
 
 function fmtDT(iso){ if(!iso) return '-'; const d=new Date(iso); return d.toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 function isToday(iso){ if(!iso) return false; return String(iso).slice(0,10) === todayDateInput(); }
@@ -417,7 +422,7 @@ document.getElementById('submitIntakeBtn').addEventListener('click', async ()=>{
 });
 
 function openDetail(id){
-  currentId = id; dischargeReturnPhotos = []; selectedReturnTypes = []; editingIntake = false;
+  currentId = id; dischargeReturnPhotos = []; selectedReturnTypes = []; editingIntake = false; editingReturn = false;
   const p0 = patients.find(x=>x.id===id);
   editingErrors = p0 ? JSON.parse(JSON.stringify(p0.medErrors||[])) : [];
   renderDetail();
@@ -436,7 +441,12 @@ function intakeInfoReadHtml(p){
     <p style="font-size:13px;margin:0 0 10px;">ผู้รับยา: ${p.receivedBy}</p>
     ${photosHtml ? `<div class="photo-grid">${photosHtml}</div>` : '<p style="font-size:12px;color:var(--ink-faint);">ไม่มีรูปถ่าย</p>'}`;
 }
+function existingPhotoThumbsHtml(ids, removedList, removeDataAttr){
+  return ids.filter(id=>!removedList.includes(id)).map(id=>`
+    <div class="photo-thumb"><img src="https://drive.google.com/thumbnail?id=${id}"><button class="rm-existing" data-${removeDataAttr}="${id}">✕</button></div>`).join('');
+}
 function intakeInfoEditHtml(p){
+  editIntakeNewPhotos = []; editIntakeRemovedIds = [];
   return `
     <div class="grid2">
       <div class="field"><label>HN</label><input id="e-hn" value="${p.hn}"></div>
@@ -452,12 +462,71 @@ function intakeInfoEditHtml(p){
       <div class="field"><label>จำนวนรายการยา</label><input type="number" id="e-itemCount" value="${p.itemCount}"></div>
       <div class="field"><label>ระบุชื่อยา/ข้อความ</label><input id="e-itemsNote" value="${p.itemsNote||''}"></div>
     </div>
+    <label style="display:flex; align-items:center; gap:8px; background:#F3E8FB; border-radius:9px; padding:10px 12px; font-size:13px; margin-bottom:14px;">
+      <input type="checkbox" id="e-wardHeld" ${p.location==='ward'?'checked':''}> ยาอยู่ที่ ward — เภสัชกรรับยาเดิมมาแล้วแต่ยังถือยาอยู่ ยังไม่ได้นำมาเก็บที่ห้องยา
+    </label>
+    <div class="field">
+      <label>รูปถ่ายยา</label>
+      <div class="photo-grid" id="editIntakePhotoGrid">
+        ${existingPhotoThumbsHtml(p.photos||[], editIntakeRemovedIds, 'rmid')}
+        <div class="camera-btn" onclick="document.getElementById('editIntakeCameraInput').click()"><i class="ti ti-camera"></i></div>
+      </div>
+      <input type="file" id="editIntakeCameraInput" accept="image/*" multiple style="display:none;">
+    </div>
     <div class="btn-group">
       <button class="btn btn-primary btn-sm" id="saveIntakeEditBtn"><i class="ti ti-check"></i> บันทึกการแก้ไข</button>
       <button class="btn btn-outline btn-sm" id="cancelIntakeEditBtn">ยกเลิก</button>
     </div>`;
 }
+function rerenderEditIntakePhotoGrid(p){
+  const grid = document.getElementById('editIntakePhotoGrid');
+  if(!grid) return;
+  grid.innerHTML = existingPhotoThumbsHtml(p.photos||[], editIntakeRemovedIds, 'rmid') +
+    editIntakeNewPhotos.map((src,i)=>`<div class="photo-thumb"><img src="${src}"><button class="rm-new" data-newidx="${i}">✕</button></div>`).join('') +
+    `<div class="camera-btn" onclick="document.getElementById('editIntakeCameraInput').click()"><i class="ti ti-camera"></i></div>`;
+  grid.querySelectorAll('.rm-existing').forEach(b=>b.addEventListener('click', ()=>{ editIntakeRemovedIds.push(b.dataset.rmid); rerenderEditIntakePhotoGrid(p); }));
+  grid.querySelectorAll('.rm-new').forEach(b=>b.addEventListener('click', ()=>{ editIntakeNewPhotos.splice(Number(b.dataset.newidx),1); rerenderEditIntakePhotoGrid(p); }));
+}
 
+function returnInfoEditHtml(p){
+  editReturnNewPhotos = []; editReturnRemovedIds = [];
+  const selTypes = (p.returnType||'').split(',').map(s=>s.trim()).filter(Boolean);
+  return `
+    <label style="font-size:12px;color:var(--ink-soft);">วันเวลาคืนยา</label>
+    <input type="datetime-local" id="er-dischargeDT" value="${(p.dischargeDateTime||'').slice(0,16)}" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin:4px 0 14px;font-family:inherit;">
+    <div class="subtle-label">รูปแบบการคืนยา (เลือกได้หลายข้อ)</div>
+    <div class="btn-group" id="erReturnTypeBtns">
+      ${RETURN_TYPES.map(t=>`<button class="opt-btn ${selTypes.includes(t)?'sel':''}" data-type="${t}" style="width:100%;">${t}</button>`).join('')}
+    </div>
+    <div id="erReturnOtherField" style="display:${selTypes.includes('อื่นๆ')?'block':'none'};margin-bottom:14px;">
+      <input type="text" id="er-returnOther" value="${p.returnTypeNote||''}" placeholder="ระบุรูปแบบการคืนยา" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;">
+    </div>
+    <div class="field">
+      <label>รูปถ่ายตอนคืนยา</label>
+      <div class="photo-grid" id="editReturnPhotoGrid">
+        ${existingPhotoThumbsHtml(p.returnPhotos||[], editReturnRemovedIds, 'rmid')}
+        <div class="camera-btn" onclick="document.getElementById('editReturnCameraInput').click()"><i class="ti ti-camera"></i></div>
+      </div>
+      <input type="file" id="editReturnCameraInput" accept="image/*" multiple style="display:none;">
+    </div>
+    <div class="warn-box">
+      <label style="font-size:12.5px;color:var(--amber);font-weight:600;">เหตุผลคืนไม่ครบ (ไม่บังคับ)</label>
+      <textarea id="er-incompleteReason" rows="2">${p.incompleteReason||''}</textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="saveReturnEditBtn"><i class="ti ti-check"></i> บันทึกการแก้ไข</button>
+      <button class="btn btn-outline btn-sm" id="cancelReturnEditBtn">ยกเลิก</button>
+    </div>`;
+}
+function rerenderEditReturnPhotoGrid(p){
+  const grid = document.getElementById('editReturnPhotoGrid');
+  if(!grid) return;
+  grid.innerHTML = existingPhotoThumbsHtml(p.returnPhotos||[], editReturnRemovedIds, 'rmid') +
+    editReturnNewPhotos.map((src,i)=>`<div class="photo-thumb"><img src="${src}"><button class="rm-new" data-newidx="${i}">✕</button></div>`).join('') +
+    `<div class="camera-btn" onclick="document.getElementById('editReturnCameraInput').click()"><i class="ti ti-camera"></i></div>`;
+  grid.querySelectorAll('.rm-existing').forEach(b=>b.addEventListener('click', ()=>{ editReturnRemovedIds.push(b.dataset.rmid); rerenderEditReturnPhotoGrid(p); }));
+  grid.querySelectorAll('.rm-new').forEach(b=>b.addEventListener('click', ()=>{ editReturnNewPhotos.splice(Number(b.dataset.newidx),1); rerenderEditReturnPhotoGrid(p); }));
+}
 function errCardHtml(err, idx){
   return `
     <div class="err-card" data-idx="${idx}">
@@ -555,11 +624,19 @@ function renderDetail(){
       <button class="btn btn-primary" id="confirmDischargeBtn" style="width:100%;justify-content:center;"><i class="ti ti-check"></i> ยืนยันคืนยา ปิดเคส</button>
     </div>` : `
     <div class="stage">
-      <div class="subtle-label">ผลการคืนยา</div>
+      <div class="stage-title-row">
+        <div class="subtle-label" style="margin:0;">ผลการคืนยา</div>
+        ${!editingReturn ? `<button class="btn btn-outline btn-sm" id="editReturnBtn"><i class="ti ti-pencil"></i> แก้ไขข้อมูล</button>` : ''}
+      </div>
+      ${editingReturn ? returnInfoEditHtml(p) : `
       <p style="font-size:13px;margin:0 0 4px;">วันเวลาคืนยา: ${fmtDT(p.dischargeDateTime)}</p>
       <p style="font-size:13px;margin:0 0 4px;">รูปแบบการคืนยา: ${p.returnType}${p.returnTypeNote?' ('+p.returnTypeNote+')':''}</p>
       ${p.incompleteReason ? `<p style="font-size:13px;margin:0 0 4px;color:var(--red);">เหตุผลคืนไม่ครบ: ${p.incompleteReason}</p>` : ''}
-      <p style="font-size:13px;margin:0;">ผู้คืนยา: ${p.returnedBy}</p>
+      <p style="font-size:13px;margin:0 0 10px;">ผู้คืนยา: ${p.returnedBy}</p>
+      ${(p.returnPhotos && p.returnPhotos.length) ? `<div class="photo-grid">${p.returnPhotos.map(id=>`<a href="https://drive.google.com/file/d/${id}/view" target="_blank"><img src="https://drive.google.com/thumbnail?id=${id}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;"></a>`).join('')}</div>` : '<p style="font-size:12px;color:var(--ink-faint);">ไม่มีรูปถ่ายตอนคืนยา</p>'}
+      <div class="btn-group" style="margin-top:14px;">
+        <button class="btn btn-outline btn-sm" id="reopenCaseBtn"><i class="ti ti-rotate"></i> เปิดเคสใหม่ (ผู้ป่วยกลับมานอนซ้ำ)</button>
+      </div>`}
     </div>`}
   `;
 
@@ -569,6 +646,17 @@ function renderDetail(){
   if(editBtn) editBtn.addEventListener('click', ()=>{ editingIntake = true; renderDetail(); });
   const cancelEditBtn = box.querySelector('#cancelIntakeEditBtn');
   if(cancelEditBtn) cancelEditBtn.addEventListener('click', ()=>{ editingIntake = false; renderDetail(); });
+  const editIntakeCameraInput = box.querySelector('#editIntakeCameraInput');
+  if(editIntakeCameraInput) editIntakeCameraInput.addEventListener('change', async e=>{
+    if(!e.target.files.length) return;
+    for(const file of e.target.files){
+      const dataUrl = await compressImage(file);
+      editIntakeNewPhotos.push(dataUrl);
+    }
+    rerenderEditIntakePhotoGrid(p);
+    e.target.value = '';
+  });
+  if(editingIntake) rerenderEditIntakePhotoGrid(p); // ผูก listener ลบรูปเดิมให้ตั้งแต่ตอนเปิดฟอร์มแก้ไข
   const saveEditBtn = box.querySelector('#saveIntakeEditBtn');
   if(saveEditBtn) saveEditBtn.addEventListener('click', async ()=>{
     saveEditBtn.disabled = true; saveEditBtn.textContent='กำลังบันทึก...';
@@ -581,8 +669,9 @@ function renderDetail(){
         sourceOther: document.getElementById('e-sourceOther').value,
         intakeDateTime: document.getElementById('e-intakeDT').value,
         itemCount: document.getElementById('e-itemCount').value,
-        itemsNote: document.getElementById('e-itemsNote').value
-      }});
+        itemsNote: document.getElementById('e-itemsNote').value,
+        location: document.getElementById('e-wardHeld').checked ? 'ward' : 'pharmacy'
+      }, newPhotos: editIntakeNewPhotos.map(dataUrlToPart), removePhotoIds: editIntakeRemovedIds });
       editingIntake = false;
       await loadPatients();
       renderDetail();
@@ -596,8 +685,62 @@ function renderDetail(){
     catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); confirmPharmacyBtn.disabled=false; }
   });
 
+  const editReturnBtn = box.querySelector('#editReturnBtn');
+  if(editReturnBtn) editReturnBtn.addEventListener('click', ()=>{ editingReturn = true; renderDetail(); });
+  const cancelReturnEditBtn = box.querySelector('#cancelReturnEditBtn');
+  if(cancelReturnEditBtn) cancelReturnEditBtn.addEventListener('click', ()=>{ editingReturn = false; renderDetail(); });
+  if(editingReturn){
+    rerenderEditReturnPhotoGrid(p);
+    box.querySelectorAll('#erReturnTypeBtns .opt-btn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        b.classList.toggle('sel');
+        const anySel = Array.from(box.querySelectorAll('#erReturnTypeBtns .opt-btn.sel')).some(x=>x.dataset.type==='อื่นๆ');
+        document.getElementById('erReturnOtherField').style.display = anySel ? 'block' : 'none';
+      });
+    });
+    const editReturnCameraInput = box.querySelector('#editReturnCameraInput');
+    if(editReturnCameraInput) editReturnCameraInput.addEventListener('change', async e=>{
+      if(!e.target.files.length) return;
+      for(const file of e.target.files){
+        const dataUrl = await compressImage(file);
+        editReturnNewPhotos.push(dataUrl);
+      }
+      rerenderEditReturnPhotoGrid(p);
+      e.target.value = '';
+    });
+    const saveReturnEditBtn = box.querySelector('#saveReturnEditBtn');
+    if(saveReturnEditBtn) saveReturnEditBtn.addEventListener('click', async ()=>{
+      const selTypes = Array.from(box.querySelectorAll('#erReturnTypeBtns .opt-btn.sel')).map(b=>b.dataset.type);
+      if(!selTypes.length){ alert('กรุณาเลือกรูปแบบการคืนยาอย่างน้อย 1 ข้อ'); return; }
+      saveReturnEditBtn.disabled = true; saveReturnEditBtn.textContent = 'กำลังบันทึก...';
+      try{
+        await apiPost({
+          action:'updateDischarge', id: p.id,
+          returnPhotos: editReturnNewPhotos.map(dataUrlToPart),
+          removeReturnPhotoIds: editReturnRemovedIds,
+          updates:{
+            dischargeDateTime: document.getElementById('er-dischargeDT').value,
+            returnType: selTypes.join(', '),
+            returnTypeNote: document.getElementById('er-returnOther') ? document.getElementById('er-returnOther').value : '',
+            incompleteReason: document.getElementById('er-incompleteReason').value
+          }
+        });
+        editingReturn = false;
+        await loadPatients();
+        renderDetail();
+      }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); saveReturnEditBtn.disabled=false; saveReturnEditBtn.innerHTML='<i class="ti ti-check"></i> บันทึกการแก้ไข'; }
+    });
+  }
+  const reopenCaseBtn = box.querySelector('#reopenCaseBtn');
+  if(reopenCaseBtn) reopenCaseBtn.addEventListener('click', async ()=>{
+    if(!confirm(`ยืนยันเปิดเคสใหม่สำหรับ ${p.name} (HN ${p.hn})?\n\nใช้ในกรณีผู้ป่วยกลับมานอนโรงพยาบาลซ้ำ ระบบจะย้อนสถานะกลับไปเป็น "ยังไม่คืนยา" เพื่อทำขั้นตอนคืนยาใหม่อีกครั้ง โดยไม่ต้องลงทะเบียนรับยาเดิมซ้ำ`)) return;
+    reopenCaseBtn.disabled = true;
+    try{ await apiPost({action:'reopenCase', id:p.id}); await loadPatients(); renderDetail(); }
+    catch(e){ alert('เปิดเคสใหม่ไม่สำเร็จ: '+e.message); reopenCaseBtn.disabled=false; }
+  });
+
   box.querySelector('#addErrBtn').addEventListener('click', ()=>{
-    editingErrors.push({id:eid(), type:ERROR_TYPES[0], fix:'', detail:''});
+    editingErrors.push({id:eid(), type:ERROR_TYPES[0], fix:'', detail:'', createdAt: Date.now()});
     renderDetail();
   });
   box.querySelectorAll('.rm-err').forEach(b=>b.addEventListener('click', ()=>{
@@ -708,12 +851,37 @@ function filterByRange(){
     return d >= from && d <= to;
   });
 }
+// รายชื่อผู้ป่วยที่ "คืนยา" อยู่ในช่วงที่เลือก (นับตามวันที่คืนยาจริง ไม่ใช่วันที่รับยาเดิม)
+function filterReturnedByRange(){
+  const {from, to} = getReportBounds();
+  if(!from || !to) return [];
+  return patients.filter(p=>{
+    if(p.caseStatus!=='returned' || !p.dischargeDateTime) return false;
+    const d = p.dischargeDateTime.slice(0,10);
+    return d >= from && d <= to;
+  });
+}
+// Medication Error ทั้งหมดที่ "บันทึกไว้" อยู่ในช่วงที่เลือก (นับตามวันที่บันทึก error ไม่ใช่วันที่รับยาเดิม)
+// หมายเหตุ: error เก่าที่บันทึกไว้ก่อนอัปเดตนี้จะไม่มี createdAt จึงใช้วันที่รับยาเดิมของเคสนั้นแทน (best-effort)
+function filterErrorsByRange(){
+  const {from, to} = getReportBounds();
+  if(!from || !to) return [];
+  let count = 0;
+  patients.forEach(p=>{
+    (p.medErrors||[]).forEach(e=>{
+      const d = e.createdAt ? new Date(e.createdAt).toISOString().slice(0,10) : (p.intakeDateTime||'').slice(0,10);
+      if(d >= from && d <= to) count++;
+    });
+  });
+  return count;
+}
 function statusLabel(p){ return p.caseStatus==='returned' ? 'คืนยาแล้ว' : (p.location==='ward' ? 'ยาอยู่ที่ ward' : 'ยังไม่คืน (ห้องยา)'); }
 function renderReport(){
   const list = filterByRange();
+  const returnedList = filterReturnedByRange();
   document.getElementById('rptTotal').textContent = list.length;
-  document.getElementById('rptReturned').textContent = list.filter(p=>p.caseStatus==='returned').length;
-  document.getElementById('rptErrors').textContent = list.reduce((sum,p)=>sum+(p.medErrors||[]).length,0);
+  document.getElementById('rptReturned').textContent = returnedList.length;
+  document.getElementById('rptErrors').textContent = filterErrorsByRange();
   const table = document.getElementById('reportTable');
   table.innerHTML = `<tr><th>HN</th><th>ชื่อ-สกุล</th><th>หอผู้ป่วย</th><th>รับยาเดิม</th><th>คืนยา</th><th>สถานะ</th><th>Med Error</th></tr>
     ${list.map(p=>`<tr data-id="${p.id}" style="cursor:pointer;">
