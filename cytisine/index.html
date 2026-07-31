@@ -48,6 +48,8 @@
   .empty i{font-size:32px; color:var(--ink-faint); display:block; margin-bottom:10px;}
   .cards{display:grid; grid-template-columns:repeat(auto-fill, minmax(310px,1fr)); gap:14px;}
   .pcard{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; cursor:pointer; box-shadow:var(--shadow); transition:.15s; position:relative;}
+  .pcard.tracked-day5{background:var(--amber-tint); border-color:#E8D4A8;}
+  .pcard.tracked-day25{background:var(--green-tint); border-color:#B9D89A;}
   .pcard:hover{border-color:var(--teal); transform:translateY(-1px);}
   .pcard.alert-red{background:var(--red-tint); border-color:var(--red);}
   .pcard.blink{animation:blinkAlert 1.4s ease-in-out infinite;}
@@ -354,6 +356,10 @@ async function loadPatients(silent){
   if(!getApiUrl()){ setConnStatus('none'); patients=[]; renderAll(); return; }
   try{
     patients = await apiGetAll();
+    patients.forEach(p=>{
+      p.day5.trackedSaved = !!p.day5.status;
+      p.day25.trackedSaved = !!p.day25.status;
+    });
     setConnStatus('ok');
     renderAll();
   }catch(e){
@@ -485,6 +491,9 @@ function dueBadge(dateStr, stage, locked){
   return '<span class="pill pill-green">ยังไม่ถึงกำหนด</span>';
 }
 function isReturnPending(p){ return p.day5.decision==='stop' && p.caseStatus==='active'; }
+function stageComplete(stage, decisionField){
+  return !!stage.status && stage.sideEffects.length>0 && !!stage[decisionField];
+}
 function isDueToday(p){
   if(p.caseStatus!=='active') return false;
   if(!p.day5.status && isDue(p.day5Date)) return true;
@@ -541,7 +550,10 @@ function cardHtml(p){
   if(p.caseStatus==='closed-referred') tag = '<div class="case-tag" style="background:var(--amber-tint);color:var(--amber);">ส่งต่อคลินิก</div>';
   const returnPending = isReturnPending(p);
   const daysWaiting = (returnPending && p.day5.stopDecisionAt) ? daysSince(p.day5.stopDecisionAt) : 0;
-  const cardClasses = returnPending ? `pcard alert-red ${daysWaiting>=7?'blink':''}` : 'pcard';
+  let cardClasses = 'pcard';
+  if(returnPending) cardClasses = `pcard alert-red ${daysWaiting>=7?'blink':''}`;
+  else if(p.day25.trackedSaved) cardClasses = 'pcard tracked-day25';
+  else if(p.day5.trackedSaved) cardClasses = 'pcard tracked-day5';
   return `
   <div class="${cardClasses}" data-id="${p.id}">
     ${tag}
@@ -649,7 +661,10 @@ function renderDetail(){
     `}
 
     <div class="stage" id="stage5">
-      <div class="stage-title"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 1 — Day 5</h3><span class="date">${fmtDate(p.day5Date)}</span></div>
+      <div class="stage-title">
+        <div style="display:flex; align-items:center; gap:10px;"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 1 — Day 5</h3><span class="date">${fmtDate(p.day5Date)}</span></div>
+        <button class="btn btn-primary" id="saveDay5Btn" ${stageComplete(p.day5,'decision') ? '' : 'disabled'}><i class="ti ti-device-floppy"></i> บันทึกการติดตาม</button>
+      </div>
       <div class="subtle-label">สถานะการเลิกบุหรี่</div>
       <div class="btn-group">
         <button class="opt-btn ${p.day5.status==='quit'?'sel-green':''}" data-stage="day5" data-field="status" data-val="quit">เลิกสูบแล้ว</button>
@@ -672,7 +687,10 @@ function renderDetail(){
     </div>
 
     <div class="stage ${day25Locked ? 'locked':''}" id="stage25">
-      <div class="stage-title"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 2 — Day 25 (สิ้นสุดคอร์ส)</h3><span class="date">${fmtDate(p.day25Date)}</span></div>
+      <div class="stage-title">
+        <div style="display:flex; align-items:center; gap:10px;"><h3><i class="ti ti-phone-outgoing"></i> โทรติดตามครั้งที่ 2 — Day 25 (สิ้นสุดคอร์ส)</h3><span class="date">${fmtDate(p.day25Date)}</span></div>
+        ${day25Locked ? '' : `<button class="btn btn-primary" id="saveDay25Btn" ${stageComplete(p.day25,'successLikely') ? '' : 'disabled'}><i class="ti ti-device-floppy"></i> บันทึกการติดตาม</button>`}
+      </div>
       ${day25Locked ? '<div class="lock-note">รอผลประเมินและการตัดสินใจจาก Day 5 ก่อน</div>' : ''}
       <div class="subtle-label">สถานะการเลิกบุหรี่</div>
       <div class="btn-group">
@@ -729,30 +747,50 @@ function renderDetail(){
     renderDetail();
   });
   box.querySelectorAll('.opt-btn[data-field]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
+    btn.addEventListener('click', ()=>{
       const stage = btn.dataset.stage, field = btn.dataset.field, val = btn.dataset.val;
       p[stage][field] = (p[stage][field]===val) ? null : val;
-      await syncPatient(p); renderDetail();
+      renderDetail();
     });
   });
   box.querySelectorAll('.chip[data-se]').forEach(ch=>{
-    ch.addEventListener('click', async ()=>{
+    ch.addEventListener('click', ()=>{
       const stage = ch.dataset.stage, se = ch.dataset.se, arr = p[stage].sideEffects, idx = arr.indexOf(se);
       if(idx>-1) arr.splice(idx,1); else arr.push(se);
-      await syncPatient(p); renderDetail();
+      renderDetail();
     });
   });
   box.querySelectorAll('.chip[data-mg]').forEach(ch=>{
-    ch.addEventListener('click', async ()=>{
+    ch.addEventListener('click', ()=>{
       const stage = ch.dataset.stage, mg = ch.dataset.mg, arr = p[stage].management, idx = arr.indexOf(mg);
       if(idx>-1) arr.splice(idx,1); else arr.push(mg);
-      await syncPatient(p); renderDetail();
+      renderDetail();
     });
   });
   const contBtn = box.querySelector('#continueBtn');
-  if(contBtn) contBtn.addEventListener('click', async ()=>{ p.day5.decision='continue'; await syncPatient(p); renderDetail(); });
+  if(contBtn) contBtn.addEventListener('click', ()=>{ p.day5.decision = p.day5.decision==='continue' ? null : 'continue'; renderDetail(); });
   const stopBtn = box.querySelector('#stopBtn');
-  if(stopBtn) stopBtn.addEventListener('click', async ()=>{ p.day5.decision='stop'; p.day5.stopDecisionAt=Date.now(); await syncPatient(p); renderDetail(); });
+  if(stopBtn) stopBtn.addEventListener('click', ()=>{
+    p.day5.decision = p.day5.decision==='stop' ? null : 'stop';
+    p.day5.stopDecisionAt = p.day5.decision==='stop' ? Date.now() : null;
+    renderDetail();
+  });
+  const saveDay5Btn = box.querySelector('#saveDay5Btn');
+  if(saveDay5Btn) saveDay5Btn.addEventListener('click', async ()=>{
+    saveDay5Btn.disabled = true; saveDay5Btn.textContent = 'กำลังบันทึก...';
+    await syncPatient(p);
+    p.day5.trackedSaved = true;
+    renderDetail();
+    renderList(); // อัปเดตสีการ์ดด้านนอกทันที
+  });
+  const saveDay25Btn = box.querySelector('#saveDay25Btn');
+  if(saveDay25Btn) saveDay25Btn.addEventListener('click', async ()=>{
+    saveDay25Btn.disabled = true; saveDay25Btn.textContent = 'กำลังบันทึก...';
+    await syncPatient(p);
+    p.day25.trackedSaved = true;
+    renderDetail();
+    renderList();
+  });
   const confirmReturnBtn = box.querySelector('#confirmReturnBtn');
   if(confirmReturnBtn) confirmReturnBtn.addEventListener('click', async ()=>{
     if(!confirm('ยืนยันว่าเภสัชกรได้รับยา Cytisine คืนจากผู้ป่วยเรียบร้อยแล้ว และปิดการติดตามรายนี้?')) return;
