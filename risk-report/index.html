@@ -407,22 +407,23 @@ async function loadReports(){
 function renderReportList(){
   const wrap = document.getElementById('reportListWrap');
   if(!reports.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
+  const myAuth = window.PHQAuth.getAuth();
+  const myCode = myAuth ? String(myAuth.code) : null;
   wrap.innerHTML = reports.map(r=>{
     const statusIcon = r.status==='reported'
       ? `<div class="status-icon reported" title="ส่งเข้าระบบ รพ. แล้ว"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
       : `<div class="status-icon pending" title="ยังไม่ส่งเข้าระบบ รพ."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>`;
     const sevText = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity];
+    const rowClickable = canReview || (myCode && String(r.reporterCode)===myCode);
     return `
-    <div class="rrow ${canReview?'clickable':''}" data-id="${r.id}">
+    <div class="rrow ${rowClickable?'clickable':''}" data-id="${r.id}">
       <div class="rdate">${fmtDT(r.datetime).split(' ')[0]}</div>
       <span class="sev-badge ${SEV_CLASS[r.severity]}">${sevText}</span>
       <div class="rmain"><div class="rdesc">${escapeHtml(truncate(r.desc, 60))}</div></div>
       ${statusIcon}
     </div>`;
   }).join('');
-  if(canReview){
-    wrap.querySelectorAll('.rrow').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
-  }
+  wrap.querySelectorAll('.rrow.clickable').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
 }
 
 // ---------- Reviewer detail modal ----------
