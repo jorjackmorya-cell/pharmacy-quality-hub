@@ -426,14 +426,124 @@ function renderReportList(){
 }
 
 // ---------- Reviewer detail modal ----------
+const SEV_OPTIONS_HTML = `
+  <option value="A">Category A — มีปัจจัยเสี่ยง แต่ยังไม่เกิดความผิดพลาด</option>
+  <option value="B">Category B — เกิดความผิดพลาดแล้ว แต่ยังไม่ถึงผู้ป่วย (Near miss)</option>
+  <option value="C">Category C — ยาถึงผู้ป่วยแล้ว แต่ไม่มีอาการผิดปกติ/อันตราย</option>
+  <option value="D">Category D — ยาถึงผู้ป่วย ต้องเฝ้าระวังพิเศษ แต่ยังไม่ต้องรักษา</option>
+  <option value="E">Category E — ผู้ป่วยได้รับอันตราย ต้องบำบัด/แก้ไขทางคลินิก</option>
+  <option value="F">Category F — ทำให้ผู้ป่วยนอนโรงพยาบาลนานขึ้น/ยืดระยะเวลารักษา</option>
+  <option value="G">Category G — ทำให้ผู้ป่วยพิการหรือทุพพลภาพถาวร</option>
+  <option value="H">Category H — ผู้ป่วยอยู่ในภาวะวิกฤตที่ต้องช่วยชีวิต</option>
+  <option value="I">Category I — เป็นสาเหตุทำให้ผู้ป่วยเสียชีวิต</option>
+  <option value="other">อื่นๆ (ไม่ใช่ความเสี่ยงด้านยาโดยตรง)</option>`;
+let editingReportId = null;
+let editNewPhotos = [];
+let editRemovePhotoIds = [];
+
+function editDetailHtml(r){
+  return `
+    <h3>แก้ไขรายงานความเสี่ยง</h3>
+    <div class="field">
+      <label>ระดับความรุนแรง (NCC MERP)</label>
+      <select id="e-severity">${SEV_OPTIONS_HTML}</select>
+    </div>
+    <div class="field" id="e-severityOtherField" style="display:${r.severity==='other'?'':'none'};">
+      <label>ระบุรายละเอียดระดับความเสี่ยง</label>
+      <input type="text" id="e-severityOther" value="${escapeHtml(r.severityOther||'')}">
+    </div>
+    <div class="field">
+      <label>รายละเอียดเหตุการณ์</label>
+      <textarea id="e-desc" rows="4">${escapeHtml(r.desc||'')}</textarea>
+    </div>
+    <div class="field">
+      <label>รูปแนบ</label>
+      <div class="photo-grid" id="editPhotoGrid"></div>
+      <div class="modal-actions" style="justify-content:flex-start; gap:8px; margin-top:8px;">
+        <button class="btn btn-outline btn-sm" id="e-btnCamera"><i class="ti ti-camera"></i> ถ่ายภาพ</button>
+        <button class="btn btn-outline btn-sm" id="e-btnGallery"><i class="ti ti-photo"></i> เลือกรูปจากคลัง</button>
+      </div>
+      <input type="file" id="e-cameraInput" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="e-galleryInput" accept="image/*" multiple style="display:none;">
+    </div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="btn btn-outline" id="btnCancelEdit">ยกเลิก</button>
+      <button class="btn btn-primary" id="btnSaveEdit">บันทึกการแก้ไข</button>
+    </div>`;
+}
+function renderEditPhotoGrid(r){
+  const wrap = document.getElementById('editPhotoGrid');
+  if(!wrap) return;
+  const existing = (r.photos||[]).filter(fid=>!editRemovePhotoIds.includes(fid)).map(fid=>`
+    <div class="photo-thumb" data-existing="${fid}"><img src="https://drive.google.com/thumbnail?id=${fid}&sz=w300"><button class="rm" data-fid="${fid}">✕</button></div>`).join('');
+  const fresh = editNewPhotos.map(p=>`
+    <div class="photo-thumb" data-newid="${p.id}"><img src="${p.previewUrl}"><button class="rm" data-id="${p.id}">✕</button></div>`).join('');
+  wrap.innerHTML = existing + fresh;
+  wrap.querySelectorAll('.rm[data-fid]').forEach(b=>b.addEventListener('click', ()=>{ editRemovePhotoIds.push(b.dataset.fid); renderEditPhotoGrid(r); }));
+  wrap.querySelectorAll('.rm[data-id]').forEach(b=>b.addEventListener('click', ()=>{ editNewPhotos = editNewPhotos.filter(p=>p.id!==b.dataset.id); renderEditPhotoGrid(r); }));
+}
+
 function openDetail(id){
   const r = reports.find(x=>x.id===id);
   if(!r) return;
+  editingReportId = null; editNewPhotos = []; editRemovePhotoIds = [];
+  renderDetailBox(r);
+  document.getElementById('detailOverlay').classList.add('active');
+}
+function renderDetailBox(r){
+  const auth = window.PHQAuth.getAuth();
+  const isOwner = auth && r.reporterCode && String(r.reporterCode)===String(auth.code);
+  const canEdit = isOwner && r.status!=='reported'; // หลังส่งเข้าระบบ รพ. แล้ว รูปจะถูกลบถาวร เลยแก้ไขต่อไม่ได้แล้ว
+  const box = document.getElementById('detailModalBox');
+
+  if(editingReportId===r.id){
+    box.innerHTML = editDetailHtml(r);
+    document.getElementById('e-severity').value = r.severity;
+    renderEditPhotoGrid(r);
+    document.getElementById('e-severity').addEventListener('change', (e)=>{
+      document.getElementById('e-severityOtherField').style.display = e.target.value==='other' ? '' : 'none';
+    });
+    document.getElementById('e-btnCamera').addEventListener('click', ()=> document.getElementById('e-cameraInput').click());
+    document.getElementById('e-btnGallery').addEventListener('click', ()=> document.getElementById('e-galleryInput').click());
+    const handleNewFiles = async (fileList)=>{
+      const files = Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+      for(const f of files){ editNewPhotos.push(await fileToPhoto(f)); }
+      renderEditPhotoGrid(r);
+    };
+    document.getElementById('e-cameraInput').addEventListener('change', e=>{ handleNewFiles(e.target.files); e.target.value=''; });
+    document.getElementById('e-galleryInput').addEventListener('change', e=>{ handleNewFiles(e.target.files); e.target.value=''; });
+    document.getElementById('btnCancelEdit').addEventListener('click', ()=>{ editingReportId=null; renderDetailBox(r); });
+    document.getElementById('btnSaveEdit').addEventListener('click', async ()=>{
+      const saveBtn = document.getElementById('btnSaveEdit');
+      const severity = document.getElementById('e-severity').value;
+      const severityOther = document.getElementById('e-severityOther') ? document.getElementById('e-severityOther').value.trim() : '';
+      const desc = document.getElementById('e-desc').value.trim();
+      saveBtn.disabled = true; saveBtn.textContent = 'กำลังบันทึก...';
+      try{
+        const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({
+          action:'updateReport', id:r.id, code:auth.code,
+          updates:{ severity, severityOther, desc },
+          newPhotos: editNewPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64})),
+          removePhotoIds: editRemovePhotoIds,
+        })});
+        const data = await res.json();
+        if(!data.ok) throw new Error(data.error||'unknown');
+        editingReportId = null;
+        await loadReports();
+        const fresh2 = reports.find(x=>x.id===r.id);
+        renderDetailBox(fresh2 || r);
+      }catch(e){
+        alert('บันทึกไม่สำเร็จ: '+e.message);
+        saveBtn.disabled = false; saveBtn.textContent = 'บันทึกการแก้ไข';
+      }
+    });
+    return;
+  }
+
   const sevText = r.severity==='other' ? ('อื่นๆ — '+(r.severityOther||'')) : SEV_LABEL[r.severity];
   const photosHtml = (r.photos||[]).map(fid=>
     `<img src="https://drive.google.com/thumbnail?id=${fid}&sz=w400" data-full="https://drive.google.com/thumbnail?id=${fid}&sz=w1600">`
   ).join('');
-  const box = document.getElementById('detailModalBox');
   box.innerHTML = `
     <h3>รายละเอียดรายงานความเสี่ยง</h3>
     <div class="modal-summary">
@@ -446,13 +556,17 @@ function openDetail(id){
     ${r.status==='reported'
       ? `<p style="font-size:13px;color:var(--green);">✅ ส่งเข้าระบบรายงานความเสี่ยงโรงพยาบาลแล้ว โดย ${escapeHtml(r.reportedByName)} เมื่อ ${fmtDT(r.reportedAt)}</p>`
       : `<div class="modal-actions" style="justify-content:space-between;">
-           <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
+           <div style="display:flex; gap:8px;">
+             <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
+             ${canEdit ? `<button class="btn btn-outline" id="btnEditReport"><i class="ti ti-pencil"></i> แก้ไขข้อมูล</button>` : ''}
+           </div>
            <button class="btn btn-primary" id="btnMarkReported">ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว</button>
          </div>`}
   `;
-  document.getElementById('detailOverlay').classList.add('active');
   const closeBtn = document.getElementById('btnCloseDetail');
   if(closeBtn) closeBtn.addEventListener('click', ()=> document.getElementById('detailOverlay').classList.remove('active'));
+  const editBtn = document.getElementById('btnEditReport');
+  if(editBtn) editBtn.addEventListener('click', ()=>{ editingReportId = r.id; renderDetailBox(r); });
   box.querySelectorAll('.detail-photos img').forEach(img=>{
     img.addEventListener('click', ()=>{
       document.getElementById('lightboxBox').innerHTML = `<img src="${img.dataset.full}" style="max-width:100%;max-height:90vh;border-radius:10px;">`;
@@ -461,12 +575,12 @@ function openDetail(id){
   });
   const markBtn = document.getElementById('btnMarkReported');
   if(markBtn) markBtn.addEventListener('click', async ()=>{
-    const auth = window.PHQAuth.getAuth();
-    if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+    const auth2 = window.PHQAuth.getAuth();
+    if(!auth2){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
     if(!confirm('ยืนยันว่าได้รายงานเหตุการณ์นี้เข้าระบบรายงานความเสี่ยงของโรงพยาบาลแล้ว?\n(รูปภาพที่แนบไว้จะถูกลบออกจากระบบถาวรหลังจากนี้)')) return;
     markBtn.disabled = true; markBtn.textContent = 'กำลังบันทึก...';
     try{
-      const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'markReported', id:r.id, code:auth.code}) });
+      const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'markReported', id:r.id, code:auth2.code}) });
       const data = await res.json();
       if(!data.ok) throw new Error(data.error||'unknown');
       document.getElementById('detailOverlay').classList.remove('active');
