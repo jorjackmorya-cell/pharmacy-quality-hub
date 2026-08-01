@@ -561,7 +561,7 @@ function renderDetailBox(r){
              <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
              ${canEdit ? `<button class="btn btn-outline" id="btnEditReport"><i class="ti ti-pencil"></i> แก้ไขข้อมูล</button>` : ''}
            </div>
-           <button class="btn btn-primary" id="btnMarkReported">ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว</button>
+           ${canReview ? `<button class="btn btn-primary" id="btnMarkReported">ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว</button>` : ''}
          </div>`}
   `;
   const closeBtn = document.getElementById('btnCloseDetail');
