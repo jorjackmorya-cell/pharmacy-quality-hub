@@ -377,7 +377,7 @@
     const atRiskCount = boxes.filter(b => b.riskLevel === 'warning' || b.riskLevel === 'urgent' || b.riskLevel === 'expired').length;
     const boxIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg>';
     if(top){
-      setStat('emboxStats', atRiskCount > 0 ? 'urgent' : '', `${boxIcon}<div class="mini-stats-lines"><div>ใกล้หมดอายุที่สุด: <b>${top.earliestExpiryDrug}</b></div><div>(กล่อง ${top.code})</div></div>`);
+      setStat('emboxStats', atRiskCount > 0 ? 'urgent' : '', `${boxIcon}<div class="mini-stats-lines"><div>ใกล้หมดอายุที่สุด: <b>${top.earliestExpiryDrug}</b></div><div>(กล่อง ${top.code} — ${top.earliestExpiry})</div></div>`);
     }else{
       setStat('emboxStats', '', `${boxIcon} ยังไม่มีข้อมูลกล่องยา`);
     }
