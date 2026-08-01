@@ -216,7 +216,13 @@ const SEV_ORDER = ['A','B','C','D','E','F','G','H','I','none'];
 let drpEntries = [];
 let drpPeriod = 'day';
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){
+  // ต้องใช้วันที่ตามเวลาไทย (UTC+7) ไม่ใช่ UTC ตรงๆ เพราะ toISOString() คืนค่าวันที่แบบ UTC
+  // ซึ่งจะข้ามวันก่อนเวลาไทยจริงตอนดึกๆ/เช้ามืด (เช่น เที่ยงคืน-ตี 7 เวลาไทย ยังเป็น "เมื่อวาน" ใน UTC)
+  const now = new Date();
+  const bkk = new Date(now.getTime() + 7*60*60*1000);
+  return bkk.toISOString().slice(0,10);
+}
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -316,17 +322,17 @@ async function deleteDrpEntry(id){
 }
 
 // ---------- date range helpers ----------
+function bkkDate(){ return new Date(Date.now() + 7*60*60*1000); }
 function rangeFor(period, customStart, customEnd){
-  const now = new Date();
   let start, end;
   if(period==='day'){ start = todayStr(); end = todayStr(); }
   else if(period==='week'){
-    const d = new Date(now);
-    const day = d.getDay(); const diff = (day===0?6:day-1);
-    d.setDate(d.getDate()-diff);
+    const d = bkkDate();
+    const day = d.getUTCDay(); const diff = (day===0?6:day-1);
+    d.setUTCDate(d.getUTCDate()-diff);
     start = d.toISOString().slice(0,10); end = todayStr();
   } else if(period==='month'){
-    start = now.toISOString().slice(0,7)+'-01'; end = todayStr();
+    start = bkkDate().toISOString().slice(0,7)+'-01'; end = todayStr();
   } else {
     start = customStart || todayStr(); end = customEnd || todayStr();
   }
