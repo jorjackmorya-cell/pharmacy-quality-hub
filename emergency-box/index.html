@@ -59,6 +59,15 @@
   .risk-expired .expiry-date{color:#fff;}
   .risk-expired .badge{background:#fff; color:#7A1616;}
 
+  /* เกณฑ์ปฏิบัติจริง: เหลือ ≤15 วัน = ต้องเปลี่ยนยาด่วน (เกณฑ์คุณภาพยังคงไว้ที่ 3 เดือนตามเดิม อันนี้คือชั้นเน้นย้ำเพิ่ม) */
+  .box-card.critical-soon{ animation: criticalPulse 1.8s ease-in-out infinite; }
+  @keyframes criticalPulse{
+    0%,100%{ box-shadow: 0 0 0 2px rgba(209,24,11,.95), var(--shadow); }
+    50%{ box-shadow: 0 0 0 6px rgba(209,24,11,.28), var(--shadow); }
+  }
+  .critical-icon{ display:inline-block; margin-right:5px; font-size:12px; vertical-align:2px; }
+  .badge-critical{ margin-left:6px; background:#D1180B !important; color:#fff !important; }
+
   .field{margin-bottom:14px;}
   .field label{display:block; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
   .field select, .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff; color:var(--ink);}
@@ -166,11 +175,12 @@ async function renderDashboard(){
 
   const cardsHtml = res.boxes.length ? res.boxes.map(b=>{
     const riskLabel = {ok:'ปกติ', warning:'ใกล้หมดอายุ (≤3 เดือน)', urgent:'ใกล้หมดอายุมาก (≤30 วัน)', expired:'หมดอายุแล้ว'}[b.riskLevel] || '';
+    const critical = !!b.criticalSoon; // เหลือ ≤15 วัน — เกณฑ์ปฏิบัติจริงที่ต้องเปลี่ยนยาแล้ว
     return `
-    <div class="box-card risk-${b.riskLevel}" onclick="openBoxDetail('${b.id}')">
+    <div class="box-card risk-${b.riskLevel} ${critical ? 'critical-soon' : ''}" onclick="openBoxDetail('${b.id}')">
       <div class="card-head">
-        <p class="name">${b.name}</p>
-        <span class="badge">${riskLabel}</span>
+        <p class="name">${critical ? '<span class="critical-icon" title="เหลือ ≤15 วัน — ต้องเปลี่ยนยาด่วน">🔴</span>' : ''}${b.name}</p>
+        <span class="badge">${riskLabel}</span>${critical ? '<span class="badge badge-critical">ด่วน ≤15 วัน</span>' : ''}
       </div>
       <p class="loc">${b.location || ''} · ${b.itemCount} รายการ</p>
       <div class="expiry-label">วันหมดอายุที่ใกล้ที่สุด</div>
@@ -187,6 +197,7 @@ async function renderDashboard(){
         <span><span class="dot" style="background:var(--amber);"></span>ใกล้หมดอายุ (≤3 เดือน)</span>
         <span><span class="dot" style="background:#C1521A;"></span>ใกล้หมดอายุมาก (≤30 วัน)</span>
         <span><span class="dot" style="background:#7A1616;"></span>หมดอายุแล้ว</span>
+        <span>🔴 การ์ดกะพริบ = เหลือ ≤15 วัน (เกณฑ์ปฏิบัติจริงที่ต้องเปลี่ยนยา)</span>
       </div>
       <div class="box-grid">${cardsHtml}</div>
     </div>`;
