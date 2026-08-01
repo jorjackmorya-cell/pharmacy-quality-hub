@@ -256,7 +256,12 @@
   const OFFHOURS_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
   const CYTISINE_API_URL = 'https://script.google.com/macros/s/AKfycbxK0PIcX5hK7A8KVOibglLU-POnQkSxROTO8K-xJqO-Y6sdPuL1Ce0W2jl6Gni7JVMQbg/exec';
 
-  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function todayStr(){
+    // ต้องใช้วันที่ตามเวลาไทย (UTC+7) ไม่ใช่ UTC ตรงๆ เพราะ toISOString() คืนค่าวันที่แบบ UTC
+    const now = new Date();
+    const bkk = new Date(now.getTime() + 7*60*60*1000);
+    return bkk.toISOString().slice(0,10);
+  }
   function isDue(dateStr){
     const t = new Date(); t.setHours(0,0,0,0);
     const d = new Date(dateStr); d.setHours(0,0,0,0);
