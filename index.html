@@ -68,7 +68,9 @@
   .card.pending{opacity:.7;}
   .card.pending::before{background:var(--ink-faint);}
 
-  .mini-stats{font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:10px; margin:0 0 16px; background:var(--accent-tint); color:var(--accent); display:flex; align-items:center; gap:6px;}
+  .mini-stats{font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:10px; margin:0 0 16px; background:var(--accent-tint); color:var(--accent); display:flex; align-items:flex-start; gap:6px;}
+  .mini-stats svg{margin-top:2px;}
+  .mini-stats-lines{display:flex; flex-direction:column; gap:3px;}
   .mini-stats b{font-size:14px;}
   .mini-stats.loading{color:var(--ink-faint); background:var(--gray-tint); font-weight:500;}
   .mini-stats.urgent{background:#FCEBEB; color:#A32D2D;}
@@ -288,7 +290,7 @@
     let totalRx = 0;
     todays.forEach(e => { if(!seen.has(e.reviewId)){ seen.add(e.reviewId); totalRx += Number(e.total)||0; } });
     const drpCount = todays.filter(e => e.type !== 'none').length;
-    setStat('drpStats', '', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg> วันนี้ทบทวน <b>${totalRx}</b> ใบสั่งยา · พบ DRP <b>${drpCount}</b> เหตุการณ์`);
+    setStat('drpStats', '', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg><div class="mini-stats-lines"><div>วันนี้ทบทวน <b>${totalRx}</b> ใบสั่งยา</div><div>พบ DRP <b>${drpCount}</b> เหตุการณ์</div></div>`);
     setSummary('sumDrp', drpCount > 0 ? 'urgent' : '', totalRx);
     const monthDrpCount = entries.filter(e => isSameMonth(e.date) && e.type !== 'none').length;
     setFootMetric('drpMonthTotal', `เดือนนี้พบ DRP สะสม <b>${monthDrpCount}</b> เหตุการณ์`);
@@ -337,7 +339,7 @@
       return sh ? `${SLOT_LABELS[st]}: <b>${sh.actualName}</b>` : null;
     }).filter(Boolean);
     const calIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>';
-    if(parts.length) setStat('scheduleStats', '', `${calIcon} วันนี้เวร: ${parts.join(' · ')}`);
+    if(parts.length) setStat('scheduleStats', '', `${calIcon}<div class="mini-stats-lines">${parts.map(p=>`<div>${p}</div>`).join('')}</div>`);
     else setStat('scheduleStats', 'urgent', `${calIcon} ยังไม่ได้กำหนดเวรวันนี้`);
 
     const sumEl = document.getElementById('sumSchedule');
@@ -370,7 +372,7 @@
     const atRiskCount = boxes.filter(b => b.riskLevel === 'warning' || b.riskLevel === 'urgent' || b.riskLevel === 'expired').length;
     const boxIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><rect width="20" height="20" x="2" y="2" rx="4"/></svg>';
     if(top){
-      setStat('emboxStats', atRiskCount > 0 ? 'urgent' : '', `${boxIcon} ใกล้หมดอายุที่สุด: <b>${top.earliestExpiryDrug}</b> (กล่อง ${top.code})`);
+      setStat('emboxStats', atRiskCount > 0 ? 'urgent' : '', `${boxIcon}<div class="mini-stats-lines"><div>ใกล้หมดอายุที่สุด: <b>${top.earliestExpiryDrug}</b></div><div>(กล่อง ${top.code})</div></div>`);
     }else{
       setStat('emboxStats', '', `${boxIcon} ยังไม่มีข้อมูลกล่องยา`);
     }
@@ -410,8 +412,9 @@
     const today = todayStr();
     const todayCount = reports.filter(r => (r.datetime||'').slice(0,10) === today).length;
     const pending = reports.filter(r => r.status !== 'reported').length;
-    if(pending > 0) setStat('riskReportStats', 'urgent', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> วันนี้รายงาน <b>${todayCount}</b> รายการ · ยังไม่ส่งเข้าระบบ รพ. <b>${pending}</b> รายการ`);
-    else setStat('riskReportStats', 'ok', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> วันนี้รายงาน <b>${todayCount}</b> รายการ`);
+    const riskIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+    if(pending > 0) setStat('riskReportStats', 'urgent', `${riskIcon}<div class="mini-stats-lines"><div>วันนี้รายงาน <b>${todayCount}</b> รายการ</div><div>ยังไม่ส่งเข้า รพ. <b>${pending}</b> รายการ</div></div>`);
+    else setStat('riskReportStats', 'ok', `${riskIcon}<div class="mini-stats-lines"><div>วันนี้รายงาน <b>${todayCount}</b> รายการ</div><div>ส่งเข้าระบบ รพ. ครบแล้ว ✓</div></div>`);
     setSummary('sumRiskReport', pending > 0 ? 'urgent' : 'ok', pending);
     const monthReports = reports.filter(r => isSameMonth(r.datetime));
     const topSev = highestSeverity(monthReports);
