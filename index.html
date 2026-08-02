@@ -300,10 +300,21 @@
     const monthDrpCount = entries.filter(e => isSameMonth(e.date) && e.type !== 'none').length;
     setFootMetric('drpMonthTotal', `เดือนนี้พบ DRP สะสม <b>${monthDrpCount}</b> เหตุการณ์`);
   }
-  function renderStockStats(entries){
+  function renderStockStats(entries, erStockItems){
     const today = todayStr();
     const count = entries.filter(e => e.date === today).length;
-    setStat('stockStats', '', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/></svg> วันนี้เติมยา <b>${count}</b> รายการ`);
+    const stockIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/></svg>';
+    const withExpiry = (erStockItems||[]).filter(it => it.expDate).sort((a,b)=> a.expDate.localeCompare(b.expDate));
+    const nearest = withExpiry[0];
+    let statLevel = '';
+    let expiryLine = '';
+    if(nearest){
+      const diffDays = Math.floor((new Date(nearest.expDate) - new Date(today)) / 86400000);
+      if(diffDays < 0) statLevel = 'urgent';
+      else if(diffDays <= 15) statLevel = 'urgent';
+      expiryLine = `<div>ยาใกล้หมดอายุที่สุด: <b>${nearest.drugName}</b> — ${nearest.expDate.split('-').reverse().join('/')}</div>`;
+    }
+    setStat('stockStats', statLevel, `${stockIcon}<div class="mini-stats-lines"><div>วันนี้เติมยา <b>${count}</b> รายการ</div>${expiryLine}</div>`);
     setSummary('sumStock', '', count);
     const monthCount = entries.filter(e => isSameMonth(e.date)).length;
     setFootMetric('stockMonthTotal', `เดือนนี้เติมยาสะสม <b>${monthCount}</b> รายการ`);
@@ -433,7 +444,7 @@
   function fetchAllStats(){
     fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
       renderDrpStats(data.drpEntries || []);
-      renderStockStats(data.refillEntries || []);
+      renderStockStats(data.refillEntries || [], data.erStockItems || []);
     }).catch(()=>{
       setStat('drpStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
       setStat('stockStats', 'loading', 'โหลดสถิติไม่สำเร็จ');
