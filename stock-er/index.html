@@ -118,6 +118,12 @@
 
   <div class="shared-note">🔗 ข้อมูลนี้เป็นข้อมูลกลาง เจ้าหน้าที่ห้องยาทุกคนเห็นและบันทึกร่วมกันได้</div>
 
+  <div class="tabs" id="mainTabs" style="display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:18px; flex-wrap:wrap;">
+    <button class="tab-btn active" data-tab="refill" style="border:none;background:var(--teal);color:#fff;padding:8px 18px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">บันทึกเติมยา</button>
+    <button class="tab-btn" data-tab="manage" style="border:none;background:transparent;color:var(--ink-soft);padding:8px 18px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">จัดการ ER Stock</button>
+  </div>
+
+  <div class="panel" id="panel-refill">
   <div class="card">
     <h2>บันทึกใบสั่งยา (ผู้ป่วย 1 คน)</h2>
     <p class="sub" style="margin:0 0 14px;font-size:13px;">1 ใบสั่งยาอาจมียาหลายรายการ — กรอกยาตัวแรก แล้วกด "+" เพื่อเพิ่มยาตัวถัดไปในใบสั่งยาเดียวกัน จบแล้วกด "ส่งข้อมูล" ครั้งเดียว</p>
@@ -199,6 +205,52 @@
     </div>
     <div class="empty" id="rf-empty" style="display:none;">ยังไม่มีรายการในช่วงเวลาที่เลือก</div>
   </div>
+  </div>
+
+  <div class="panel" id="panel-manage" style="display:none;">
+    <div class="card">
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="ghost" id="es-export-btn">📄 เปิดเอกสารสำหรับปริ้น</button>
+        <button class="ghost" id="es-add-btn">+ เพิ่มรายการยา</button>
+      </div>
+      <div class="grid">
+        <div>
+          <label>ผู้บรรจุ</label>
+          <select id="es-packedby-select">
+            <option value="">-- เลือกผู้บรรจุ --</option>
+            <option value="คุณโชติวัฒน์ แก้วกลางเมือง">คุณโชติวัฒน์ แก้วกลางเมือง</option>
+            <option value="คุณเกียรติคุณ อุ่นกันทะ">คุณเกียรติคุณ อุ่นกันทะ</option>
+            <option value="คุณภัทรียาพร คำมาปัน">คุณภัทรียาพร คำมาปัน</option>
+            <option value="__other__">อื่นๆ (ระบุเอง)</option>
+          </select>
+          <input type="text" id="es-packedby-other" placeholder="ระบุชื่อผู้บรรจุ" style="margin-top:6px;display:none;">
+        </div>
+        <div>
+          <label>ว/ด/ป ที่บรรจุ</label>
+          <input type="date" id="es-packeddate">
+        </div>
+        <div>
+          <label>ว/ด/ป ที่ต้องเปลี่ยนยา</label>
+          <input type="text" id="es-changedate" disabled value="ยังไม่คำนวณ">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>รายการยา</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th style="width:28%">ชื่อยา</th><th style="width:10%">จำนวน</th><th style="width:10%">หน่วย</th><th style="width:16%">วันหมดอายุ</th><th>หมายเหตุ</th><th></th></tr></thead>
+          <tbody id="es-table-body"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="es-empty" style="display:none;">ยังไม่มีรายการยา กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น</div>
+      <div class="row-actions">
+        <button class="primary" id="es-save-btn">บันทึกการเปลี่ยนแปลง</button>
+        <span id="es-status" class="loading-note"></span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -215,6 +267,8 @@ function findDrugByDisplay(name){
 let refillEntries = [];
 let draftRows = [];
 let rfPeriod = 'day';
+let erStockItems = [];
+let erStockMeta = { packedBy:'', packedDate:'', changeDate:'' };
 
 function todayStr(){
   // ต้องใช้วันที่ตามเวลาไทย (UTC+7) ไม่ใช่ UTC ตรงๆ เพราะ toISOString() คืนค่าวันที่แบบ UTC
@@ -264,9 +318,38 @@ async function loadAll(){
     const data = await res.json();
     if(!data.ok) throw new Error(data.error||'unknown');
     refillEntries = data.refillEntries || [];
+    erStockItems = data.erStockItems || [];
+    erStockMeta = data.erStockMeta || { packedBy:'', packedDate:'', changeDate:'' };
   }catch(e){
     showToast('โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
     refillEntries = [];
+    erStockItems = [];
+  }
+}
+async function saveErStockItem(entry){
+  try{
+    const res = await apiCall('saveErStockItem', {entry});
+    return res.ok ? res.id : null;
+  }catch(e){
+    showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+    return null;
+  }
+}
+async function deleteErStockItemApi(id){
+  try{
+    const res = await apiCall('deleteErStockItem', {id});
+    return !!res.ok;
+  }catch(e){
+    showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
+    return false;
+  }
+}
+async function updateErStockMetaApi(meta){
+  try{
+    const res = await apiCall('updateErStockMeta', {meta});
+    return !!res.ok;
+  }catch(e){
+    return false;
   }
 }
 async function saveRefillEntry(entry){
@@ -595,6 +678,168 @@ function renderRefillReport(){
   });
 }
 
+// ---------- TAB SWITCHING ----------
+document.querySelectorAll('#mainTabs .tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#mainTabs .tab-btn').forEach(b=>{
+      b.classList.remove('active');
+      b.style.background = 'transparent';
+      b.style.color = 'var(--ink-soft)';
+    });
+    btn.classList.add('active');
+    btn.style.background = 'var(--teal)';
+    btn.style.color = '#fff';
+    document.getElementById('panel-refill').style.display = btn.dataset.tab==='refill' ? '' : 'none';
+    document.getElementById('panel-manage').style.display = btn.dataset.tab==='manage' ? '' : 'none';
+    if(btn.dataset.tab==='manage') renderErStockPanel();
+  });
+});
+
+// ---------- ER STOCK EXPIRY MANAGEMENT ----------
+function fmtDateDisplay(v){
+  if(!v) return 'ยังไม่คำนวณ';
+  const d = new Date(v+'T00:00:00');
+  if(isNaN(d.getTime())) return String(v);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function renderErStockMetaFields(){
+  const matched = ['คุณโชติวัฒน์ แก้วกลางเมือง','คุณเกียรติคุณ อุ่นกันทะ','คุณภัทรียาพร คำมาปัน'].includes(erStockMeta.packedBy);
+  const sel = document.getElementById('es-packedby-select');
+  sel.value = matched ? erStockMeta.packedBy : (erStockMeta.packedBy ? '__other__' : '');
+  const other = document.getElementById('es-packedby-other');
+  other.style.display = (!matched && erStockMeta.packedBy) ? 'block' : 'none';
+  other.value = (!matched && erStockMeta.packedBy) ? erStockMeta.packedBy : '';
+  document.getElementById('es-packeddate').value = erStockMeta.packedDate || todayStr();
+  document.getElementById('es-changedate').value = fmtDateDisplay(erStockMeta.changeDate);
+}
+document.getElementById('es-packedby-select').addEventListener('change', (e)=>{
+  document.getElementById('es-packedby-other').style.display = e.target.value==='__other__' ? 'block' : 'none';
+});
+function getPackedByValue(){
+  const sel = document.getElementById('es-packedby-select');
+  const other = document.getElementById('es-packedby-other');
+  return sel.value==='__other__' ? other.value.trim() : sel.value;
+}
+
+function esRiskClass(expDate){
+  if(!expDate) return '';
+  const d = new Date(expDate); d.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.floor((d-today)/86400000);
+  if(diffDays<0) return 'style="background:#7A1616;color:#fff;"';
+  if(diffDays<=15) return 'style="background:#FCE4D6;"';
+  if(diffDays<=90) return 'style="background:var(--amber-soft);"';
+  return '';
+}
+
+function renderErStockPanel(){
+  renderErStockMetaFields();
+  const tbody = document.getElementById('es-table-body');
+  const sorted = erStockItems.slice().sort((a,b)=>(a.expDate||'9999').localeCompare(b.expDate||'9999'));
+  document.getElementById('es-empty').style.display = sorted.length ? 'none' : 'block';
+  tbody.innerHTML = sorted.map(it=>`
+    <tr data-id="${it.id}" ${esRiskClass(it.expDate)}>
+      <td><input list="es-drug-datalist" class="es-f-name" value="${escapeHtml(it.drugName||'')}"></td>
+      <td><input class="es-f-qty" type="number" min="0" value="${it.qty ?? ''}"></td>
+      <td><input class="es-f-unit" value="${escapeHtml(it.unit||'')}"></td>
+      <td><input class="es-f-exp" type="date" value="${it.expDate||''}"></td>
+      <td><input class="es-f-note" value="${escapeHtml(it.note||'')}"></td>
+      <td><button class="del-btn es-del-btn">ลบ</button></td>
+    </tr>`).join('') + `<datalist id="es-drug-datalist">${DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}" data-unit="${escapeHtml(d.unit||'')}">`).join('')}</datalist>`;
+
+  tbody.querySelectorAll('.es-del-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      if(!confirm('ยืนยันลบรายการยานี้?')) return;
+      if(id && id!=='new'){ await deleteErStockItemApi(id); erStockItems = erStockItems.filter(x=>x.id!==id); }
+      tr.remove();
+      if(!document.querySelectorAll('#es-table-body tr').length) document.getElementById('es-empty').style.display='block';
+    });
+  });
+}
+
+document.getElementById('es-add-btn').addEventListener('click', ()=>{
+  const tbody = document.getElementById('es-table-body');
+  document.getElementById('es-empty').style.display = 'none';
+  const tr = document.createElement('tr');
+  tr.dataset.id = 'new';
+  tr.innerHTML = `
+    <td><input list="es-drug-datalist" class="es-f-name" value=""></td>
+    <td><input class="es-f-qty" type="number" min="0" value=""></td>
+    <td><input class="es-f-unit" value=""></td>
+    <td><input class="es-f-exp" type="date" value=""></td>
+    <td><input class="es-f-note" value=""></td>
+    <td><button class="del-btn es-del-btn">ลบ</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('.es-del-btn').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) tr.remove(); });
+  tr.querySelector('.es-f-name').focus();
+});
+
+document.getElementById('es-save-btn').addEventListener('click', async ()=>{
+  const rows = document.querySelectorAll('#es-table-body tr');
+  const statusEl = document.getElementById('es-status');
+  statusEl.textContent = 'กำลังบันทึก...';
+  let earliestExp = null;
+  try{
+    for(const tr of rows){
+      const name = tr.querySelector('.es-f-name').value.trim();
+      if(!name) continue;
+      const expVal = tr.querySelector('.es-f-exp').value;
+      const entry = {
+        id: tr.dataset.id==='new' ? undefined : tr.dataset.id,
+        drugName: name,
+        unit: tr.querySelector('.es-f-unit').value,
+        qty: tr.querySelector('.es-f-qty').value,
+        expDate: expVal,
+        note: tr.querySelector('.es-f-note').value,
+      };
+      const savedId = await saveErStockItem(entry);
+      if(savedId) tr.dataset.id = savedId;
+      if(expVal && (!earliestExp || expVal < earliestExp)) earliestExp = expVal;
+    }
+
+    let changeDateIso = erStockMeta.changeDate || '';
+    if(earliestExp){
+      const d = new Date(earliestExp+'T00:00:00');
+      d.setMonth(d.getMonth()-3);
+      changeDateIso = d.toISOString().slice(0,10);
+    }
+    const packedBy = getPackedByValue();
+    const packedDate = document.getElementById('es-packeddate').value;
+    await updateErStockMetaApi({ packedBy, packedDate, changeDate: changeDateIso });
+    erStockMeta = { packedBy, packedDate, changeDate: changeDateIso };
+
+    await loadAll();
+    renderErStockPanel();
+    statusEl.textContent = '';
+    showToast('บันทึกการเปลี่ยนแปลงเรียบร้อย ✓');
+  }catch(e){
+    statusEl.textContent = '';
+    showToast('บันทึกไม่สำเร็จ: '+e.message);
+  }
+});
+
+document.getElementById('es-export-btn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('es-export-btn');
+  btn.disabled = true; btn.textContent = 'กำลังสร้างเอกสาร...';
+  const newTab = window.open('', '_blank');
+  if(newTab) newTab.document.write('<p style="font-family:sans-serif;padding:20px;">กำลังสร้างเอกสาร กรุณารอสักครู่...</p>');
+  try{
+    const res = await apiCall('exportErStockDocx', {});
+    if(!res.ok) throw new Error(res.error||'unknown');
+    if(newTab && !newTab.closed) newTab.location.href = res.url;
+    else window.open(res.url, '_blank');
+  }catch(e){
+    if(newTab && !newTab.closed) newTab.close();
+    alert('สร้างเอกสารไม่สำเร็จ: '+e.message);
+  }
+  btn.disabled = false; btn.textContent = '📄 เปิดเอกสารสำหรับปริ้น';
+});
+
 // ---------- INIT ----------
 (async function init(){
   document.getElementById('rf-status').textContent = 'กำลังโหลดข้อมูล...';
@@ -610,6 +855,7 @@ async function refreshStockData(){
   await loadAll();
   renderNurseFilter();
   renderRefillReport();
+  if(document.getElementById('panel-manage').style.display !== 'none') renderErStockPanel();
 }
 setInterval(()=>{ if(document.visibilityState === 'visible') refreshStockData(); }, 30000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') refreshStockData(); });
