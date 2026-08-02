@@ -784,23 +784,25 @@ document.getElementById('es-save-btn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('es-status');
   statusEl.textContent = 'กำลังบันทึก...';
   let earliestExp = null;
+  const entries = [];
+  rows.forEach(tr=>{
+    const name = tr.querySelector('.es-f-name').value.trim();
+    if(!name) return;
+    const expVal = tr.querySelector('.es-f-exp').value;
+    entries.push({
+      id: tr.dataset.id==='new' ? undefined : tr.dataset.id,
+      drugName: name,
+      unit: tr.querySelector('.es-f-unit').value,
+      qty: tr.querySelector('.es-f-qty').value,
+      expDate: expVal,
+      note: tr.querySelector('.es-f-note').value,
+    });
+    if(expVal && (!earliestExp || expVal < earliestExp)) earliestExp = expVal;
+  });
+
   try{
-    for(const tr of rows){
-      const name = tr.querySelector('.es-f-name').value.trim();
-      if(!name) continue;
-      const expVal = tr.querySelector('.es-f-exp').value;
-      const entry = {
-        id: tr.dataset.id==='new' ? undefined : tr.dataset.id,
-        drugName: name,
-        unit: tr.querySelector('.es-f-unit').value,
-        qty: tr.querySelector('.es-f-qty').value,
-        expDate: expVal,
-        note: tr.querySelector('.es-f-note').value,
-      };
-      const savedId = await saveErStockItem(entry);
-      if(savedId) tr.dataset.id = savedId;
-      if(expVal && (!earliestExp || expVal < earliestExp)) earliestExp = expVal;
-    }
+    const res = await apiCall('saveErStockItemsBatch', {entries});
+    if(!res.ok) throw new Error(res.error||'unknown');
 
     let changeDateIso = erStockMeta.changeDate || '';
     if(earliestExp){
@@ -816,12 +818,13 @@ document.getElementById('es-save-btn').addEventListener('click', async ()=>{
     await loadAll();
     renderErStockPanel();
     statusEl.textContent = '';
-    showToast('บันทึกการเปลี่ยนแปลงเรียบร้อย ✓');
+    showToast(`บันทึกการเปลี่ยนแปลงเรียบร้อย ✓ (${entries.length} รายการ)`);
   }catch(e){
     statusEl.textContent = '';
     showToast('บันทึกไม่สำเร็จ: '+e.message);
   }
 });
+
 
 document.getElementById('es-export-btn').addEventListener('click', async ()=>{
   const btn = document.getElementById('es-export-btn');
