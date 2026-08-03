@@ -153,6 +153,11 @@
       </div>
 
       <div class="field">
+        <label>HN ผู้ป่วย (ถ้ามี)</label>
+        <input type="text" id="f-hn" placeholder="เช่น 12345">
+      </div>
+
+      <div class="field">
         <label>ระดับความรุนแรง (NCC MERP)</label>
         <select id="f-severity">
           <option value="A">Category A — มีปัจจัยเสี่ยง แต่ยังไม่เกิดความผิดพลาด</option>
@@ -203,6 +208,7 @@
       <button class="filter-chip" data-range="week">7 วัน</button>
       <button class="filter-chip" data-range="month">เดือนนี้</button>
       <button class="filter-chip" data-range="custom">กำหนดเอง</button>
+      <button class="btn btn-outline" id="btnExportDash" style="display:none; margin-left:auto;">⬇️ ส่งออกรายงาน (Excel)</button>
     </div>
     <div class="field-row" id="customRangeRow" style="display:none; margin-bottom:18px;">
       <div class="field"><label>จากวันที่</label><input type="date" id="rangeFrom"></div>
@@ -213,6 +219,12 @@
       <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">รายงานทั้งหมด</div></div>
       <div class="stat-box"><div class="num" id="statPending">0</div><div class="lbl">ยังไม่ส่งเข้าระบบ รพ.</div></div>
       <div class="stat-box"><div class="num" id="statReported">0</div><div class="lbl">ส่งเข้าระบบแล้ว</div></div>
+    </div>
+
+    <div class="card" style="padding:0;">
+      <h2 style="padding:20px 24px 0;">รายงานความเสี่ยงในช่วงที่เลือก</h2>
+      <p style="padding:0 24px 16px; margin:0; font-size:12.5px; color:var(--ink-faint);">ทุกคนเห็นหัวข้อได้ แต่กดดูรายละเอียดได้เฉพาะเจ้าของรายงานหรือผู้มีสิทธิ์ทบทวน</p>
+      <div id="dashListWrap"></div>
     </div>
 
     <div class="card">
@@ -335,6 +347,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
   const severityOther = document.getElementById('f-severityOther').value.trim();
   if(severity==='other' && !severityOther){ alert('กรุณาระบุรายละเอียดระดับความเสี่ยงที่เลือก "อื่นๆ"'); return; }
   const datetime = document.getElementById('f-datetime').value;
+  const hn = document.getElementById('f-hn').value.trim();
 
   const sevText = severity==='other' ? ('อื่นๆ — '+severityOther) : `${SEV_LABEL[severity]}`;
   const box = document.getElementById('confirmModalBox');
@@ -343,6 +356,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
     <div class="modal-summary">
       <div>📅 วันเวลาเหตุการณ์: <b>${fmtDT(datetime)}</b></div>
       <div>👤 ผู้รายงาน: <b>${auth.name}</b></div>
+      ${hn ? `<div>🏥 HN ผู้ป่วย: <b>${escapeHtml(hn)}</b></div>` : ''}
       <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
       <div>📝 รายละเอียด: <b>${escapeHtml(desc)}</b></div>
       <div>📷 รูปแนบ: <b>${pendingPhotos.length} รูป</b></div>
@@ -356,7 +370,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
   document.getElementById('btnConfirmSend').addEventListener('click', async ()=>{
     const btn = document.getElementById('btnConfirmSend');
     btn.disabled = true; btn.textContent = 'กำลังส่ง...';
-    const report = { datetime, reporterCode: auth.code, severity, severityOther, desc, source:'manual' };
+    const report = { datetime, reporterCode: auth.code, hn, severity, severityOther, desc, source:'manual' };
     const photos = pendingPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64}));
     try{
       const res = await fetch(API_URL, {
@@ -367,6 +381,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
       if(!data.ok) throw new Error(data.error||'unknown');
       document.getElementById('confirmOverlay').classList.remove('active');
       document.getElementById('f-desc').value = '';
+      document.getElementById('f-hn').value = '';
       document.getElementById('f-severityOther').value = '';
       document.getElementById('f-severity').value = 'A';
       updateSeverityUI();
@@ -404,25 +419,35 @@ async function loadReports(){
     document.getElementById('reportListWrap').innerHTML = `<div class="empty">โหลดข้อมูลไม่สำเร็จ: ${e.message}</div>`;
   }
 }
-function renderReportList(){
-  const wrap = document.getElementById('reportListWrap');
-  if(!reports.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
+function reportRowHtml(r){
+  const statusIcon = r.status==='reported'
+    ? `<div class="status-icon reported" title="ส่งเข้าระบบ รพ. แล้ว"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
+    : `<div class="status-icon pending" title="ยังไม่ส่งเข้าระบบ รพ."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>`;
+  const sevText = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity];
   const myAuth = window.PHQAuth.getAuth();
   const myCode = myAuth ? String(myAuth.code) : null;
-  wrap.innerHTML = reports.map(r=>{
-    const statusIcon = r.status==='reported'
-      ? `<div class="status-icon reported" title="ส่งเข้าระบบ รพ. แล้ว"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
-      : `<div class="status-icon pending" title="ยังไม่ส่งเข้าระบบ รพ."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>`;
-    const sevText = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity];
-    const rowClickable = canReview || (myCode && String(r.reporterCode)===myCode);
-    return `
+  const rowClickable = canReview || (myCode && String(r.reporterCode)===myCode);
+  const hnPrefix = r.hn ? `HN ${escapeHtml(r.hn)} · ` : '';
+  return `
     <div class="rrow ${rowClickable?'clickable':''}" data-id="${r.id}">
       <div class="rdate">${fmtDT(r.datetime).split(' ')[0]}</div>
       <span class="sev-badge ${SEV_CLASS[r.severity]}">${sevText}</span>
-      <div class="rmain"><div class="rdesc">${escapeHtml(truncate(r.desc, 60))}</div></div>
+      <div class="rmain"><div class="rdesc">${hnPrefix}${escapeHtml(truncate(r.desc, 60))}</div></div>
       ${statusIcon}
     </div>`;
-  }).join('');
+}
+function renderReportList(){
+  const wrap = document.getElementById('reportListWrap');
+  if(!reports.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
+  wrap.innerHTML = reports.map(reportRowHtml).join('');
+  wrap.querySelectorAll('.rrow.clickable').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
+}
+function renderDashList(rows){
+  const wrap = document.getElementById('dashListWrap');
+  if(!wrap) return;
+  if(!rows.length){ wrap.innerHTML = '<div class="empty">ไม่มีรายงานในช่วงเวลานี้</div>'; return; }
+  const sorted = rows.slice().sort((a,b)=> new Date(b.datetime) - new Date(a.datetime));
+  wrap.innerHTML = sorted.map(reportRowHtml).join('');
   wrap.querySelectorAll('.rrow.clickable').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
 }
 
@@ -445,6 +470,10 @@ let editRemovePhotoIds = [];
 function editDetailHtml(r){
   return `
     <h3>แก้ไขรายงานความเสี่ยง</h3>
+    <div class="field">
+      <label>HN ผู้ป่วย (ถ้ามี)</label>
+      <input type="text" id="e-hn" value="${escapeHtml(r.hn||'')}">
+    </div>
     <div class="field">
       <label>ระดับความรุนแรง (NCC MERP)</label>
       <select id="e-severity">${SEV_OPTIONS_HTML}</select>
@@ -516,6 +545,7 @@ function renderDetailBox(r){
     document.getElementById('btnCancelEdit').addEventListener('click', ()=>{ editingReportId=null; renderDetailBox(r); });
     document.getElementById('btnSaveEdit').addEventListener('click', async ()=>{
       const saveBtn = document.getElementById('btnSaveEdit');
+      const hn = document.getElementById('e-hn').value.trim();
       const severity = document.getElementById('e-severity').value;
       const severityOther = document.getElementById('e-severityOther') ? document.getElementById('e-severityOther').value.trim() : '';
       const desc = document.getElementById('e-desc').value.trim();
@@ -523,7 +553,7 @@ function renderDetailBox(r){
       try{
         const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({
           action:'updateReport', id:r.id, code:auth.code,
-          updates:{ severity, severityOther, desc },
+          updates:{ hn, severity, severityOther, desc },
           newPhotos: editNewPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64})),
           removePhotoIds: editRemovePhotoIds,
         })});
@@ -550,6 +580,7 @@ function renderDetailBox(r){
     <div class="modal-summary">
       <div>📅 วันเวลาเหตุการณ์: <b>${fmtDT(r.datetime)}</b></div>
       <div>👤 ผู้รายงาน: <b>${escapeHtml(r.reporterName)}</b></div>
+      ${r.hn ? `<div>🏥 HN ผู้ป่วย: <b>${escapeHtml(r.hn)}</b></div>` : ''}
       <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
       <div>📝 รายละเอียด: <b>${escapeHtml(r.desc)}</b></div>
     </div>
@@ -648,7 +679,33 @@ function renderDashboard(){
   const tbody = document.querySelector('#leaderboardTable tbody');
   tbody.innerHTML = staffKeys.length ? staffKeys.map(k=>`<tr><td>${escapeHtml(k)}</td><td style="text-align:right;font-weight:600;">${byStaff[k]}</td></tr>`).join('')
     : '<tr><td style="color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</td></tr>';
+
+  renderDashList(rows);
+  const exportBtn = document.getElementById('btnExportDash');
+  exportBtn.style.display = canReview ? 'inline-flex' : 'none';
 }
+
+// ---------- Export (Excel) — เฉพาะผู้มีสิทธิ์ทบทวน (canReview) เท่านั้น ----------
+function exportDashboardXlsx(){
+  const {from, to} = getRangeBounds();
+  const rows = reports.filter(r=>{ const d = new Date(r.datetime); return d>=from && d<to; })
+    .slice().sort((a,b)=> new Date(a.datetime) - new Date(b.datetime));
+  const data = rows.map(r=>({
+    'วันเวลาเหตุการณ์': fmtDT(r.datetime),
+    'HN': r.hn || '',
+    'ผู้รายงาน': r.reporterName,
+    'ระดับความเสี่ยง (NCC MERP)': r.severity==='other' ? ('อื่นๆ - '+(r.severityOther||'')) : SEV_LABEL[r.severity],
+    'รายละเอียด': r.desc || '',
+    'สถานะ': r.status==='reported' ? 'ส่งเข้าระบบ รพ.แล้ว' : 'ยังไม่ส่งเข้าระบบ รพ.',
+    'ส่งเข้าระบบเมื่อ': r.reportedAt ? fmtDT(r.reportedAt) : '',
+    'ผู้ส่งเข้าระบบ': r.reportedByName || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายงานความเสี่ยง');
+  XLSX.writeFile(wb, `รายงานความเสี่ยง-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+document.getElementById('btnExportDash').addEventListener('click', exportDashboardXlsx);
 
 // ---------- Init ----------
 // ---------- Init ----------
