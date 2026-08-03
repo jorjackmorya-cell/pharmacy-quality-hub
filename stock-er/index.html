@@ -858,7 +858,9 @@ async function refreshStockData(){
   await loadAll();
   renderNurseFilter();
   renderRefillReport();
-  if(document.getElementById('panel-manage').style.display !== 'none') renderErStockPanel();
+  // หมายเหตุ: ไม่ re-render แท็บ "จัดการ ER Stock" ตรงนี้อีกต่อไป
+  // เพราะถ้าผู้ใช้กำลังพิมพ์แก้ไขตารางอยู่ (ยังไม่ได้กดบันทึก) การรีเฟรชอัตโนมัติจะไปทับข้อมูลที่พิมพ์ค้างไว้ทิ้งหมด
+  // ข้อมูลแท็บนี้จะโหลดใหม่เองตอนสลับแท็บเข้ามา หรือตอนกด "บันทึกการเปลี่ยนแปลง" อยู่แล้ว
 }
 setInterval(()=>{ if(document.visibilityState === 'visible') refreshStockData(); }, 30000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') refreshStockData(); });
