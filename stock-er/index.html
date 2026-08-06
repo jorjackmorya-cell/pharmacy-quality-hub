@@ -238,6 +238,10 @@
 
     <div class="card">
       <h2>รายการยา</h2>
+      <div style="margin-bottom:12px;max-width:380px;">
+        <input type="text" id="es-search" placeholder="🔍 ค้นหาชื่อยา..." autocomplete="off"
+          style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:8px;font-size:14px;">
+      </div>
       <div style="overflow-x:auto;">
         <table>
           <thead><tr><th style="width:28%">ชื่อยา</th><th style="width:10%">จำนวน</th><th style="width:10%">หน่วย</th><th style="width:16%">วันหมดอายุ</th><th>หมายเหตุ</th><th></th></tr></thead>
@@ -758,9 +762,37 @@ function renderErStockPanel(){
       if(id && id!=='new'){ await deleteErStockItemApi(id); erStockItems = erStockItems.filter(x=>x.id!==id); }
       tr.remove();
       if(!document.querySelectorAll('#es-table-body tr').length) document.getElementById('es-empty').style.display='block';
+      applyEsSearchFilter();
     });
   });
+  applyEsSearchFilter();
 }
+
+function applyEsSearchFilter(){
+  const searchEl = document.getElementById('es-search');
+  const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const rows = document.querySelectorAll('#es-table-body tr');
+  let anyVisible = false;
+  rows.forEach(tr=>{
+    if(tr.dataset.id === 'new'){ tr.style.display=''; anyVisible = true; return; } // always show unsaved new rows
+    const nameInput = tr.querySelector('.es-f-name');
+    const name = (nameInput ? nameInput.value : '').toLowerCase();
+    const match = !term || name.includes(term);
+    tr.style.display = match ? '' : 'none';
+    if(match) anyVisible = true;
+  });
+  const emptyEl = document.getElementById('es-empty');
+  if(!rows.length){
+    emptyEl.textContent = 'ยังไม่มีรายการยา กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น';
+    emptyEl.style.display = 'block';
+  } else if(term && !anyVisible){
+    emptyEl.textContent = `ไม่พบยาที่ตรงกับ "${searchEl.value.trim()}"`;
+    emptyEl.style.display = 'block';
+  } else {
+    emptyEl.style.display = 'none';
+  }
+}
+document.getElementById('es-search').addEventListener('input', applyEsSearchFilter);
 
 document.getElementById('es-add-btn').addEventListener('click', ()=>{
   const tbody = document.getElementById('es-table-body');
@@ -775,8 +807,9 @@ document.getElementById('es-add-btn').addEventListener('click', ()=>{
     <td><input class="es-f-note" value=""></td>
     <td><button class="del-btn es-del-btn">ลบ</button></td>`;
   tbody.appendChild(tr);
-  tr.querySelector('.es-del-btn').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) tr.remove(); });
+  tr.querySelector('.es-del-btn').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) { tr.remove(); applyEsSearchFilter(); } });
   tr.querySelector('.es-f-name').focus();
+  applyEsSearchFilter();
 });
 
 document.getElementById('es-save-btn').addEventListener('click', async ()=>{
