@@ -6,6 +6,7 @@
 <title>ตรวจสอบการใช้ยา HAD — รพ.เชียงม่วน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --ink:#20302E; --ink-soft:#4B615D; --paper:#F0F3EF; --card:#FFFFFF; --line:#D8E1DC;
@@ -42,8 +43,9 @@
   button:disabled{opacity:.5;cursor:not-allowed;}
   .drug-ref{background:var(--teal-soft);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13.5px;line-height:1.6;}
   .drug-ref b{color:var(--teal-deep);}
-  .radio-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;}
-  .radio-opt{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:400;color:var(--ink);}
+  .radio-row{display:flex;gap:10px 20px;flex-wrap:wrap;margin-top:4px;}
+  .radio-opt{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:400;color:var(--ink);white-space:nowrap;flex-shrink:0;}
+  .radio-opt input{width:auto;flex-shrink:0;}
   .param-row{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px;background:var(--paper);}
   .param-row .pname{font-weight:600;font-size:14px;margin-bottom:2px;}
   .param-row .pfreq{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;}
@@ -64,6 +66,8 @@
   .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
   .badge-ok{background:var(--good-soft);color:var(--good);}
   .badge-problem{background:var(--danger-soft);color:var(--danger);}
+  .chip{padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer;color:var(--ink-soft);font-family:inherit;}
+  .chip.active{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-deep);font-weight:600;}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
   .loading-note{font-size:13px;color:var(--ink-soft);padding:6px 0;}
@@ -83,7 +87,7 @@
     <p class="sub">สำหรับเภสัชกรตรวจสอบความถูกต้องคำสั่งยาและการติดตาม parameter ของยา HAD ทั้งขณะให้ยาอยู่และตรวจย้อนหลัง</p>
     <div class="tabs">
       <button class="tab-btn active" id="tab-check-btn">ตรวจสอบการใช้ยา HAD</button>
-      <button class="tab-btn" id="tab-history-btn">ประวัติการตรวจ</button>
+      <button class="tab-btn" id="tab-history-btn">ข้อมูลการติดตาม</button>
     </div>
   </header>
 
@@ -141,10 +145,15 @@
           <div>
             <label>ความรุนแรง</label>
             <select id="p-severity">
-              <option value="near-miss">Near-miss (ตรวจพบก่อนถึงผู้ป่วย)</option>
-              <option value="low">น้อย (ไม่ส่งผลต่อผู้ป่วย)</option>
-              <option value="medium">ปานกลาง (ต้องเฝ้าระวัง/แก้ไข)</option>
-              <option value="high">สูง (ส่งผลต่อผู้ป่วยแล้ว/ต้องรายงานแพทย์ด่วน)</option>
+              <option value="A">Category A — มีโอกาสเกิดความคลาดเคลื่อน แต่ยังไม่เกิดขึ้นจริง</option>
+              <option value="B">Category B — เกิดความคลาดเคลื่อน แต่ยังไม่ถึงตัวผู้ป่วย</option>
+              <option value="C">Category C — ถึงตัวผู้ป่วยแล้ว แต่ไม่เป็นอันตราย</option>
+              <option value="D">Category D — ถึงตัวผู้ป่วย ต้องเฝ้าระวังอาการ</option>
+              <option value="E">Category E — เป็นอันตรายชั่วคราว ต้องบำบัดรักษา</option>
+              <option value="F">Category F — เป็นอันตรายชั่วคราว ต้องนอนรักษาตัวนานขึ้น</option>
+              <option value="G">Category G — เป็นอันตรายถาวรต่อผู้ป่วย</option>
+              <option value="H">Category H — ต้องช่วยชีวิตฉุกเฉิน</option>
+              <option value="I">Category I — เป็นเหตุหรือส่งผลให้ผู้ป่วยเสียชีวิต</option>
             </select>
           </div>
         </div>
@@ -170,7 +179,23 @@
       <div class="stat"><div class="num" id="stat-ok">-</div><div class="lbl">ปกติ</div></div>
     </div>
     <div class="card">
-      <h2>รายการที่ตรวจแล้ว</h2>
+      <h2>ข้อมูลการติดตาม</h2>
+      <div class="filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <div class="chip-group" style="display:flex;gap:6px;">
+          <button class="chip active" data-range="today">วันนี้</button>
+          <button class="chip" data-range="week">สัปดาห์นี้</button>
+          <button class="chip" data-range="month">เดือนนี้</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="date" id="range-from" style="width:auto;">
+          <span style="color:var(--ink-soft);font-size:13px;">ถึง</span>
+          <input type="date" id="range-to" style="width:auto;">
+          <button class="ghost" id="btn-apply-range" type="button">ค้นหาตามช่วงวันที่</button>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="ghost" id="btn-open-sheet" type="button">เปิด Google Sheet ต้นฉบับ</button>
+        <button class="primary" id="btn-export-xlsx" type="button">ดาวน์โหลด Excel</button>
+      </div>
       <div style="overflow-x:auto;">
         <table>
           <thead><tr><th>วันที่</th><th>ยา</th><th>HN</th><th>Ward</th><th>สถานะตรวจ</th><th>ผล</th></tr></thead>
@@ -388,29 +413,116 @@ function resetForm(){
   currentDrug=null;
 }
 
-// ---- history ----
-async function loadHistory(){
+// ---- history filter + export ----
+let historyRange = 'today';
+let customFrom = null, customTo = null;
+let historyItemsCache = [];
+const HAD_SHEET_URL = 'https://docs.google.com/spreadsheets/d/11Fgc3p2czfKW-7AVShZRuKOXoU-iQeIuGyp3f4J1SVo/edit?gid=1304561696#gid=1304561696';
+
+document.getElementById('btn-open-sheet').addEventListener('click', ()=>{
+  window.open(HAD_SHEET_URL, '_blank');
+});
+
+document.querySelectorAll('.chip[data-range]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip[data-range]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    historyRange = btn.dataset.range;
+    customFrom = null; customTo = null;
+    document.getElementById('range-from').value = '';
+    document.getElementById('range-to').value = '';
+    renderHistoryTable();
+  });
+});
+
+document.getElementById('btn-apply-range').addEventListener('click', ()=>{
+  const from = document.getElementById('range-from').value;
+  const to = document.getElementById('range-to').value;
+  if(!from && !to){ alert('กรุณาเลือกช่วงวันที่อย่างน้อยหนึ่งช่อง'); return; }
+  customFrom = from || null;
+  customTo = to || null;
+  historyRange = 'custom';
+  document.querySelectorAll('.chip[data-range]').forEach(b=>b.classList.remove('active'));
+  renderHistoryTable();
+});
+
+function inRange(dtStr, range){
+  if(!dtStr) return false;
+  const d = new Date(dtStr);
+  if(isNaN(d.getTime())) return false;
+  if(range==='custom'){
+    if(customFrom){ const f = new Date(customFrom+'T00:00:00'); if(d<f) return false; }
+    if(customTo){ const t = new Date(customTo+'T23:59:59'); if(d>t) return false; }
+    return true;
+  }
+  const now = new Date();
+  if(range==='today'){
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  }
+  if(range==='week'){
+    const start = new Date(now); const day = start.getDay(); // 0=Sun
+    start.setDate(start.getDate()-day); start.setHours(0,0,0,0);
+    const end = new Date(start); end.setDate(end.getDate()+7);
+    return d>=start && d<end;
+  }
+  if(range==='month'){
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  }
+  return true;
+}
+
+function renderHistoryTable(){
   const tbody = document.getElementById('history-body');
   const emptyEl = document.getElementById('history-empty');
+  const items = historyItemsCache.filter(it=>inRange(it.checkDateTime, historyRange));
+  document.getElementById('stat-total').textContent = items.length;
+  document.getElementById('stat-problem').textContent = items.filter(x=>x.result==='problem').length;
+  document.getElementById('stat-ok').textContent = items.filter(x=>x.result==='ok').length;
+  if(!items.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+  emptyEl.style.display='none';
+  tbody.innerHTML = items.map(it=>`
+    <tr>
+      <td>${escapeHtml(it.checkDateTime||'')}</td>
+      <td>${escapeHtml(it.drugName||'')}</td>
+      <td>${escapeHtml(it.hn||'')}</td>
+      <td>${escapeHtml(it.ward||'')}</td>
+      <td>${it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง'}</td>
+      <td><span class="badge ${it.result==='problem'?'badge-problem':'badge-ok'}">${it.result==='problem'?'พบปัญหา':'ปกติ'}</span></td>
+    </tr>`).join('');
+}
+
+document.getElementById('btn-export-xlsx').addEventListener('click', ()=>{
+  const items = historyItemsCache.filter(it=>inRange(it.checkDateTime, historyRange));
+  if(!items.length){ alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก'); return; }
+  const rows = items.map(it=>({
+    'วันที่/เวลาตรวจ': it.checkDateTime||'',
+    'ผู้ตรวจ': it.reporterCode||'',
+    'HN': it.hn||'',
+    'ชื่อผู้ป่วย': it.patientName||'',
+    'Ward': it.ward||'',
+    'สถานะตรวจ': it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง',
+    'ยา': it.drugName||'',
+    'ผลสรุป': it.result==='problem'?'พบปัญหา':'ปกติ',
+    'ประเภทปัญหา': it.problemType||'',
+    'รายละเอียดปัญหา': it.problemDetail||'',
+    'การแก้ไข': it.problemFix||'',
+    'ความรุนแรง (NCC MERP)': it.severity||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'HAD Monitoring');
+  const rangeLabel = {today:'วันนี้',week:'สัปดาห์นี้',month:'เดือนนี้',custom:`${customFrom||'เริ่มต้น'}_ถึง_${customTo||'ปัจจุบัน'}`}[historyRange];
+  XLSX.writeFile(wb, `HAD_Monitoring_${rangeLabel}_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+async function loadHistory(){
+  const tbody = document.getElementById('history-body');
   tbody.innerHTML = '<tr><td colspan="6" class="loading-note">กำลังโหลด...</td></tr>';
   try{
     const res = await fetch(API_URL);
     const data = await res.json();
-    const items = (data.hadChecks||[]).slice().sort((a,b)=>(b.checkDateTime||'').localeCompare(a.checkDateTime||''));
-    document.getElementById('stat-total').textContent = items.length;
-    document.getElementById('stat-problem').textContent = items.filter(x=>x.result==='problem').length;
-    document.getElementById('stat-ok').textContent = items.filter(x=>x.result==='ok').length;
-    if(!items.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
-    emptyEl.style.display='none';
-    tbody.innerHTML = items.map(it=>`
-      <tr>
-        <td>${escapeHtml(it.checkDateTime||'')}</td>
-        <td>${escapeHtml(it.drugName||'')}</td>
-        <td>${escapeHtml(it.hn||'')}</td>
-        <td>${escapeHtml(it.ward||'')}</td>
-        <td>${it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง'}</td>
-        <td><span class="badge ${it.result==='problem'?'badge-problem':'badge-ok'}">${it.result==='problem'?'พบปัญหา':'ปกติ'}</span></td>
-      </tr>`).join('');
+    historyItemsCache = (data.hadChecks||[]).slice().sort((a,b)=>(b.checkDateTime||'').localeCompare(a.checkDateTime||''));
+    renderHistoryTable();
   }catch(e){
     tbody.innerHTML = `<tr><td colspan="6" class="empty">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
   }
