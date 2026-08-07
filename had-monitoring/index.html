@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตรวจสอบการใช้ยา HAD — รพ.เชียงม่วน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#20302E; --ink-soft:#4B615D; --paper:#F0F3EF; --card:#FFFFFF; --line:#D8E1DC;
+    --teal:#0F4C4C; --teal-deep:#0A3838; --teal-soft:#E4EEEC;
+    --amber:#C97B3D; --amber-soft:#F6E8D8;
+    --danger:#B5473A; --danger-soft:#F5E1DE;
+    --good:#3D7A5E; --good-soft:#DEEBE3;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Sarabun',sans-serif;background:var(--paper);color:var(--ink);}
+  .app{max-width:1140px;margin:0 auto;padding:24px 20px 60px;}
+  header{margin-bottom:22px;}
+  .eyebrow{font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:4px;}
+  h1{font-size:26px;font-weight:700;margin:0 0 2px;color:var(--teal-deep);}
+  .sub{font-size:14.5px;color:var(--ink-soft);margin:0 0 18px;}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tab-btn{background:#fff;border:1px solid var(--line);color:var(--ink-soft);padding:9px 18px;border-radius:8px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;}
+  .tab-btn.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
+  .card h2{font-size:17px;margin:0 0 14px;color:var(--teal-deep);}
+  .card h3{font-size:14.5px;margin:0 0 10px;color:var(--ink-soft);font-weight:600;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;font-weight:500;}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14.5px;color:var(--ink);background:#fff;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  textarea{resize:vertical;min-height:56px;}
+  .row-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;}
+  button.primary{background:var(--teal);color:#fff;border:none;padding:9px 20px;border-radius:7px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;}
+  button.primary:hover{background:var(--teal-deep);}
+  button.ghost{background:none;border:1px solid var(--line);color:var(--ink-soft);padding:9px 16px;border-radius:7px;font-family:inherit;font-size:14px;cursor:pointer;}
+  button.ghost:hover{border-color:var(--teal);color:var(--teal-deep);}
+  button.danger-btn{background:var(--danger);color:#fff;border:none;padding:8px 16px;border-radius:7px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .drug-ref{background:var(--teal-soft);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13.5px;line-height:1.6;}
+  .drug-ref b{color:var(--teal-deep);}
+  .radio-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;}
+  .radio-opt{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:400;color:var(--ink);}
+  .param-row{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px;background:var(--paper);}
+  .param-row .pname{font-weight:600;font-size:14px;margin-bottom:2px;}
+  .param-row .pfreq{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;}
+  .result-btns{display:flex;gap:10px;margin-top:6px;}
+  .result-btn{flex:1;padding:12px;border-radius:8px;border:2px solid var(--line);background:#fff;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;color:var(--ink-soft);}
+  .result-btn.sel-ok{border-color:var(--good);background:var(--good-soft);color:var(--good);}
+  .result-btn.sel-problem{border-color:var(--danger);background:var(--danger-soft);color:var(--danger);}
+  .problem-box{border:1px solid var(--danger);border-radius:8px;padding:14px;margin-top:12px;background:var(--danger-soft);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:8px 10px;color:var(--ink-soft);font-weight:600;border-bottom:2px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);}
+  tr:hover td{background:var(--paper);}
+  .empty{padding:24px;text-align:center;color:var(--ink-soft);font-size:14px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;}
+  .stat{background:var(--teal-soft);border-radius:8px;padding:14px 16px;}
+  .stat .num{font-size:26px;font-weight:700;color:var(--teal-deep);line-height:1.1;}
+  .stat .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .badge-ok{background:var(--good-soft);color:var(--good);}
+  .badge-problem{background:var(--danger-soft);color:var(--danger);}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .loading-note{font-size:13px;color:var(--ink-soft);padding:6px 0;}
+  @media (max-width:640px){ .result-btns{flex-direction:column;} table{font-size:12px;} th,td{padding:6px} }
+</style>
+</head>
+<body>
+<script src="../shared/auth.js"></script>
+<script>window.PHQAuth.requireAuth();</script>
+<div style="padding:14px 20px 0; max-width:1140px; margin:0 auto;">
+  <a href="../" style="display:inline-flex; align-items:center; gap:6px; font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; color:#0A3838; text-decoration:none;">← หน้ารวมเครื่องมือ</a>
+</div>
+<div class="app">
+  <header>
+    <div class="eyebrow">รพ.เชียงม่วน · ห้องยา</div>
+    <h1>ตรวจสอบการใช้ยา High Alert Drugs</h1>
+    <p class="sub">สำหรับเภสัชกรตรวจสอบความถูกต้องคำสั่งยาและการติดตาม parameter ของยา HAD ทั้งขณะให้ยาอยู่และตรวจย้อนหลัง</p>
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-check-btn">ตรวจสอบการใช้ยา HAD</button>
+      <button class="tab-btn" id="tab-history-btn">ประวัติการตรวจ</button>
+    </div>
+  </header>
+
+  <div id="panel-check">
+    <div class="card">
+      <h2>ข้อมูลผู้ป่วยและยา</h2>
+      <div class="grid">
+        <div><label>HN</label><input type="text" id="f-hn"></div>
+        <div><label>ชื่อ-สกุลผู้ป่วย (ไม่บังคับ)</label><input type="text" id="f-name"></div>
+        <div><label>หอผู้ป่วย/เตียง</label><select id="f-ward"></select></div>
+        <div><label>วันที่/เวลาตรวจ</label><input type="datetime-local" id="f-checkdt"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <label>สถานะการตรวจ</label>
+        <div class="radio-row">
+          <label class="radio-opt"><input type="radio" name="f-status" value="ongoing" checked> กำลังให้ยาอยู่</label>
+          <label class="radio-opt"><input type="radio" name="f-status" value="retro"> ตรวจย้อนหลัง (ให้ยาจบแล้ว)</label>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label>ยา HAD ที่ใช้</label>
+        <select id="f-drug"><option value="">— เลือกยา —</option></select>
+      </div>
+      <div class="drug-ref" id="drug-ref-box" style="display:none;"></div>
+    </div>
+
+    <div class="card" id="order-check-card" style="display:none;">
+      <h2>1. ตรวจสอบความถูกต้องคำสั่งยา</h2>
+      <div id="order-check-rows"></div>
+    </div>
+
+    <div class="card" id="monitor-check-card" style="display:none;">
+      <h2>2. ตรวจสอบการติดตาม (Monitoring compliance)</h2>
+      <div id="monitor-check-rows"></div>
+    </div>
+
+    <div class="card" id="result-card" style="display:none;">
+      <h2>3. สรุปผลการตรวจ</h2>
+      <div class="result-btns">
+        <button class="result-btn" id="btn-ok" data-val="ok">✓ ปกติ ไม่พบปัญหา</button>
+        <button class="result-btn" id="btn-problem" data-val="problem">⚠ พบปัญหา</button>
+      </div>
+      <div class="problem-box" id="problem-box" style="display:none;">
+        <div class="grid">
+          <div>
+            <label>ประเภทปัญหา</label>
+            <select id="p-type">
+              <option>คำสั่งยาไม่ถูกต้อง (ขนาด/วิธีบริหาร/ข้อบ่งใช้)</option>
+              <option>ไม่มีการติดตาม parameter ตามที่กำหนด</option>
+              <option>ติดตามไม่ครบตามความถี่</option>
+              <option>ค่าที่ติดตามผิดปกติแต่ไม่ได้รายงานแพทย์</option>
+              <option>อื่นๆ</option>
+            </select>
+          </div>
+          <div>
+            <label>ความรุนแรง</label>
+            <select id="p-severity">
+              <option value="near-miss">Near-miss (ตรวจพบก่อนถึงผู้ป่วย)</option>
+              <option value="low">น้อย (ไม่ส่งผลต่อผู้ป่วย)</option>
+              <option value="medium">ปานกลาง (ต้องเฝ้าระวัง/แก้ไข)</option>
+              <option value="high">สูง (ส่งผลต่อผู้ป่วยแล้ว/ต้องรายงานแพทย์ด่วน)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;"><label>รายละเอียดปัญหา</label><textarea id="p-detail" placeholder="อธิบายปัญหาที่พบ"></textarea></div>
+        <div style="margin-top:10px;"><label>การทักท้วง/แก้ไขที่ทำ (ถ้ามี)</label><textarea id="p-fix" placeholder="เช่น แจ้งแพทย์/พยาบาลแล้ว, ปรับคำสั่งยา"></textarea></div>
+        <div class="row-actions">
+          <button class="danger-btn" id="btn-send-risk">ส่งเข้าระบบรายงานความเสี่ยง</button>
+          <span class="loading-note" id="risk-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row-actions">
+      <button class="primary" id="btn-save-check">บันทึกการตรวจ</button>
+      <span class="loading-note" id="save-status"></span>
+    </div>
+  </div>
+
+  <div id="panel-history" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="stat-total">-</div><div class="lbl">ตรวจทั้งหมด</div></div>
+      <div class="stat"><div class="num" id="stat-problem">-</div><div class="lbl">พบปัญหา</div></div>
+      <div class="stat"><div class="num" id="stat-ok">-</div><div class="lbl">ปกติ</div></div>
+    </div>
+    <div class="card">
+      <h2>รายการที่ตรวจแล้ว</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>วันที่</th><th>ยา</th><th>HN</th><th>Ward</th><th>สถานะตรวจ</th><th>ผล</th></tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="history-empty" style="display:none;">ยังไม่มีข้อมูลการตรวจ</div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
+const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+
+const WARDS = [];
+['ชาย','หญิง','พิเศษ'].forEach(t=>{ for(let i=1;i<=10;i++) WARDS.push(t+' '+i); });
+
+const HAD_DRUGS = [{"id": "had01", "name": "Adenosine inj.", "strength": "6 mg/2 ml", "pregCat": "", "indication": "Paroxysmal supraventricular tachycardia (PSVT)", "doseSummary": "Adult peripheral: 6 mg rapid IV 1-2 วิ + NSS flush; ถ้าไม่ตอบสนอง ให้ 12 mg และ 12-18 mg ตามลำดับ. Central line: เริ่ม 3 mg. เด็ก: เริ่ม 0.1 mg/kg เพิ่มเป็น 0.2 mg/kg (max 12 mg/dose)", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการ, เตรียมอุปกรณ์ช่วยชีวิตกรณี asystole", "toxicSigns": "Heart block, new arrhythmias, torsade de pointes", "reportCriteria": "HR<60/นาที; BP<90/60 mmHg; RR>20/นาทีหรือหายใจหอบ"}, {"id": "had02", "name": "Adrenaline inj.", "strength": "1 mg/ml (1 ml) (1:1,000)", "pregCat": "", "indication": "Anaphylaxis, Cardiac arrest (CPR), Cardiogenic shock/hypotension", "doseSummary": "Anaphylaxis ผู้ใหญ่: IM/SC 0.3-0.5 mg q5-15min หรือ IV infusion 1-2 mcg/min. เด็ก: IM/SC 0.01 mg/kg q5-15min. CPR ผู้ใหญ่: IV push 1 mg q3-5min", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการ", "toxicSigns": "Tachycardia, palpitation, BP สูง → VF, pulmonary edema; extravasation", "reportCriteria": "BP ผู้ใหญ่>160/90, เด็ก>1ปี>120/80, เด็ก<1ปี>100/70; HR ผู้ใหญ่>120, เด็ก>1ปี>180, เด็ก<1ปี>220"}, {"id": "had03", "name": "Amiodarone inj.", "strength": "150 mg/3 ml", "pregCat": "", "indication": "Ventricular arrhythmias (QRS แคบ), Cardiac arrest (CPR)", "doseSummary": "Adult IV infusion 5 mg/kg (รวม ≤1,050 mg/24hr): 150mg/10min → 360mg/6hr → 540mg/18hr. Cardiac arrest: IV push 5 mg/kg (max 300 mg)", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการและติดตาม EKG ใกล้ชิด", "toxicSigns": "Sinus bradycardia, heart block, hypotension, QT prolongation, hepatotoxicity", "reportCriteria": "HR≤60 หรือ arrhythmia; BP≤90/60; EKG QT>460-480ms, heart block, sinus bradycardia, VT/VF"}, {"id": "had04", "name": "10% Calcium gluconate inj.", "strength": "100 mg/ml, 0.45 mEq/ml", "pregCat": "", "indication": "Hypocalcemia, Cardiac arrest/cardiotoxicity จาก Hyperkalemia", "doseSummary": "Hypocalcemia: bolus 1-2 g IV ใน 10-20 นาที ซ้ำได้หลัง 10-60 นาที. Cardiac arrest (hyperkalemia): เด็ก 60-100 mg/kg, ผู้ใหญ่ 500-1000 mg", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการ, IV hydration, diuretic", "toxicSigns": "Severe hypercalcemia: lethargy, N/V, coma", "reportCriteria": "HR เปลี่ยน>20%จาก baseline หรือ<60; Serum Ca>10.2 mg%; BP<90/60"}, {"id": "had05", "name": "Digoxin inj.", "strength": "0.25 mg/ml in 2 ml", "pregCat": "", "indication": "Atrial fibrillation/flutter (rate control)", "doseSummary": "เริ่ม 0.25-0.5 mg/วัน ซ้ำได้ 0.25 mg q6hr (max 1.5 mg/24hr). ผู้สูงอายุ (≥65 ปี) ไม่เกิน 0.125 mg/วัน. ต้องเช็ค K+ และชีพจรก่อนให้ยาทุกครั้ง", "antidote": "Digoxin immune Fab (DigiFab)", "toxicSigns": "เบื่ออาหาร, คลื่นไส้อาเจียน, ปวดศีรษะ, เห็นภาพสีผิดปกติ, AV block", "reportCriteria": "HR<60 หรือ>120; BP<90/60 หรือ>140/90; EKG change; RR<14; Serum K<3.5 mEq/L"}, {"id": "had06", "name": "Dopamine HCl inj.", "strength": "25 mg/ml in 10 ml", "pregCat": "", "indication": "Cardiogenic shock, CHF, Septic shock, ไตวาย", "doseSummary": "ผู้ใหญ่/เด็ก: initial IV 2-5 mcg/kg/min เพิ่มครั้งละ 5-10 mcg/min (max 50 mcg/kg/min)", "antidote": "ไม่มี antidote จำเพาะ; ลดขนาดยา/หยุดยาจนกว่า BP ปลอดภัย", "toxicSigns": "Excessive elevation of blood pressure", "reportCriteria": "BP>160/90 หรือ HR>120 (ผู้ใหญ่); BP>120/80 หรือ HR>180 (เด็ก); Urine output<20 mL/hr"}, {"id": "had07", "name": "Morphine inj.", "strength": "10 mg/ml", "pregCat": "", "indication": "Moderate-severe pain, Ischemic chest pain, Postoperative analgesia", "doseSummary": "IM/SC ผู้ใหญ่ 5-20 mg q4hr; IV ผู้ใหญ่ 2.5-5 mg q3-4hr; Chest pain: 2-4mg IV ตามด้วย 2-8mg q5-15min", "antidote": "Naloxone 0.4-2 mg/ml IV ซ้ำได้ทุก 2-3 นาที จนผู้ป่วยรู้สึกตัวและ RR>10 (max 10 mg)", "toxicSigns": "กดการหายใจ, รูม่านตาหด, ความดันต่ำ, หัวใจเต้นช้า", "reportCriteria": "RR<10; BP<90/60; HR<60; Sedative score≥2; รูม่านตา<1mm; Pain score≥4; O2sat<94%"}, {"id": "had08", "name": "Pethidine inj.", "strength": "50 mg/ml in 1 ml", "pregCat": "", "indication": "Moderate-severe pain (analgesic)", "doseSummary": "IM/SC ผู้ใหญ่ 50-150 mg q3-4hr; Continuous IV infusion 15-35 mg/hr", "antidote": "Naloxone 0.4 mg/ml IV ซ้ำได้ทุก 2-3 นาที", "toxicSigns": "กดการหายใจ, รูม่านตาหด, ความดันต่ำ; ความเสี่ยง normeperidine toxicity", "reportCriteria": "RR<10; BP<90/60; HR<60; Sedative score≥2; Pain score≥4; O2sat<95%"}, {"id": "had09", "name": "Potassium chloride inj.", "strength": "20 mEq/10 ml", "pregCat": "", "indication": "Hypokalemia replacement", "doseSummary": "Serum K 3-3.4: 20-60 mEq/วัน (max 10-20 mEq/hr); K<2.5 หรือมีอาการ: max 40 mEq/hr (central line only). ห้ามให้ IV push เด็ดขาด", "antidote": "10% Calcium gluconate, 7.5% Sodium bicarbonate, 50% glucose+RI, Kayexalate, พิจารณา dialysis", "toxicSigns": "Hyperkalemia: คลื่นไส้, ตะคริว, กล้ามเนื้ออ่อนแรง, EKG ผิดปกติ", "reportCriteria": "HR<60 หรือ>120; BP<90/60 หรือ>140/90; Serum K+>5.5 mg/dL; Urine output<30 mL/hr"}, {"id": "had10", "name": "7.5% Sodium bicarbonate inj.", "strength": "50 ml", "pregCat": "", "indication": "Cardiac arrest, Metabolic acidosis, Hyperkalemia", "doseSummary": "Cardiac arrest ผู้ใหญ่: 1 mEq/kg/dose แล้วตาม 0.5 mEq/kg/dose. Hyperkalemia: IV bolus 50 mEq ใน 5 นาที", "antidote": "ไม่มี antidote จำเพาะ; หยุดยาถ้าเลือดเป็นด่าง, calcium gluconate, diazepam สำหรับชัก", "toxicSigns": "Hypocalcemia, hypokalemia, hypernatremia, ชัก", "reportCriteria": "ชัก, หัวใจเต้นเร็ว, ซึม, อ่อนเพลีย; HR>120 หรือ<60; BP<90/60 หรือ>140/90; Serum K<3.5"}, {"id": "had11", "name": "Norepinephrine (Norene) inj.", "strength": "4 mg/4 ml", "pregCat": "", "indication": "Hypotension จาก Septic shock, Post-cardiac arrest, Cardiogenic shock", "doseSummary": "ขึ้นกับน้ำหนัก: เริ่ม 0.05-0.15 mcg/kg/min; ไม่ขึ้นกับน้ำหนัก: เริ่ม 5-15 mcg/min. Titrate ทุก 10 นาที", "antidote": "ไม่มี antidote จำเพาะ; extravasation: หยุด infusion, aspirate, dry warm compress", "toxicSigns": "หัวใจเต้นเร็ว, ปวดศีรษะ, ความดันสูงมาก", "reportCriteria": "เด็ก: BP>120/80 หรือ HR>180; ผู้ใหญ่: BP>160/100 หรือ HR>120"}, {"id": "had12", "name": "Nicardipine (CARDIPINE) inj.", "strength": "10 mg/10 ml", "pregCat": "D", "indication": "Hypertensive Emergency, Stroke Fast track", "doseSummary": "เริ่ม 5 mg/hr เพิ่มครั้งละ 2.5 mg/hr ทุก 5-15 นาที (max 15 mg/hr); ใช้ Infusion pump เท่านั้น", "antidote": "Calcium gluconate 3-12g slow IV push; Regular insulin 1 U/kg IV bolus ตามด้วย 1-10 U/kg/hr", "toxicSigns": "ปวดศีรษะ, หน้ามืด/วิงเวียน, สับสน, ใจสั่น; ภาวะแทรกซ้อนรุนแรง: refractory shock, ARDS", "reportCriteria": "HR>120 หรือ<50 (ผู้ใหญ่); BP<90/60; IV site หลอดเลือดอักเสบ"}, {"id": "had13", "name": "Diazepam inj.", "strength": "10 mg/2 ml/vial", "pregCat": "", "indication": "Alcohol withdrawal, Anxiety acute/severe, Seizures/Status epilepticus", "doseSummary": "Alcohol withdrawal: 5-10 mg IV; Anxiety: 2-10 mg IM/IV q3-6hr (max 40mg/วัน); Seizure: 5-10 mg IV (max rate 5 mg/min) ซ้ำ q3-5min", "antidote": "Flumazenil: ผู้ใหญ่ 0.2 mg IV แรก แล้ว 0.5 mg q1min (max 3mg); เด็ก 0.01 mg/kg (max 4 doses)", "toxicSigns": "CNS depression, กดการหายใจ, สับสน, โคม่า", "reportCriteria": "RR<12 ครั้ง/นาที ก่อนให้ยา; RR<8 ครั้ง/นาที หลังให้ยา 1 ชม.และปลุกไม่ตื่น"}, {"id": "had14", "name": "Furosemide inj.", "strength": "20 mg/2 ml", "pregCat": "", "indication": "บวม/คั่งน้ำจากโรคหัวใจ ตับ ไต, ความดันโลหิตสูง", "doseSummary": "เด็ก: IV/IM 0.5-2 mg/kg/dose q6-12hr. ผู้ใหญ่: IV/IM เริ่ม 20-40 mg/dose; ฉีดช้าๆ ≥1-2 นาที", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการ", "toxicSigns": "เบื่ออาหาร, ตาพร่า, พิษต่อหู, ท้องเสีย, เวียนศีรษะ, ความดันต่ำ, หัวใจเต้นช้า", "reportCriteria": "ไม่มีระบุชัดเจนในเอกสาร — พิจารณาตามความผิดปกติของ BP/electrolyte/urine output ที่ตรวจพบ"}, {"id": "had15", "name": "Hydralazine inj.", "strength": "20 mg/2 ml", "pregCat": "", "indication": "Pre-eclampsia/eclampsia, Hypertensive crisis", "doseSummary": "Pre-eclampsia: เริ่ม 5-10 mg IV ซ้ำ 5-10mg q20-40min. Hypertensive crisis: IM/IV 20-40 mg q4-6hr (max 200mg/วัน)", "antidote": "ไม่มี antidote จำเพาะ; รักษาตามอาการ", "toxicSigns": "หัวใจเต้นเร็ว, หน้าแดงร้อนวูบวาบ, ปวดศีรษะ, สั่น", "reportCriteria": "BP diastolic<90 mmHg; HR>120 ครั้ง/นาที"}, {"id": "had16", "name": "50% Magnesium sulfate inj.", "strength": "", "pregCat": "", "indication": "Pre-eclampsia/eclampsia (seizure prophylaxis), Hypomagnesemia, Torsades de Pointes", "doseSummary": "Pre-eclampsia: Loading 4-6g IV ใน 20-30min ตามด้วย maintenance 1-2 g/hr อย่างน้อย 24 ชม.หลังคลอด", "antidote": "10% Calcium gluconate 1-2g IV ช้าๆ ภายใน 3 นาที ถ้ากดการหายใจ; ใส่ท่อช่วยหายใจถ้าหยุดหายใจ", "toxicSigns": "9-12 mg/dl: ไม่มี patellar reflex; 15-17: muscular paralysis; 30-35: cardiac arrest", "reportCriteria": "BP<90/60 หรือ>140/90; HR<60 หรือ>120; RR<14; Urine output<30 mL/hr"}, {"id": "had17", "name": "Metoclopramide inj.", "strength": "10 mg/2 ml", "pregCat": "", "indication": "Gastroparesis เบาหวาน, ป้องกันคลื่นไส้อาเจียน, หลังผ่าตัด", "doseSummary": "ผู้ใหญ่: 5-20 mg IM/IV/SUBQ ตามข้อบ่งใช้; เด็ก: 0.1-2 mg/kg/dose; ฉีด IV ช้าๆ 1-2 นาที", "antidote": "Diphenhydramine (Benadryl) 12.5mg/5ml รับประทาน 2 ช้อนชา q8hr", "toxicSigns": "Extrapyramidal reaction (พบบ่อยในเด็ก/วัยรุ่นขนาดสูง)", "reportCriteria": "ไม่มีระบุชัดเจนในเอกสาร — เฝ้าระวัง extrapyramidal/parkinsonian symptom เป็นหลัก"}, {"id": "had18", "name": "Oxytocin inj. (Synto)", "strength": "10 IU/1 ml", "pregCat": "", "indication": "เหนี่ยวนำการคลอด, ป้องกัน/รักษา postpartum hemorrhage", "doseSummary": "Low dose: 0.5-2 milliunits/min เพิ่ม 1-2 mU/min q15-40min. High dose: 4-6 mU/min (max 40 mU/min)", "antidote": "หยุดยา + ยาขับปัสสาวะ (สำหรับ water intoxication)", "toxicSigns": "Water intoxication (ชัก โคม่า); Maternal: arrhythmia, hypertension, PPH", "reportCriteria": "OB: Tetanic contraction, Fetal distress, Sign of uterine rupture. วิสัญญี: BP<90/60 หรือ>160/110; HR>120 หรือ<60; I/O<50mL/hr"}, {"id": "had19", "name": "Regular Insulin (RI)", "strength": "10 ml", "pregCat": "", "indication": "DM ชนิด 1&2, หมดสติจากเบาหวาน, Diabetic ketoacidosis, Hyperkalemia (unlabeled)", "doseSummary": "DM type1: 0.4-1 U/kg/day; DM type2: initial SUBQ 4-6 U; DKA: loading 0.1 U/kg แล้ว infusion 0.1 U/kg/hr", "antidote": "Glucagon; หากมีอาการ hypoglycemia: ดื่มน้ำหวาน หรือ 50% dextrose IV push", "toxicSigns": "Hypoglycemia: ใจสั่น เหงื่อออก หิว สั่น ซีด ปวดศีรษะ โคม่า", "reportCriteria": "Capillary blood glucose<60 mg/dL; ภายใน 60 นาทีหลังฉีดเฝ้าระวังอาการ hypoglycemia"}, {"id": "had20", "name": "Streptokinase inj.", "strength": "1.5 MU", "pregCat": "", "indication": "Central retinal/venous/arterial thrombosis, DVT, MI (STEMI), PE", "doseSummary": "MI STEMI: 1,500,000 unit ใน 1-2 ชม. DVT/PE: เริ่ม 250,000 unit ใน 30 นาที ตามด้วย maintenance 100,000 unit/hr", "antidote": "หยุดยาทันทีถ้ามี bleeding; ให้ whole blood/packed RBC ถ้าเสียเลือดมาก", "toxicSigns": "Bleeding, hemopericardium, fat embolism, intracranial hemorrhage", "reportCriteria": "อาการ bleeding; BP<90/60 หรือลด>25mmHg; HR>120; Platelet<100,000; Hct≤30%; Anaphylactic shock"}, {"id": "had21", "name": "Sulprostone inj. (Nalador)", "strength": "500 mcg/amp", "pregCat": "", "indication": "กระตุ้นการคลอด, Postpartum atonic hemorrhage", "doseSummary": "กระตุ้นคลอด: 100 mcg/hr เพิ่มได้ถึง 500 mcg/hr (max 1,500 mcg/24hr). PPH: 500 mcg ใน 30-120 นาที", "antidote": "ไม่มี antidote จำเพาะ; ดูแลใกล้ชิด/ใช้ beta-adrenergic drug", "toxicSigns": "Overdose: หลอดลมหดเกร็ง, หัวใจเต้นช้า, ความดันต่ำ, ตัวเขียวคล้ำ", "reportCriteria": "ไม่มีระบุชัดเจนในเอกสาร — เฝ้าระวัง BP/HR/RR/ปวดท้อง/เลือดออกทางช่องคลอดเป็นหลัก"}];
+const HAD_PARAMS = [{"drugId": "had01", "parameter": "EKG", "freq": "Monitor ตลอดเวลาที่ให้ยา"}, {"drugId": "had01", "parameter": "HR/RR/BP", "freq": "สังเกตหลังให้ยา ตามเวลาที่กำหนด"}, {"drugId": "had02", "parameter": "Vital signs (BP, pulse)", "freq": "ทุก 3-5 นาที"}, {"drugId": "had02", "parameter": "IV site", "freq": "ทุก 1 ชั่วโมง (เฝ้าระวัง extravasation)"}, {"drugId": "had03", "parameter": "HR & BP", "freq": "baseline ก่อนให้ยา แล้ว q15min x8 (2ชม.), q1hr x2 (2ชม.), จากนั้น q2hr จนครบ 24ชม.หลังหยุดยา"}, {"drugId": "had03", "parameter": "EKG (QT interval, QRS)", "freq": "ระหว่าง loading dose ติดตามใกล้ชิด"}, {"drugId": "had03", "parameter": "LFT/PFT/RFT/Thyroid/Ophthal", "freq": "กรณีใช้ยาระยะยาว"}, {"drugId": "had04", "parameter": "Serum calcium", "freq": "หลัง loading dose และระหว่างให้ยา"}, {"drugId": "had04", "parameter": "EKG", "freq": "Monitor ระหว่างให้ยา"}, {"drugId": "had04", "parameter": "BP, pulse", "freq": "ระหว่างให้ยา"}, {"drugId": "had04", "parameter": "Serum K, phosphate, Mg, albumin", "freq": "ติดตามเป็นระยะ"}, {"drugId": "had04", "parameter": "IV site", "freq": "ทุก 30 นาที (เฝ้าระวัง extravasation)"}, {"drugId": "had05", "parameter": "Serum K+", "freq": "ก่อนให้ยาทุกครั้ง"}, {"drugId": "had05", "parameter": "ชีพจร", "freq": "ก่อนให้ยาทุกครั้ง"}, {"drugId": "had05", "parameter": "Vital signs", "freq": "q15min x2, q30min x3, q1hr จนครบ 5 ชม. (กรณีฉีด)"}, {"drugId": "had05", "parameter": "EKG", "freq": "ขณะฉีดและหลังฉีด 1 ชั่วโมง"}, {"drugId": "had05", "parameter": "I/O ratio, น้ำหนักตัว", "freq": "ติดตามต่อเนื่อง"}, {"drugId": "had05", "parameter": "Serum creatinine, K, Mg, Ca", "freq": "เริ่มต้นและระหว่างใช้ยา"}, {"drugId": "had06", "parameter": "Vital sign, BP", "freq": "ทุก 1 ชั่วโมงขณะให้ยา"}, {"drugId": "had06", "parameter": "Renal function/urine output", "freq": "โดยเฉพาะขนาดยาสูง"}, {"drugId": "had06", "parameter": "Peripheral pulse/extremities", "freq": "เฝ้าระวัง mottled skin, cyanosis"}, {"drugId": "had07", "parameter": "HR, RR, BP", "freq": "ตามตารางเฉพาะแต่ละ route"}, {"drugId": "had07", "parameter": "Sedative score / Pain score", "freq": "ประเมินต่อเนื่อง"}, {"drugId": "had07", "parameter": "Respiratory depression", "freq": "เฝ้าระวังช่วง 24-72 ชั่วโมงแรก"}, {"drugId": "had08", "parameter": "HR, RR, BP", "freq": "ตามตารางเฉพาะแต่ละ route"}, {"drugId": "had08", "parameter": "Sedative score / Pain score", "freq": "ประเมินต่อเนื่อง"}, {"drugId": "had09", "parameter": "HR, BP", "freq": "q2hr ถ้าให้เกิน 40mEq/L, q4hr/เช้าเย็นถ้าให้≤40mEq/L"}, {"drugId": "had09", "parameter": "EKG", "freq": "เมื่ออัตราเร็ว>10 mEq/hr (ผู้ใหญ่)"}, {"drugId": "had10", "parameter": "BP, HR, RR", "freq": "q5min x3 ครั้ง แล้ว q15min x1 ครั้ง"}, {"drugId": "had10", "parameter": "pH, ABG, serum bicarbonate", "freq": "ติดตามโดยเฉพาะใช้ระยะยาว"}, {"drugId": "had10", "parameter": "Electrolyte (K, Ca)", "freq": "เฝ้าระวัง hypokalemia/hypocalcemia"}, {"drugId": "had11", "parameter": "Blood pressure", "freq": "q2min จากเริ่มจนถึง target แล้ว q5min จนหยุด infusion"}, {"drugId": "had11", "parameter": "Heart rate, electrolytes, urine output", "freq": "ติดตามต่อเนื่อง"}, {"drugId": "had11", "parameter": "IV site", "freq": "ทุก 1 ชั่วโมง"}, {"drugId": "had12", "parameter": "HR, BP", "freq": "ทุก 5 นาทีจนถึงเป้าหมาย จากนั้นทุก 15 นาที"}, {"drugId": "had12", "parameter": "ECG", "freq": "ตรวจหาความผิดปกติการนำไฟฟ้าหัวใจ"}, {"drugId": "had12", "parameter": "IV site", "freq": "เปลี่ยนตำแหน่งทุก 12 ชม.ถ้าให้ peripheral vein"}, {"drugId": "had13", "parameter": "อัตราการหายใจ (RR)", "freq": "ก่อนให้ยา และหลังให้ยา 1 ชั่วโมง"}, {"drugId": "had13", "parameter": "ระดับความดันโลหิต", "freq": "ก่อน ระหว่าง และหลังให้ยา"}, {"drugId": "had13", "parameter": "IV site", "freq": "เฝ้าระวังหลอดเลือดดำอักเสบ"}, {"drugId": "had14", "parameter": "BP", "freq": "เฝ้าระวัง hypotension"}, {"drugId": "had14", "parameter": "Electrolyte, BUN/creatinine, calcium", "freq": "ติดตามการทำงานของไต/เกลือแร่"}, {"drugId": "had14", "parameter": "Edema, fluid I/O", "freq": "ติดตามภาวะบวม"}, {"drugId": "had15", "parameter": "BP", "freq": "ทุก 5 นาที"}, {"drugId": "had15", "parameter": "HR", "freq": "ทุก 15 นาที"}, {"drugId": "had16", "parameter": "Serum magnesium", "freq": "หลัง loading dose และระหว่างให้ยา"}, {"drugId": "had16", "parameter": "RR, HR", "freq": "ทุก 4 ชั่วโมง"}, {"drugId": "had16", "parameter": "Deep tendon reflex (patellar)", "freq": "ทุก 4 ชั่วโมง"}, {"drugId": "had16", "parameter": "Urine output", "freq": "ควร>100 mL/4hr"}, {"drugId": "had16", "parameter": "Renal function, K, Ca", "freq": "ติดตามเป็นระยะ"}, {"drugId": "had17", "parameter": "อาการคลื่นไส้อาเจียน", "freq": "ประเมินต่อเนื่อง"}, {"drugId": "had17", "parameter": "Blood pressure", "freq": "ติดตามระหว่างให้ยา"}, {"drugId": "had17", "parameter": "Extrapyramidal/parkinsonian symptom", "freq": "เฝ้าระวังโดยเฉพาะเด็ก/วัยรุ่นขนาดสูง"}, {"drugId": "had18", "parameter": "Fluid I/O, Fetal monitoring", "freq": "ระหว่างให้ยา"}, {"drugId": "had18", "parameter": "BP, HR (วิสัญญี)", "freq": "ทุก 1 ชั่วโมง"}, {"drugId": "had18", "parameter": "I/O", "freq": "ทุก 8 ชั่วโมง"}, {"drugId": "had19", "parameter": "Blood glucose", "freq": "ติดตามต่อเนื่อง"}, {"drugId": "had19", "parameter": "อาการ Hypoglycemia", "freq": "ภายใน 60 นาทีหลังฉีดยา"}, {"drugId": "had19", "parameter": "Infusion pump", "freq": "ตรวจสอบทุก 2 ชั่วโมง"}, {"drugId": "had19", "parameter": "Electrolyte", "freq": "ติดตามเป็นระยะ"}, {"drugId": "had20", "parameter": "Bleeding precaution", "freq": "72 ชั่วโมง"}, {"drugId": "had20", "parameter": "BP, HR", "freq": "ทันทีหลังได้ยา แล้ว q30min x4 ครั้ง"}, {"drugId": "had20", "parameter": "EKG 12 leads", "freq": "หลังได้รับยา 30 นาที"}, {"drugId": "had20", "parameter": "Platelet count, Hematocrit", "freq": "ก่อนให้ยา"}, {"drugId": "had21", "parameter": "BP, HR, อุณหภูมิ, RR", "freq": "ติดตามต่อเนื่อง"}, {"drugId": "had21", "parameter": "ปริมาณเลือดออกทางช่องคลอด", "freq": "ติดตามต่อเนื่อง"}, {"drugId": "had21", "parameter": "อาการปวดท้อง, คลื่นไส้อาเจียน", "freq": "ติดตามต่อเนื่อง"}];
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ---- init selects ----
+WARDS.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=w; document.getElementById('f-ward').appendChild(o); });
+HAD_DRUGS.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=d.name+' '+d.strength; document.getElementById('f-drug').appendChild(o); });
+document.getElementById('f-checkdt').value = new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+
+// ---- tabs ----
+document.getElementById('tab-check-btn').addEventListener('click', ()=>{
+  document.getElementById('tab-check-btn').classList.add('active');
+  document.getElementById('tab-history-btn').classList.remove('active');
+  document.getElementById('panel-check').style.display='block';
+  document.getElementById('panel-history').style.display='none';
+});
+document.getElementById('tab-history-btn').addEventListener('click', ()=>{
+  document.getElementById('tab-history-btn').classList.add('active');
+  document.getElementById('tab-check-btn').classList.remove('active');
+  document.getElementById('panel-history').style.display='block';
+  document.getElementById('panel-check').style.display='none';
+  loadHistory();
+});
+
+// ---- drug select -> render reference + checklists ----
+const ORDER_ITEMS = ['ขนาดยาถูกต้องตามมาตรฐาน','ข้อบ่งใช้ตรงกับที่สั่ง','วิธีบริหารยา/อัตราการให้ถูกต้อง','การเจือจาง/ผสมยาถูกต้อง'];
+let currentDrug = null;
+
+document.getElementById('f-drug').addEventListener('change', (e)=>{
+  const id = e.target.value;
+  currentDrug = HAD_DRUGS.find(d=>d.id===id) || null;
+  const refBox = document.getElementById('drug-ref-box');
+  const orderCard = document.getElementById('order-check-card');
+  const monitorCard = document.getElementById('monitor-check-card');
+  const resultCard = document.getElementById('result-card');
+  if(!currentDrug){
+    refBox.style.display='none'; orderCard.style.display='none'; monitorCard.style.display='none'; resultCard.style.display='none';
+    return;
+  }
+  refBox.style.display='block';
+  refBox.innerHTML = `
+    <div><b>ข้อบ่งใช้:</b> ${escapeHtml(currentDrug.indication)}</div>
+    <div style="margin-top:6px;"><b>ขนาดยา/วิธีบริหารมาตรฐาน:</b> ${escapeHtml(currentDrug.doseSummary)}</div>
+    <div style="margin-top:6px;"><b>เกณฑ์ต้องรายงานแพทย์:</b> ${escapeHtml(currentDrug.reportCriteria)}</div>
+    <div style="margin-top:6px;"><b>Antidote/การแก้ไข:</b> ${escapeHtml(currentDrug.antidote)}</div>
+  `;
+
+  const orderRows = document.getElementById('order-check-rows');
+  orderRows.innerHTML = ORDER_ITEMS.map((label,i)=>`
+    <div class="param-row">
+      <div class="pname">${escapeHtml(label)}</div>
+      <div class="radio-row">
+        <label class="radio-opt"><input type="radio" name="order-${i}" value="ถูกต้อง" checked> ถูกต้อง</label>
+        <label class="radio-opt"><input type="radio" name="order-${i}" value="ไม่ถูกต้อง"> ไม่ถูกต้อง</label>
+        <label class="radio-opt"><input type="radio" name="order-${i}" value="ไม่แน่ใจ/ไม่สามารถประเมินได้"> ไม่แน่ใจ/ประเมินไม่ได้</label>
+      </div>
+    </div>`).join('');
+  orderCard.style.display='block';
+
+  const dparams = HAD_PARAMS.filter(p=>p.drugId===currentDrug.id);
+  const monitorRows = document.getElementById('monitor-check-rows');
+  monitorRows.innerHTML = dparams.map((p,i)=>`
+    <div class="param-row">
+      <div class="pname">${escapeHtml(p.parameter)}</div>
+      <div class="pfreq">ความถี่ที่กำหนด: ${escapeHtml(p.freq)}</div>
+      <div class="radio-row">
+        <label class="radio-opt"><input type="radio" name="mon-${i}" value="มีบันทึกครบ" checked> มีบันทึกครบ</label>
+        <label class="radio-opt"><input type="radio" name="mon-${i}" value="มีบันทึกไม่ครบ"> มีบันทึกไม่ครบ</label>
+        <label class="radio-opt"><input type="radio" name="mon-${i}" value="ไม่มีบันทึก"> ไม่มีบันทึก</label>
+        <label class="radio-opt"><input type="radio" name="mon-${i}" value="รพ. ไม่มีศักยภาพติดตามได้"> รพ. ไม่มีศักยภาพติดตามได้ (เช่น ไม่มี lab ตรวจ)</label>
+      </div>
+    </div>`).join('');
+  monitorCard.style.display = dparams.length ? 'block' : 'none';
+  resultCard.style.display='block';
+});
+
+// ---- result toggle ----
+let resultVal = '';
+document.getElementById('btn-ok').addEventListener('click', ()=>{
+  resultVal='ok';
+  document.getElementById('btn-ok').classList.add('sel-ok');
+  document.getElementById('btn-problem').classList.remove('sel-problem');
+  document.getElementById('problem-box').style.display='none';
+});
+document.getElementById('btn-problem').addEventListener('click', ()=>{
+  resultVal='problem';
+  document.getElementById('btn-problem').classList.add('sel-problem');
+  document.getElementById('btn-ok').classList.remove('sel-ok');
+  document.getElementById('problem-box').style.display='block';
+});
+
+// ---- send to risk-report ----
+document.getElementById('btn-send-risk').addEventListener('click', async ()=>{
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+  if(!currentDrug){ alert('กรุณาเลือกยาก่อน'); return; }
+  const hn = document.getElementById('f-hn').value.trim();
+  const ward = document.getElementById('f-ward').value;
+  const pType = document.getElementById('p-type').value;
+  const pDetail = document.getElementById('p-detail').value.trim();
+  const pFix = document.getElementById('p-fix').value.trim();
+  const severity = document.getElementById('p-severity').value;
+  const desc = `[HAD Monitoring HN ${hn||'-'} · ${ward} · ${currentDrug.name} ${currentDrug.strength}] ${pType} — ${pDetail||'(ไม่มีรายละเอียดเพิ่มเติม)'}${pFix ? ' | การแก้ไข: '+pFix : ''}`;
+  const report = {
+    datetime: new Date().toISOString().slice(0,16),
+    reporterCode: auth.code,
+    severity,
+    severityOther: '',
+    desc,
+    source: 'HADMonitoring',
+    sourceRef: ''
+  };
+  const btn = document.getElementById('btn-send-risk');
+  btn.disabled = true; btn.textContent='กำลังส่ง...';
+  try{
+    const res = await fetch(RISKREPORT_API_URL, { method:'POST', body: JSON.stringify({action:'addReport', report, photos:[]}) });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'unknown');
+    document.getElementById('risk-status').textContent = 'ส่งเข้าระบบรายงานความเสี่ยงเรียบร้อย ✓';
+    btn.textContent='ส่งแล้ว';
+  }catch(e){
+    alert('ส่งเข้าระบบรายงานความเสี่ยงไม่สำเร็จ: '+e.message);
+    btn.disabled=false; btn.textContent='ส่งเข้าระบบรายงานความเสี่ยง';
+  }
+});
+
+// ---- save check event ----
+function apiPost(body){
+  return fetch(API_URL, {method:'POST', body: JSON.stringify(body)}).then(r=>r.json());
+}
+document.getElementById('btn-save-check').addEventListener('click', async ()=>{
+  const auth = window.PHQAuth.getAuth();
+  if(!auth){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+  if(!currentDrug){ alert('กรุณาเลือกยา HAD ก่อน'); return; }
+  if(!resultVal){ alert('กรุณาเลือกสรุปผลการตรวจ (ปกติ/พบปัญหา)'); return; }
+  const orderAnswers = ORDER_ITEMS.map((label,i)=>{
+    const sel = document.querySelector(`input[name="order-${i}"]:checked`);
+    return {label, value: sel?sel.value:''};
+  });
+  const dparams = HAD_PARAMS.filter(p=>p.drugId===currentDrug.id);
+  const monitorAnswers = dparams.map((p,i)=>{
+    const sel = document.querySelector(`input[name="mon-${i}"]:checked`);
+    return {parameter:p.parameter, value: sel?sel.value:''};
+  });
+  const status = document.querySelector('input[name="f-status"]:checked').value;
+  const payload = {
+    action:'saveHadCheck',
+    entry:{
+      checkDateTime: document.getElementById('f-checkdt').value,
+      reporterCode: auth.code,
+      hn: document.getElementById('f-hn').value.trim(),
+      patientName: document.getElementById('f-name').value.trim(),
+      ward: document.getElementById('f-ward').value,
+      status,
+      drugId: currentDrug.id,
+      drugName: currentDrug.name+' '+currentDrug.strength,
+      orderChecklist: JSON.stringify(orderAnswers),
+      monitorChecklist: JSON.stringify(monitorAnswers),
+      result: resultVal,
+      problemType: resultVal==='problem'? document.getElementById('p-type').value : '',
+      problemDetail: resultVal==='problem'? document.getElementById('p-detail').value.trim() : '',
+      problemFix: resultVal==='problem'? document.getElementById('p-fix').value.trim() : '',
+      severity: resultVal==='problem'? document.getElementById('p-severity').value : ''
+    }
+  };
+  const btn = document.getElementById('btn-save-check');
+  btn.disabled = true; btn.textContent='กำลังบันทึก...';
+  try{
+    const res = await apiPost(payload);
+    if(!res.ok) throw new Error(res.error||'unknown');
+    showToast('บันทึกการตรวจเรียบร้อย ✓');
+    resetForm();
+  }catch(e){
+    alert('บันทึกไม่สำเร็จ: '+e.message);
+  }
+  btn.disabled=false; btn.textContent='บันทึกการตรวจ';
+});
+
+function resetForm(){
+  document.getElementById('f-hn').value='';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-drug').value='';
+  document.getElementById('drug-ref-box').style.display='none';
+  document.getElementById('order-check-card').style.display='none';
+  document.getElementById('monitor-check-card').style.display='none';
+  document.getElementById('result-card').style.display='none';
+  document.getElementById('problem-box').style.display='none';
+  document.getElementById('p-detail').value=''; document.getElementById('p-fix').value='';
+  document.getElementById('risk-status').textContent='';
+  resultVal='';
+  currentDrug=null;
+}
+
+// ---- history ----
+async function loadHistory(){
+  const tbody = document.getElementById('history-body');
+  const emptyEl = document.getElementById('history-empty');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading-note">กำลังโหลด...</td></tr>';
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    const items = (data.hadChecks||[]).slice().sort((a,b)=>(b.checkDateTime||'').localeCompare(a.checkDateTime||''));
+    document.getElementById('stat-total').textContent = items.length;
+    document.getElementById('stat-problem').textContent = items.filter(x=>x.result==='problem').length;
+    document.getElementById('stat-ok').textContent = items.filter(x=>x.result==='ok').length;
+    if(!items.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display='none';
+    tbody.innerHTML = items.map(it=>`
+      <tr>
+        <td>${escapeHtml(it.checkDateTime||'')}</td>
+        <td>${escapeHtml(it.drugName||'')}</td>
+        <td>${escapeHtml(it.hn||'')}</td>
+        <td>${escapeHtml(it.ward||'')}</td>
+        <td>${it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง'}</td>
+        <td><span class="badge ${it.result==='problem'?'badge-problem':'badge-ok'}">${it.result==='problem'?'พบปัญหา':'ปกติ'}</span></td>
+      </tr>`).join('');
+  }catch(e){
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
