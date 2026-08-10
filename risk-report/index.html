@@ -398,7 +398,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
 });
 
 // ---------- Helpers ----------
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDT(iso){
   if(!iso) return '-';
   const d = new Date(iso);
