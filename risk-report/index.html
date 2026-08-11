@@ -179,6 +179,18 @@
       </div>
 
       <div class="field">
+        <label>ประเภทความคลาดเคลื่อนทางยา (Medication Error Type)</label>
+        <select id="f-errorType">
+          <option value="">— ไม่ระบุ / ไม่เกี่ยวกับยาโดยตรง —</option>
+          <option value="prescribing">Prescribing error — ความคลาดเคลื่อนจากการสั่งยา</option>
+          <option value="transcribing">Transcribing error — ความคลาดเคลื่อนจากการคัดลอก/บันทึกคำสั่ง</option>
+          <option value="pre-dispensing">Pre-dispensing error — ความคลาดเคลื่อนก่อนการจ่ายยา</option>
+          <option value="dispensing">Dispensing error — ความคลาดเคลื่อนจากการจ่ายยา</option>
+          <option value="administration">Administration error — ความคลาดเคลื่อนจากการบริหารยา</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label>รายละเอียดเหตุการณ์ (แนบรูปได้ ถ่ายภาพ/เลือกไฟล์/วางรูปที่คัดลอกมา)</label>
         <div class="chatbox" id="chatbox">
           <textarea id="f-desc" placeholder="อธิบายเหตุการณ์ที่เกิดขึ้น... (วางรูปแคปหน้าจอด้วย Ctrl+V ได้เลย)"></textarea>
@@ -271,6 +283,13 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 // ---------- Severity help text ----------
 const SEV_LABEL = {A:'Category A',B:'Category B',C:'Category C',D:'Category D',E:'Category E',F:'Category F',G:'Category G',H:'Category H',I:'Category I',other:'อื่นๆ'};
 const SEV_CLASS = {A:'sev-low',B:'sev-low',C:'sev-med',D:'sev-med',E:'sev-med',F:'sev-high',G:'sev-high',H:'sev-high',I:'sev-high',other:'sev-med'};
+const ERROR_TYPE_LABEL = {
+  'prescribing':'Prescribing error',
+  'transcribing':'Transcribing error',
+  'pre-dispensing':'Pre-dispensing error',
+  'dispensing':'Dispensing error',
+  'administration':'Administration error'
+};
 document.getElementById('f-severity').addEventListener('change', updateSeverityUI);
 function updateSeverityUI(){
   const v = document.getElementById('f-severity').value;
@@ -348,6 +367,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
   if(severity==='other' && !severityOther){ alert('กรุณาระบุรายละเอียดระดับความเสี่ยงที่เลือก "อื่นๆ"'); return; }
   const datetime = document.getElementById('f-datetime').value;
   const hn = document.getElementById('f-hn').value.trim();
+  const errorType = document.getElementById('f-errorType').value;
 
   const sevText = severity==='other' ? ('อื่นๆ — '+severityOther) : `${SEV_LABEL[severity]}`;
   const box = document.getElementById('confirmModalBox');
@@ -358,6 +378,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
       <div>👤 ผู้รายงาน: <b>${auth.name}</b></div>
       ${hn ? `<div>🏥 HN ผู้ป่วย: <b>${escapeHtml(hn)}</b></div>` : ''}
       <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
+      ${errorType ? `<div>💊 ประเภทความคลาดเคลื่อน: <b>${escapeHtml(ERROR_TYPE_LABEL[errorType])}</b></div>` : ''}
       <div>📝 รายละเอียด: <b>${escapeHtml(desc)}</b></div>
       <div>📷 รูปแนบ: <b>${pendingPhotos.length} รูป</b></div>
     </div>
@@ -370,7 +391,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
   document.getElementById('btnConfirmSend').addEventListener('click', async ()=>{
     const btn = document.getElementById('btnConfirmSend');
     btn.disabled = true; btn.textContent = 'กำลังส่ง...';
-    const report = { datetime, reporterCode: auth.code, hn, severity, severityOther, desc, source:'manual' };
+    const report = { datetime, reporterCode: auth.code, hn, severity, severityOther, errorType, desc, source:'manual' };
     const photos = pendingPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64}));
     try{
       const res = await fetch(API_URL, {
@@ -384,6 +405,7 @@ document.getElementById('btnReview').addEventListener('click', ()=>{
       document.getElementById('f-hn').value = '';
       document.getElementById('f-severityOther').value = '';
       document.getElementById('f-severity').value = 'A';
+      document.getElementById('f-errorType').value = '';
       updateSeverityUI();
       pendingPhotos = [];
       renderPhotoGrid();
@@ -424,6 +446,7 @@ function reportRowHtml(r){
     ? `<div class="status-icon reported" title="ส่งเข้าระบบ รพ. แล้ว"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
     : `<div class="status-icon pending" title="ยังไม่ส่งเข้าระบบ รพ."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>`;
   const sevText = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity];
+  const errTag = r.errorType ? `<span class="sev-badge" style="background:var(--purple-tint);color:var(--purple);">${escapeHtml(ERROR_TYPE_LABEL[r.errorType]||r.errorType)}</span>` : '';
   const myAuth = window.PHQAuth.getAuth();
   const myCode = myAuth ? String(myAuth.code) : null;
   const rowClickable = canReview || (myCode && String(r.reporterCode)===myCode);
@@ -432,6 +455,7 @@ function reportRowHtml(r){
     <div class="rrow ${rowClickable?'clickable':''}" data-id="${r.id}">
       <div class="rdate">${fmtDT(r.datetime).split(' ')[0]}</div>
       <span class="sev-badge ${SEV_CLASS[r.severity]}">${sevText}</span>
+      ${errTag}
       <div class="rmain"><div class="rdesc">${hnPrefix}${escapeHtml(truncate(r.desc, 60))}</div></div>
       ${statusIcon}
     </div>`;
@@ -483,6 +507,17 @@ function editDetailHtml(r){
       <input type="text" id="e-severityOther" value="${escapeHtml(r.severityOther||'')}">
     </div>
     <div class="field">
+      <label>ประเภทความคลาดเคลื่อนทางยา (Medication Error Type)</label>
+      <select id="e-errorType">
+        <option value="">— ไม่ระบุ / ไม่เกี่ยวกับยาโดยตรง —</option>
+        <option value="prescribing">Prescribing error — ความคลาดเคลื่อนจากการสั่งยา</option>
+        <option value="transcribing">Transcribing error — ความคลาดเคลื่อนจากการคัดลอก/บันทึกคำสั่ง</option>
+        <option value="pre-dispensing">Pre-dispensing error — ความคลาดเคลื่อนก่อนการจ่ายยา</option>
+        <option value="dispensing">Dispensing error — ความคลาดเคลื่อนจากการจ่ายยา</option>
+        <option value="administration">Administration error — ความคลาดเคลื่อนจากการบริหารยา</option>
+      </select>
+    </div>
+    <div class="field">
       <label>รายละเอียดเหตุการณ์</label>
       <textarea id="e-desc" rows="4">${escapeHtml(r.desc||'')}</textarea>
     </div>
@@ -529,6 +564,7 @@ function renderDetailBox(r){
   if(editingReportId===r.id){
     box.innerHTML = editDetailHtml(r);
     document.getElementById('e-severity').value = r.severity;
+    document.getElementById('e-errorType').value = r.errorType || '';
     renderEditPhotoGrid(r);
     document.getElementById('e-severity').addEventListener('change', (e)=>{
       document.getElementById('e-severityOtherField').style.display = e.target.value==='other' ? '' : 'none';
@@ -548,12 +584,13 @@ function renderDetailBox(r){
       const hn = document.getElementById('e-hn').value.trim();
       const severity = document.getElementById('e-severity').value;
       const severityOther = document.getElementById('e-severityOther') ? document.getElementById('e-severityOther').value.trim() : '';
+      const errorType = document.getElementById('e-errorType').value;
       const desc = document.getElementById('e-desc').value.trim();
       saveBtn.disabled = true; saveBtn.textContent = 'กำลังบันทึก...';
       try{
         const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({
           action:'updateReport', id:r.id, code:auth.code,
-          updates:{ hn, severity, severityOther, desc },
+          updates:{ hn, severity, severityOther, errorType, desc },
           newPhotos: editNewPhotos.map(p=>({filename:p.filename, mimeType:p.mimeType, base64:p.base64})),
           removePhotoIds: editRemovePhotoIds,
         })});
@@ -582,6 +619,7 @@ function renderDetailBox(r){
       <div>👤 ผู้รายงาน: <b>${escapeHtml(r.reporterName)}</b></div>
       ${r.hn ? `<div>🏥 HN ผู้ป่วย: <b>${escapeHtml(r.hn)}</b></div>` : ''}
       <div>⚠️ ระดับความเสี่ยง: <b>${sevText}</b></div>
+      ${r.errorType ? `<div>💊 ประเภทความคลาดเคลื่อน: <b>${escapeHtml(ERROR_TYPE_LABEL[r.errorType]||r.errorType)}</b></div>` : ''}
       <div>📝 รายละเอียด: <b>${escapeHtml(r.desc)}</b></div>
     </div>
     ${photosHtml ? `<div class="detail-photos">${photosHtml}</div>` : '<p style="font-size:13px;color:var(--ink-faint);">ไม่มีรูปแนบ (หรือรูปถูกลบแล้วหลังส่งเข้าระบบ รพ.)</p>'}
@@ -695,6 +733,7 @@ function exportDashboardXlsx(){
     'HN': r.hn || '',
     'ผู้รายงาน': r.reporterName,
     'ระดับความเสี่ยง (NCC MERP)': r.severity==='other' ? ('อื่นๆ - '+(r.severityOther||'')) : SEV_LABEL[r.severity],
+    'ประเภทความคลาดเคลื่อนทางยา': r.errorType ? ERROR_TYPE_LABEL[r.errorType]||r.errorType : '',
     'รายละเอียด': r.desc || '',
     'สถานะ': r.status==='reported' ? 'ส่งเข้าระบบ รพ.แล้ว' : 'ยังไม่ส่งเข้าระบบ รพ.',
     'ส่งเข้าระบบเมื่อ': r.reportedAt ? fmtDT(r.reportedAt) : '',
