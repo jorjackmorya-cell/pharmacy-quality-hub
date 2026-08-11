@@ -187,6 +187,7 @@
           <option value="pre-dispensing">Pre-dispensing error — ความคลาดเคลื่อนก่อนการจ่ายยา</option>
           <option value="dispensing">Dispensing error — ความคลาดเคลื่อนจากการจ่ายยา</option>
           <option value="administration">Administration error — ความคลาดเคลื่อนจากการบริหารยา</option>
+          <option value="other">อื่นๆ</option>
         </select>
       </div>
 
@@ -245,6 +246,11 @@
     </div>
 
     <div class="card">
+      <h2>แยกตามประเภทความคลาดเคลื่อนทางยา (Medication Error Type)</h2>
+      <div id="errorTypeBars"></div>
+    </div>
+
+    <div class="card">
       <h2>เจ้าหน้าที่ที่รายงานเข้ามามากที่สุด</h2>
       <table class="lb" id="leaderboardTable"><tbody></tbody></table>
     </div>
@@ -288,7 +294,8 @@ const ERROR_TYPE_LABEL = {
   'transcribing':'Transcribing error',
   'pre-dispensing':'Pre-dispensing error',
   'dispensing':'Dispensing error',
-  'administration':'Administration error'
+  'administration':'Administration error',
+  'other':'อื่นๆ'
 };
 document.getElementById('f-severity').addEventListener('change', updateSeverityUI);
 function updateSeverityUI(){
@@ -460,10 +467,19 @@ function reportRowHtml(r){
       ${statusIcon}
     </div>`;
 }
+function isToday_(iso){
+  if(!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+}
 function renderReportList(){
   const wrap = document.getElementById('reportListWrap');
-  if(!reports.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
-  wrap.innerHTML = reports.map(reportRowHtml).join('');
+  // แสดงเฉพาะ: รายงานของวันนี้ หรือ รายงานที่ยังไม่ถูกส่งเข้าระบบ รพ. (pending)
+  // ส่วนรายงานเก่าที่ถูกส่งเข้าระบบแล้ว (reported) จะไม่โชว์ที่นี่ แต่ยังอยู่ครบใน Sheet สำหรับดึงสรุปรายสัปดาห์/รายเดือนในแดชบอร์ด
+  const visible = reports.filter(r=> isToday_(r.datetime) || r.status!=='reported');
+  if(!visible.length){ wrap.innerHTML = '<div class="empty">ยังไม่มีรายงานความเสี่ยง</div>'; return; }
+  wrap.innerHTML = visible.map(reportRowHtml).join('');
   wrap.querySelectorAll('.rrow.clickable').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
 }
 function renderDashList(rows){
@@ -515,6 +531,7 @@ function editDetailHtml(r){
         <option value="pre-dispensing">Pre-dispensing error — ความคลาดเคลื่อนก่อนการจ่ายยา</option>
         <option value="dispensing">Dispensing error — ความคลาดเคลื่อนจากการจ่ายยา</option>
         <option value="administration">Administration error — ความคลาดเคลื่อนจากการบริหารยา</option>
+        <option value="other">อื่นๆ</option>
       </select>
     </div>
     <div class="field">
@@ -629,6 +646,7 @@ function renderDetailBox(r){
            <div style="display:flex; gap:8px;">
              <button class="btn btn-outline" id="btnCloseDetail">ปิด</button>
              ${canEdit ? `<button class="btn btn-outline" id="btnEditReport"><i class="ti ti-pencil"></i> แก้ไขข้อมูล</button>` : ''}
+             ${canEdit ? `<button class="btn btn-outline" id="btnDeleteReport" style="color:var(--red,#c0392b);border-color:var(--red,#c0392b);">🗑️ ลบรายงาน</button>` : ''}
            </div>
            ${canReview ? `<button class="btn btn-primary" id="btnMarkReported">ยืนยันส่งรายงานเข้าระบบความเสี่ยง รพ.แล้ว</button>` : ''}
          </div>`}
@@ -642,6 +660,23 @@ function renderDetailBox(r){
       document.getElementById('lightboxBox').innerHTML = `<img src="${img.dataset.full}" style="max-width:100%;max-height:90vh;border-radius:10px;">`;
       document.getElementById('lightboxOverlay').classList.add('active');
     });
+  });
+  const deleteBtn = document.getElementById('btnDeleteReport');
+  if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+    const auth3 = window.PHQAuth.getAuth();
+    if(!auth3){ alert('เซสชันหมดอายุ กรุณาโหลดหน้าใหม่แล้วเข้าสู่ระบบอีกครั้ง'); return; }
+    if(!confirm('ยืนยันลบรายงานนี้? การลบไม่สามารถย้อนกลับได้ (รูปแนบจะถูกลบไปด้วย)')) return;
+    deleteBtn.disabled = true; deleteBtn.textContent = 'กำลังลบ...';
+    try{
+      const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({action:'deleteReport', id:r.id, code:auth3.code}) });
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.error||'unknown');
+      document.getElementById('detailOverlay').classList.remove('active');
+      await loadReports();
+    }catch(e){
+      alert('ลบไม่สำเร็จ: '+e.message);
+      deleteBtn.disabled = false; deleteBtn.textContent = '🗑️ ลบรายงาน';
+    }
   });
   const markBtn = document.getElementById('btnMarkReported');
   if(markBtn) markBtn.addEventListener('click', async ()=>{
@@ -709,6 +744,20 @@ function renderDashboard(){
       <div class="bar-name">${k}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${(bySev[k]/maxSev*100)}%"></div></div>
       <div class="bar-val">${bySev[k]}</div>
+    </div>`).join('') : '<p style="font-size:13px;color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</p>';
+
+  const byErrType = {};
+  rows.forEach(r=>{
+    const k = r.errorType ? (ERROR_TYPE_LABEL[r.errorType]||r.errorType) : 'ไม่ระบุ / ไม่เกี่ยวกับยาโดยตรง';
+    byErrType[k] = (byErrType[k]||0)+1;
+  });
+  const maxErrType = Math.max(1, ...Object.values(byErrType));
+  const errTypeKeys = Object.keys(byErrType).sort((a,b)=> byErrType[b]-byErrType[a]);
+  document.getElementById('errorTypeBars').innerHTML = errTypeKeys.length ? errTypeKeys.map(k=>`
+    <div class="bar-row">
+      <div class="bar-name">${escapeHtml(k)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(byErrType[k]/maxErrType*100)}%"></div></div>
+      <div class="bar-val">${byErrType[k]}</div>
     </div>`).join('') : '<p style="font-size:13px;color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</p>';
 
   const byStaff = {};
