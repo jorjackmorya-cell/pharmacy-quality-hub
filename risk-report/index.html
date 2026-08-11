@@ -221,7 +221,7 @@
       <button class="filter-chip" data-range="week">7 วัน</button>
       <button class="filter-chip" data-range="month">เดือนนี้</button>
       <button class="filter-chip" data-range="custom">กำหนดเอง</button>
-      <button class="btn btn-outline" id="btnExportDash" style="display:none; margin-left:auto;">⬇️ ส่งออกรายงาน (Excel)</button>
+      <button class="btn btn-outline" id="btnExportDash" style="margin-left:auto;">⬇️ ส่งออกรายงาน (Excel)</button>
     </div>
     <div class="field-row" id="customRangeRow" style="display:none; margin-bottom:18px;">
       <div class="field"><label>จากวันที่</label><input type="date" id="rangeFrom"></div>
@@ -768,11 +768,9 @@ function renderDashboard(){
     : '<tr><td style="color:var(--ink-faint);">ไม่มีข้อมูลในช่วงเวลานี้</td></tr>';
 
   renderDashList(rows);
-  const exportBtn = document.getElementById('btnExportDash');
-  exportBtn.style.display = canReview ? 'inline-flex' : 'none';
 }
 
-// ---------- Export (Excel) — เฉพาะผู้มีสิทธิ์ทบทวน (canReview) เท่านั้น ----------
+// ---------- Export (Excel) — เปิดให้ทุกคนกดได้ ----------
 function exportDashboardXlsx(){
   const {from, to} = getRangeBounds();
   const rows = reports.filter(r=>{ const d = new Date(r.datetime); return d>=from && d<to; })
@@ -788,9 +786,29 @@ function exportDashboardXlsx(){
     'ส่งเข้าระบบเมื่อ': r.reportedAt ? fmtDT(r.reportedAt) : '',
     'ผู้ส่งเข้าระบบ': r.reportedByName || '',
   }));
+
+  // ---- ชีตสรุปยอด: แยกตาม severity และ error type ของช่วงเวลาที่เลือก ----
+  const bySev = {};
+  rows.forEach(r=>{ const k = r.severity==='other' ? 'อื่นๆ' : SEV_LABEL[r.severity]; bySev[k] = (bySev[k]||0)+1; });
+  const byErrType = {};
+  rows.forEach(r=>{
+    const k = r.errorType ? (ERROR_TYPE_LABEL[r.errorType]||r.errorType) : 'ไม่ระบุ / ไม่เกี่ยวกับยาโดยตรง';
+    byErrType[k] = (byErrType[k]||0)+1;
+  });
+  const summaryRows = [];
+  summaryRows.push({ 'หมวด':'ช่วงเวลาที่เลือก', 'รายการ': `${fmtDT(from.toISOString())} — ${fmtDT(new Date(to.getTime()-1).toISOString())}`, 'จำนวน': rows.length });
+  summaryRows.push({ 'หมวด':'', 'รายการ':'', 'จำนวน':'' });
+  summaryRows.push({ 'หมวด':'ระดับความรุนแรง (NCC MERP)', 'รายการ':'', 'จำนวน':'' });
+  Object.keys(bySev).sort((a,b)=>bySev[b]-bySev[a]).forEach(k=> summaryRows.push({ 'หมวด':'', 'รายการ':k, 'จำนวน':bySev[k] }));
+  summaryRows.push({ 'หมวด':'', 'รายการ':'', 'จำนวน':'' });
+  summaryRows.push({ 'หมวด':'ประเภทความคลาดเคลื่อนทางยา', 'รายการ':'', 'จำนวน':'' });
+  Object.keys(byErrType).sort((a,b)=>byErrType[b]-byErrType[a]).forEach(k=> summaryRows.push({ 'หมวด':'', 'รายการ':k, 'จำนวน':byErrType[k] }));
+
   const ws = XLSX.utils.json_to_sheet(data);
+  const wsSummary = XLSX.utils.json_to_sheet(summaryRows, {skipHeader:false});
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'รายงานความเสี่ยง');
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'สรุปยอด');
+  XLSX.utils.book_append_sheet(wb, ws, 'รายละเอียดรายงาน');
   XLSX.writeFile(wb, `รายงานความเสี่ยง-${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 document.getElementById('btnExportDash').addEventListener('click', exportDashboardXlsx);
