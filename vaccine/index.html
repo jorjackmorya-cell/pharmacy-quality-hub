@@ -76,6 +76,10 @@
   button.ghost:hover{border-color:var(--accent); color:var(--accent-dark);}
   button.small-link{background:none; border:none; color:var(--accent-dark); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; text-decoration:underline;}
   button.danger-link{background:none; border:none; color:var(--danger); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  button.row-save{background:var(--good-tint); color:var(--good); border:1px solid #cfe6ba; border-radius:7px; padding:5px 10px;
+    font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  button.row-save:hover{background:var(--good); color:#fff;}
+  button.row-save:disabled{opacity:.5; cursor:default;}
   button.icon-add{background:var(--accent-tint); color:var(--accent-dark); border:1px dashed var(--accent); border-radius:9px;
     padding:10px 16px; font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; width:100%; margin-top:6px;}
   button.icon-add:hover{background:var(--accent); color:#fff;}
@@ -86,10 +90,14 @@
   td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
   tr:last-child td{border-bottom:none;}
   td input, td select{padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:13px; width:100%;}
+  td.readonly-cell{color:var(--ink-faint); font-variant-numeric:tabular-nums;}
+  .row-actions{display:flex; gap:6px; align-items:center;}
+  .row-msg{font-size:11px; margin-top:3px; min-height:14px;}
+  .row-msg.success{color:var(--good);}
+  .row-msg.error{color:var(--danger);}
   .badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px;}
   .badge.receive{background:var(--good-tint); color:var(--good);}
   .badge.dispense{background:var(--accent-tint); color:var(--accent-dark);}
-  .badge.adjust{background:var(--amber-tint); color:#7A4D0E;}
   .table-wrap{overflow-x:auto;}
   .search-input{width:100%; max-width:340px; padding:9px 14px; border:1px solid var(--line); border-radius:8px;
     font-family:inherit; font-size:14px; margin-bottom:14px;}
@@ -100,9 +108,6 @@
 
   .report-controls{display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:18px;}
   .empty-state{text-align:center; padding:30px; color:var(--ink-faint); font-size:13.5px;}
-
-  .sticky-save-bar{position:sticky; bottom:0; background:var(--card); border-top:1px solid var(--line); padding:14px 0;
-    margin-top:12px; display:flex; align-items:center; gap:14px;}
 
   .req-item-row{display:grid; grid-template-columns:1.4fr 1.6fr .8fr auto; gap:10px; margin-bottom:10px; align-items:end;}
   .req-item-row .form-field{margin-bottom:0;}
@@ -133,7 +138,7 @@
     </div>
     <div>
       <h1>จัดการวัคซีน</h1>
-      <p class="lede">สต๊อกวัคซีนกลาง วันหมดอายุ และการเบิกจ่ายให้ รพ.สต./PCU ทุกแห่ง</p>
+      <p class="lede">สต๊อกวัคซีนกลาง วันหมดอายุ และการเบิกจ่ายให้ รพ.สต./PCU/ER ทุกแห่ง</p>
     </div>
   </div>
 
@@ -171,8 +176,8 @@
 
     <div class="card">
       <h3>
-        <span>📦 คลังวัคซีนทั้งหมด (แยกตาม Lot) — แก้ไขได้ทุกช่อง</span>
-        <span style="font-size:12px;font-weight:400;color:var(--ink-faint);">แก้แล้วต้องกด "บันทึกการเปลี่ยนแปลง" ด้านล่างสุด</span>
+        <span>📦 คลังวัคซีนทั้งหมด (แยกตาม Lot)</span>
+        <span style="font-size:12px;font-weight:400;color:var(--ink-faint);">แก้ "คงเหลือ" แล้วกด 💾 ท้ายแถวนั้นเลย — บันทึกทีละแถว ไม่ต้องรอ</span>
       </h3>
       <input type="text" class="search-input" id="stock-search" placeholder="🔍 ค้นหาชนิดวัคซีน...">
       <div class="table-wrap">
@@ -180,10 +185,6 @@
           <thead><tr><th>ชนิดวัคซีน</th><th>Lot</th><th>วันหมดอายุ</th><th>วันที่รับเข้า</th><th>รับเข้าสะสม</th><th>คงเหลือ</th><th>หมายเหตุ</th><th></th></tr></thead>
           <tbody id="stock-tbody"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
         </table>
-      </div>
-      <div class="sticky-save-bar">
-        <button class="primary" id="btn-save-stock-batch">💾 บันทึกการเปลี่ยนแปลง</button>
-        <div class="msg" id="stock-batch-msg"></div>
       </div>
     </div>
   </div>
@@ -195,6 +196,10 @@
       <div class="form-grid">
         <div class="form-field"><label>หน่วยเบิก</label>
           <select id="dp-recipient"><option value="">— เลือกหน่วยเบิก —</option></select>
+        </div>
+        <div class="form-field" id="dp-recipient-other-wrap" style="display:none;">
+          <label>ระบุชื่อหน่วยเบิก</label>
+          <input type="text" id="dp-recipient-other" placeholder="พิมพ์ชื่อหน่วยงาน">
         </div>
         <div class="form-field"><label>วันที่เบิกจ่าย</label><input type="date" id="dp-date"></div>
       </div>
@@ -257,11 +262,12 @@ function renderWhoami(name){
 }
 
 const OFFHOURS_API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
+const OTHER_RECIPIENT_VALUE = '__other__';
 
 let vaccineLots = [];
 let vaccineTransactions = [];
 let vaccineRecipients = [];
-let editingRequisitionId = null; // null = สร้างใหม่, ไม่ null = กำลังแก้ไขใบเบิกเดิม
+let editingRequisitionId = null;
 
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function todayStr(){ const now = new Date(); const bkk = new Date(now.getTime() + 7*60*60*1000); return bkk.toISOString().slice(0,10); }
@@ -293,7 +299,7 @@ function loadAllData(){
   });
 }
 
-// ---------- Dashboard (ไม่กรอง qty>0 อีกต่อไป — โชว์ทุก lot ที่มีวันหมดอายุ) ----------
+// ---------- Dashboard ----------
 function renderDashboard(){
   const today = todayStr();
   const lotsWithExpiry = vaccineLots.filter(l => l.expDate);
@@ -325,7 +331,7 @@ function renderDashboard(){
   }).join('');
 }
 
-// ---------- Stock tab: fully editable table ----------
+// ---------- Stock tab: per-row editable + per-row save ----------
 function renderStockTable(term){
   const t = (term||'').trim().toLowerCase();
   const tbody = document.getElementById('stock-tbody');
@@ -339,12 +345,47 @@ function renderStockTable(term){
       <td><input type="text" class="f-lotNo" value="${escapeHtml(l.lotNo)}"></td>
       <td><input type="date" class="f-expDate" value="${escapeHtml((l.expDate||'').slice(0,10))}"></td>
       <td><input type="date" class="f-receivedDate" value="${escapeHtml((l.receivedDate||'').slice(0,10))}"></td>
-      <td><input type="number" class="f-qtyReceived" value="${l.qtyReceived||0}" style="width:80px;"></td>
+      <td class="readonly-cell" title="แก้ไขได้ผ่านฟอร์ม 'รับวัคซีนเข้าคลัง' ด้านบนเท่านั้น">${l.qtyReceived||0}</td>
       <td><input type="number" class="f-qtyRemaining" value="${l.qtyRemaining||0}" style="width:80px;"></td>
       <td><input type="text" class="f-note" value="${escapeHtml(l.note||'')}" style="min-width:140px;"></td>
-      <td><button class="danger-link" data-del="${escapeHtml(l.id)}">ลบ</button></td>
+      <td>
+        <div class="row-actions">
+          <button class="row-save" data-save="${escapeHtml(l.id)}">💾</button>
+          <button class="danger-link" data-del="${escapeHtml(l.id)}">ลบ</button>
+        </div>
+        <div class="row-msg" id="row-msg-${escapeHtml(l.id)}"></div>
+      </td>
     </tr>
   `).join('');
+
+  tbody.querySelectorAll('[data-save]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.save;
+      const tr = tbody.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+      const msgEl = document.getElementById('row-msg-'+id);
+      const entry = {
+        id,
+        vaccineType: tr.querySelector('.f-vaccineType').value.trim(),
+        lotNo: tr.querySelector('.f-lotNo').value.trim(),
+        expDate: tr.querySelector('.f-expDate').value,
+        receivedDate: tr.querySelector('.f-receivedDate').value,
+        qtyRemaining: Number(tr.querySelector('.f-qtyRemaining').value || 0),
+        note: tr.querySelector('.f-note').value.trim()
+      };
+      btn.disabled = true; btn.textContent = '...';
+      fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'updateVaccineLot', entry})})
+        .then(r=>r.json()).then(data=>{
+          if(!data.ok) throw new Error(data.error||'unknown');
+          msgEl.className = 'row-msg success'; msgEl.textContent = 'บันทึกแล้ว ✓';
+          setTimeout(()=>{ msgEl.textContent=''; }, 2500);
+          // อัปเดตค่าใน state local ทันทีโดยไม่ต้อง reload ทั้งหน้า (เร็วกว่า)
+          const lot = vaccineLots.find(l=>l.id===id);
+          if(lot) Object.assign(lot, entry);
+        })
+        .catch(e=>{ msgEl.className = 'row-msg error'; msgEl.textContent = 'ผิดพลาด: '+e.message; })
+        .finally(()=>{ btn.disabled = false; btn.textContent = '💾'; });
+    });
+  });
 
   tbody.querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -356,33 +397,6 @@ function renderStockTable(term){
   });
 }
 document.getElementById('stock-search').addEventListener('input', e=> renderStockTable(e.target.value));
-
-document.getElementById('btn-save-stock-batch').addEventListener('click', ()=>{
-  const btn = document.getElementById('btn-save-stock-batch');
-  const msg = document.getElementById('stock-batch-msg');
-  const entries = [];
-  document.querySelectorAll('#stock-tbody tr[data-id]').forEach(tr=>{
-    entries.push({
-      id: tr.dataset.id,
-      vaccineType: tr.querySelector('.f-vaccineType').value.trim(),
-      lotNo: tr.querySelector('.f-lotNo').value.trim(),
-      expDate: tr.querySelector('.f-expDate').value,
-      receivedDate: tr.querySelector('.f-receivedDate').value,
-      qtyReceived: Number(tr.querySelector('.f-qtyReceived').value || 0),
-      qtyRemaining: Number(tr.querySelector('.f-qtyRemaining').value || 0),
-      note: tr.querySelector('.f-note').value.trim()
-    });
-  });
-  if(!entries.length){ return; }
-  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
-  fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'saveVaccineLotsBatch', entries})})
-    .then(r=>r.json()).then(data=>{
-      if(!data.ok) throw new Error(data.error||'unknown');
-      msg.className = 'msg success'; msg.textContent = `บันทึกสำเร็จ ${data.count} รายการ ✓`;
-      loadAllData();
-    }).catch(e=>{ msg.className = 'msg error'; msg.textContent = 'บันทึกไม่สำเร็จ: '+e.message; })
-    .finally(()=>{ btn.disabled = false; btn.textContent = '💾 บันทึกการเปลี่ยนแปลง'; });
-});
 
 document.getElementById('btn-receive').addEventListener('click', ()=>{
   const btn = document.getElementById('btn-receive');
@@ -410,15 +424,20 @@ document.getElementById('btn-receive').addEventListener('click', ()=>{
     .finally(()=>{ btn.disabled = false; btn.textContent = 'บันทึกรับเข้า'; });
 });
 
-// ---------- Dispense tab: multi-item requisition builder ----------
+// ---------- Dispense tab ----------
 function renderRecipientOptions(){
   const sel = document.getElementById('dp-recipient');
   const current = sel.value;
-  sel.innerHTML = '<option value="">— เลือกหน่วยเบิก —</option>' +
-    vaccineRecipients.filter(r => r.active === true || String(r.active).toUpperCase()==='TRUE')
+  const options = vaccineRecipients.filter(r => r.active === true || String(r.active).toUpperCase()==='TRUE')
       .map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">— เลือกหน่วยเบิก —</option>' + options +
+      `<option value="${OTHER_RECIPIENT_VALUE}">อื่นๆ (ระบุ)</option>`;
   sel.value = current;
 }
+document.getElementById('dp-recipient').addEventListener('change', e=>{
+  const isOther = e.target.value === OTHER_RECIPIENT_VALUE;
+  document.getElementById('dp-recipient-other-wrap').style.display = isOther ? 'block' : 'none';
+});
 
 let reqItemCounter = 0;
 function addRequisitionItemRow(prefill){
@@ -455,16 +474,18 @@ function addRequisitionItemRow(prefill){
 document.getElementById('btn-add-item').addEventListener('click', ()=> addRequisitionItemRow());
 
 function populateVaccineTypeSelect(sel){
-  const types = Array.from(new Set(vaccineLots.filter(l => Number(l.qtyRemaining) > 0).map(l => l.vaccineType))).sort();
+  // แสดงวัคซีนทุกชนิดที่มีอยู่ในคลัง (ไม่ว่าจำนวนจะเป็นเท่าไหร่) เรียงตามชื่อ —
+  // ถ้าของหมด (0) ยังเลือกได้แต่ระบบจะแจ้งเตือน "สต๊อกไม่พอ" ตอนบันทึกแทน
+  const types = Array.from(new Set(vaccineLots.map(l => l.vaccineType).filter(Boolean))).sort();
   const current = sel.value;
   sel.innerHTML = '<option value="">— เลือกวัคซีน —</option>' + types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
   sel.value = current;
 }
 function populateLotSelectForType(sel, vaccineType){
-  const lots = vaccineLots.filter(l => l.vaccineType === vaccineType && Number(l.qtyRemaining) > 0)
+  const lots = vaccineLots.filter(l => l.vaccineType === vaccineType)
     .sort((a,b)=> (a.expDate||'').localeCompare(b.expDate||''));
   sel.innerHTML = '<option value="">อัตโนมัติ (FEFO — lot ใกล้หมดอายุสุด)</option>' +
-    lots.map(l => `<option value="${escapeHtml(l.id)}">Lot ${escapeHtml(l.lotNo)} — หมดอายุ ${fmtDateThai(l.expDate)} (เหลือ ${l.qtyRemaining})</option>`).join('');
+    lots.map(l => `<option value="${escapeHtml(l.id)}">Lot ${escapeHtml(l.lotNo)} — หมดอายุ ${fmtDateThai(l.expDate)} (เหลือ ${l.qtyRemaining||0})</option>`).join('');
 }
 function refreshAllVaccineTypeDropdowns(){
   document.querySelectorAll('.req-type-select').forEach(sel => populateVaccineTypeSelect(sel));
@@ -474,6 +495,8 @@ function resetRequisitionForm(){
   document.getElementById('dp-items-container').innerHTML = '';
   addRequisitionItemRow();
   document.getElementById('dp-recipient').value = '';
+  document.getElementById('dp-recipient-other-wrap').style.display = 'none';
+  document.getElementById('dp-recipient-other').value = '';
   document.getElementById('dp-date').value = todayStr();
   document.getElementById('dp-note').value = '';
   editingRequisitionId = null;
@@ -493,16 +516,20 @@ document.getElementById('btn-save-requisition').addEventListener('click', ()=>{
     const qty = Number(row.querySelector('.req-qty-input').value || 0);
     if(vaccineType && qty > 0) items.push({vaccineType, lotId, qty});
   });
+  let recipient = document.getElementById('dp-recipient').value;
+  if(recipient === OTHER_RECIPIENT_VALUE){
+    recipient = document.getElementById('dp-recipient-other').value.trim();
+  }
   const entry = {
     requisitionId: editingRequisitionId || undefined,
-    recipient: document.getElementById('dp-recipient').value,
+    recipient,
     date: document.getElementById('dp-date').value || todayStr(),
     note: document.getElementById('dp-note').value.trim(),
     staffCode: auth.code,
     items
   };
   if(!entry.recipient || !items.length){
-    msg.className = 'msg error'; msg.textContent = 'กรุณาเลือกหน่วยเบิก และกรอกอย่างน้อย 1 ชนิดวัคซีนพร้อมจำนวน'; return;
+    msg.className = 'msg error'; msg.textContent = 'กรุณาเลือก/ระบุหน่วยเบิก และกรอกอย่างน้อย 1 ชนิดวัคซีนพร้อมจำนวน'; return;
   }
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
   fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'saveVaccineRequisition', entry})})
@@ -554,7 +581,15 @@ function renderRequisitionList(){
       const reqId = btn.dataset.editReq;
       const g = grouped[reqId];
       editingRequisitionId = reqId;
-      document.getElementById('dp-recipient').value = g.recipient;
+      const knownRecipients = vaccineRecipients.map(r=>r.name);
+      if(knownRecipients.includes(g.recipient)){
+        document.getElementById('dp-recipient').value = g.recipient;
+        document.getElementById('dp-recipient-other-wrap').style.display = 'none';
+      } else {
+        document.getElementById('dp-recipient').value = OTHER_RECIPIENT_VALUE;
+        document.getElementById('dp-recipient-other-wrap').style.display = 'block';
+        document.getElementById('dp-recipient-other').value = g.recipient;
+      }
       document.getElementById('dp-date').value = g.date;
       document.getElementById('dp-items-container').innerHTML = '';
       g.items.forEach(it => addRequisitionItemRow({vaccineType: it.vaccineType, lotId: it.lotId, qty: it.qty}));
