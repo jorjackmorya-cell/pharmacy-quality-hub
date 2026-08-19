@@ -80,6 +80,10 @@
     font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;}
   button.row-save:hover{background:var(--good); color:#fff;}
   button.row-save:disabled{opacity:.5; cursor:default;}
+  button.edit-toggle{background:var(--amber-tint); color:#7A4D0E; border:1px solid #eeddb8; border-radius:7px; padding:5px 10px;
+    font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  button.edit-toggle:hover{background:var(--amber); color:#fff;}
+  button.edit-toggle:disabled{opacity:.5; cursor:default;}
   button.icon-add{background:var(--accent-tint); color:var(--accent-dark); border:1px dashed var(--accent); border-radius:9px;
     padding:10px 16px; font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; width:100%; margin-top:6px;}
   button.icon-add:hover{background:var(--accent); color:#fff;}
@@ -163,7 +167,10 @@
     <div class="card">
       <h3>+ รับวัคซีนใหม่เข้าคลัง (lot ใหม่ หรือเติมของเดิม)</h3>
       <div class="form-grid">
-        <div class="form-field"><label>ชนิดวัคซีน</label><input type="text" id="rv-type" placeholder="เช่น OPV, MMR, BCG"></div>
+        <div class="form-field"><label>ชนิดวัคซีน</label>
+          <input type="text" id="rv-type" list="rv-type-datalist" placeholder="เลือกจากรายการ หรือพิมพ์ชนิดใหม่">
+          <datalist id="rv-type-datalist"></datalist>
+        </div>
         <div class="form-field"><label>เลข Lot</label><input type="text" id="rv-lot" placeholder="เช่น 02417924"></div>
         <div class="form-field"><label>วันหมดอายุ</label><input type="date" id="rv-exp"></div>
         <div class="form-field"><label>จำนวน (โดส)</label><input type="number" id="rv-qty" min="1" placeholder="0"></div>
@@ -293,6 +300,7 @@ function loadAllData(){
     renderRecipientOptions();
     if(!document.querySelector('.req-item-row')) addRequisitionItemRow();
     refreshAllVaccineTypeDropdowns();
+    populateReceiveTypeDatalist();
     renderRequisitionList();
   }).catch(e=>{
     document.getElementById('dashExpiryList').innerHTML = `<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</div>`;
@@ -345,11 +353,12 @@ function renderStockTable(term){
       <td><input type="text" class="f-lotNo" value="${escapeHtml(l.lotNo)}"></td>
       <td><input type="date" class="f-expDate" value="${escapeHtml((l.expDate||'').slice(0,10))}"></td>
       <td><input type="date" class="f-receivedDate" value="${escapeHtml((l.receivedDate||'').slice(0,10))}"></td>
-      <td class="readonly-cell" title="แก้ไขได้ผ่านฟอร์ม 'รับวัคซีนเข้าคลัง' ด้านบนเท่านั้น">${l.qtyReceived||0}</td>
+      <td class="qty-received-cell" data-value="${l.qtyReceived||0}"><span class="qty-received-display">${l.qtyReceived||0}</span></td>
       <td><input type="number" class="f-qtyRemaining" value="${l.qtyRemaining||0}" style="width:80px;"></td>
       <td><input type="text" class="f-note" value="${escapeHtml(l.note||'')}" style="min-width:140px;"></td>
       <td>
         <div class="row-actions">
+          <button class="edit-toggle" data-edit="${escapeHtml(l.id)}" title="แก้ไขยอดรับเข้าสะสม (ใช้ตอนตั้งค่าเริ่มต้นเท่านั้น)">✏️</button>
           <button class="row-save" data-save="${escapeHtml(l.id)}">💾</button>
           <button class="danger-link" data-del="${escapeHtml(l.id)}">ลบ</button>
         </div>
@@ -357,6 +366,19 @@ function renderStockTable(term){
       </td>
     </tr>
   `).join('');
+
+  tbody.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.edit;
+      const tr = tbody.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+      const cell = tr.querySelector('.qty-received-cell');
+      if(cell.querySelector('input')) return;
+      const currentVal = cell.dataset.value;
+      cell.innerHTML = `<input type="number" class="f-qtyReceived" value="${currentVal}" style="width:80px;">`;
+      btn.disabled = true;
+      btn.textContent = '🔓';
+    });
+  });
 
   tbody.querySelectorAll('[data-save]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -372,15 +394,19 @@ function renderStockTable(term){
         qtyRemaining: Number(tr.querySelector('.f-qtyRemaining').value || 0),
         note: tr.querySelector('.f-note').value.trim()
       };
+      const qtyReceivedInput = tr.querySelector('.f-qtyReceived');
+      if(qtyReceivedInput){
+        entry.qtyReceived = Number(qtyReceivedInput.value || 0);
+      }
       btn.disabled = true; btn.textContent = '...';
       fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'updateVaccineLot', entry})})
         .then(r=>r.json()).then(data=>{
           if(!data.ok) throw new Error(data.error||'unknown');
           msgEl.className = 'row-msg success'; msgEl.textContent = 'บันทึกแล้ว ✓';
           setTimeout(()=>{ msgEl.textContent=''; }, 2500);
-          // อัปเดตค่าใน state local ทันทีโดยไม่ต้อง reload ทั้งหน้า (เร็วกว่า)
           const lot = vaccineLots.find(l=>l.id===id);
           if(lot) Object.assign(lot, entry);
+          renderStockTable(document.getElementById('stock-search').value); // รีเซ็ตช่องรับเข้าสะสมกลับเป็นอ่านอย่างเดียว
         })
         .catch(e=>{ msgEl.className = 'row-msg error'; msgEl.textContent = 'ผิดพลาด: '+e.message; })
         .finally(()=>{ btn.disabled = false; btn.textContent = '💾'; });
@@ -486,6 +512,11 @@ function populateLotSelectForType(sel, vaccineType){
     .sort((a,b)=> (a.expDate||'').localeCompare(b.expDate||''));
   sel.innerHTML = '<option value="">อัตโนมัติ (FEFO — lot ใกล้หมดอายุสุด)</option>' +
     lots.map(l => `<option value="${escapeHtml(l.id)}">Lot ${escapeHtml(l.lotNo)} — หมดอายุ ${fmtDateThai(l.expDate)} (เหลือ ${l.qtyRemaining||0})</option>`).join('');
+}
+function populateReceiveTypeDatalist(){
+  const dl = document.getElementById('rv-type-datalist');
+  const types = Array.from(new Set(vaccineLots.map(l => l.vaccineType).filter(Boolean))).sort();
+  dl.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
 }
 function refreshAllVaccineTypeDropdowns(){
   document.querySelectorAll('.req-type-select').forEach(sel => populateVaccineTypeSelect(sel));
