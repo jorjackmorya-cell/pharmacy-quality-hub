@@ -26,6 +26,8 @@
   .tabs{display:flex;gap:8px;margin-bottom:18px;}
   .tab-btn{background:#fff;border:1px solid var(--line);color:var(--ink-soft);padding:9px 18px;border-radius:8px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;}
   .tab-btn.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:8px;margin-left:4px;vertical-align:middle;}
+  .tab-btn.active .tab-badge{background:#fff;color:var(--danger);}
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
   .card h2{font-size:17px;margin:0 0 14px;color:var(--teal-deep);}
   .card h3{font-size:14.5px;margin:0 0 10px;color:var(--ink-soft);font-weight:600;}
@@ -71,6 +73,30 @@
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
   .loading-note{font-size:13px;color:var(--ink-soft);padding:6px 0;}
+
+  .ep-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;}
+  .ep-card:hover{border-color:var(--teal);}
+  .ep-card.open{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal);}
+  .ep-card .ep-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .ep-card .ep-title{font-size:14.5px;font-weight:700;color:var(--teal-deep);}
+  .ep-card .ep-meta{font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
+  .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .status-pill.progress{background:var(--amber-soft);color:var(--amber);}
+  .status-pill.completed{background:var(--good-soft);color:var(--good);}
+  .gap-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .gap-pill.ok{background:var(--good-soft);color:var(--good);}
+  .gap-pill.warn{background:var(--danger-soft);color:var(--danger);}
+  .ep-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+  .cp-mini-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}
+  .cp-mini-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-weight:600;border-bottom:1px solid var(--line);font-size:11.5px;}
+  .cp-mini-table td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .flag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:14px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+  .flag.done{background:var(--good-soft);color:var(--good);}
+  .flag.pending{background:#EEF1EE;color:var(--ink-soft);}
+  .flag.overdue{background:var(--danger-soft);color:var(--danger);}
+  .round-label{font-size:12.5px;font-weight:700;color:var(--teal-deep);margin:10px 0 4px;}
+  .se-item{font-size:12.5px;background:var(--danger-soft);color:var(--danger);border-radius:7px;padding:6px 10px;margin-bottom:6px;}
+  .live-filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   @media (max-width:640px){ .result-btns{flex-direction:column;} table{font-size:12px;} th,td{padding:6px} }
 </style>
 </head>
@@ -87,6 +113,7 @@
     <p class="sub">สำหรับเภสัชกรตรวจสอบความถูกต้องคำสั่งยาและการติดตาม parameter ของยา HAD ทั้งขณะให้ยาอยู่และตรวจย้อนหลัง</p>
     <div class="tabs">
       <button class="tab-btn active" id="tab-check-btn">ตรวจสอบการใช้ยา HAD</button>
+      <button class="tab-btn" id="tab-live-btn">ติดตามสด (จากพยาบาล) <span class="tab-badge" id="live-badge" style="display:none;"></span></button>
       <button class="tab-btn" id="tab-history-btn">ข้อมูลการติดตาม</button>
     </div>
   </header>
@@ -172,6 +199,21 @@
     </div>
   </div>
 
+  <div id="panel-live" style="display:none;">
+    <div class="card">
+      <div class="live-filter-bar">
+        <label style="margin:0;">แสดง:</label>
+        <button class="chip active" id="live-filter-progress" data-f="progress">⏳ กำลังติดตามอยู่</button>
+        <button class="chip" id="live-filter-all" data-f="all">ทั้งหมด (7 วันล่าสุด)</button>
+        <button class="ghost small" id="btn-refresh-live" style="margin-left:auto;">🔄 รีเฟรช</button>
+      </div>
+      <div class="info-banner" style="margin-bottom:12px;">ข้อมูลนี้ดึงมาจากการบันทึกติดตามยา HAD จริงของพยาบาลในหน้า "ศูนย์ข้อมูลยา" (had.html) — เห็นได้ทั้งขณะกำลังให้ยาอยู่และหลังให้ยาจบแล้ว ระบบจะเทียบกับจุดติดตามที่ควรทำตามคู่มือ HAD ของยานั้นๆ ให้อัตโนมัติ</div>
+      <div id="live-loading" class="loading-note">กำลังโหลดข้อมูล...</div>
+      <div id="live-list"></div>
+      <div class="empty" id="live-empty" style="display:none;">ไม่มีรายการติดตามในช่วงที่เลือก</div>
+    </div>
+  </div>
+
   <div id="panel-history" style="display:none;">
     <div class="stat-grid">
       <div class="stat"><div class="num" id="stat-total">-</div><div class="lbl">ตรวจทั้งหมด</div></div>
@@ -211,6 +253,9 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
 const RISKREPORT_API_URL = 'https://script.google.com/macros/s/AKfycbxKQ6_EIMLoA1jTbxQk98n53--yJWX5OyctWumLTY3l38d1sOsSTif6tcKPaSfBJf9g/exec';
+// API ของ "ศูนย์ข้อมูลยา" (Drug Info Center) — คนละ Sheet/Apps Script กับ Hub นี้ — ใช้ดึงข้อมูลการติดตามยา HAD จริงของพยาบาล (had.html)
+// รหัสล็อกอิน 6 หลักใช้ร่วมกันได้ทั้งสองระบบ (Users sheet คัดลอกชุดเดียวกัน) จึงส่ง auth.code ของ Hub ไปยืนยันตัวตนฝั่งนี้ได้เลย
+const DIC_API_URL = 'https://script.google.com/macros/s/AKfycbyToHBwKzpSEjNvuZdjWvUrqMcOeIlwRRlA0iVoBh1xzdRVCSlMKXnY_MqBz0HhGEqtRg/exec';
 
 const WARDS = [];
 ['ชาย','หญิง','พิเศษ'].forEach(t=>{ for(let i=1;i<=10;i++) WARDS.push(t+' '+i); });
@@ -224,25 +269,264 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 2600);
 }
 
+// ================================================================
+// ---- แท็บ "ติดตามสด (จากพยาบาล)" — ดึงข้อมูลจริงจาก had.html (Drug Info Center) ----
+// ================================================================
+let dicHadConfig = null;         // cache ของ had.html: [{id,name,strength,checkpointMinutes,secondaryFields,...}]
+let liveRefreshTimer = null;
+let liveFilterMode = 'progress'; // 'progress' | 'all'
+let liveEpisodesCache = [];      // [{recordId, rows, had, ...}]
+let liveOpenRecId = null;
+
+async function apiPostDIC(body){
+  const res = await fetch(DIC_API_URL, {method:'POST', body: JSON.stringify(body)});
+  return res.json();
+}
+
+// เหมือน buildCheckpointList / buildSecondaryCheckpointList ใน had.html เป๊ะ — ต้องคำนวณตรงกันเพื่อเทียบผลได้ถูกต้อง
+function buildCheckpointListLive(had, startTime){
+  const offsets = (had.checkpointMinutes||'0').split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n));
+  return offsets.map(off=>{
+    const t = new Date(startTime.getTime() + off*60000);
+    return { label: off===0 ? 'ก่อนให้ยา/เริ่มให้ยา' : off+' นาที', offsetMin: off, time: t };
+  });
+}
+function buildSecondaryCheckpointListLive(had, startTime){
+  if(!had.secondaryFields || !had.secondaryFields.trim()) return [];
+  return [{ label:'การติดตามเริ่มต้น', offsetMin:0, time:new Date(startTime) }];
+}
+
+function escapeHtmlLive(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtTimeLive(d){ return d.toTimeString().slice(0,5); }
+function fmtDateTimeLive(d){ return d.toLocaleString('th-TH'); }
+
+// สร้าง "การตรวจสอบความครบถ้วน" ของหนึ่งเคส (recordId) — ผลลัพธ์: primary/secondary/rounds พร้อม flag done/pending/overdue ต่อจุด
+function buildComplianceForEpisode(rows, had){
+  const first = rows.slice().sort((a,b)=> (a.createdAt||'') < (b.createdAt||'') ? -1 : 1)[0];
+  const startTime = new Date(first.startTime || first.createdAt);
+  const now = new Date();
+
+  const primaryStandard = buildCheckpointListLive(had, startTime);
+  const secondaryStandard = buildSecondaryCheckpointListLive(had, startTime);
+  const secondaryLabels = secondaryStandard.map(c=>c.label);
+  const isSecondaryLabel = (label)=> secondaryLabels.includes(label) || /ชม\.\s*\(ต่อเนื่อง\)$/.test(label||'');
+  const isRoundLabel = (label)=> /^รอบให้ยาที่ \d+ - /.test(label||'');
+
+  const primaryRows = rows.filter(r=> !isSecondaryLabel(r.checkpointLabel) && r.checkpointLabel!=='อาการข้างเคียง' && r.checkpointLabel!=='สิ้นสุดการให้ยา' && !isRoundLabel(r.checkpointLabel));
+  const secondaryRows = rows.filter(r=> isSecondaryLabel(r.checkpointLabel));
+  const endRow = rows.find(r=> r.checkpointLabel==='สิ้นสุดการให้ยา');
+  const seRows = rows.filter(r=> r.checkpointLabel==='อาการข้างเคียง').sort((a,b)=> (a.createdAt||'') < (b.createdAt||'') ? -1 : 1);
+
+  function markFlags(standard, rowsForGroup){
+    const byLabel = {};
+    rowsForGroup.forEach(r=>{ if(r.checkpointLabel) byLabel[r.checkpointLabel]=r; });
+    return standard.map(cp=>{
+      const r = byLabel[cp.label];
+      if(r){ return {...cp, saved:true, recordedTime: r.checkpointTime ? new Date(r.checkpointTime) : null, row:r}; }
+      const overdue = cp.time <= now;
+      return {...cp, saved:false, overdue, row:null};
+    });
+  }
+  const primary = markFlags(primaryStandard, primaryRows);
+  const secondary = markFlags(secondaryStandard, secondaryRows);
+
+  // รอบให้ยาเพิ่ม (Amiodarone 150→300 ฯลฯ) — เทียบ checklist มาตรฐานเดียวกัน anchor ที่เวลาบันทึกแรกของรอบนั้น
+  const roundGroups = {};
+  rows.forEach(r=>{
+    const m = /^รอบให้ยาที่ (\d+) - (.+)$/.exec(r.checkpointLabel||'');
+    if(!m) return;
+    const n = parseInt(m[1],10);
+    (roundGroups[n] = roundGroups[n] || []).push({ ...r, checkpointLabel: m[2] });
+  });
+  const rounds = Object.keys(roundGroups).sort((a,b)=>a-b).map(n=>{
+    const rRows = roundGroups[n];
+    const rStart = rRows.reduce((min,r)=> (!min || new Date(r.checkpointTime) < new Date(min)) ? r.checkpointTime : min, null);
+    const rStandard = buildCheckpointListLive(had, new Date(rStart));
+    return { round:n, doseInfo: rRows[0].doseInfo || '', checkpoints: markFlags(rStandard, rRows) };
+  });
+
+  const allFlagged = [...primary, ...secondary, ...rounds.flatMap(r=>r.checkpoints)];
+  const overdueCount = allFlagged.filter(c=>!c.saved && c.overdue).length;
+  const latest = rows.slice().sort((a,b)=> (a.createdAt||'') < (b.createdAt||'') ? -1 : 1)[0];
+
+  return { first, latest, startTime, primary, secondary, rounds, endRow, seRows, overdueCount, status: latest.status||'in_progress' };
+}
+
+async function loadLiveTab(){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth || !auth.code) return;
+  const loadingEl = document.getElementById('live-loading');
+  loadingEl.style.display = 'block';
+  try{
+    if(!dicHadConfig){
+      const res = await fetch(DIC_API_URL);
+      const data = await res.json();
+      if(data.ok) dicHadConfig = data.had || [];
+    }
+    const dateFrom = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+    const data = await apiPostDIC({action:'listHadRecords', code: auth.code, dateFrom});
+    if(!data.ok){ loadingEl.textContent = 'ดึงข้อมูลไม่สำเร็จ: ' + (data.error||''); return; }
+    const groups = {};
+    (data.records||[]).forEach(r=>{ (groups[r.recordId]=groups[r.recordId]||[]).push(r); });
+    let episodes = Object.entries(groups).map(([recId, rows])=>{
+      const first = rows[0];
+      const had = (dicHadConfig||[]).find(d=>d.id===first.hadId) || { id:first.hadId, name:first.hadName, checkpointMinutes:'0' };
+      const comp = buildComplianceForEpisode(rows, had);
+      return { recordId: recId, rows, had, comp };
+    });
+    episodes.sort((a,b)=>{
+      const aProg = a.comp.status !== 'completed', bProg = b.comp.status !== 'completed';
+      if(aProg !== bProg) return aProg ? -1 : 1;
+      return (b.comp.startTime - a.comp.startTime);
+    });
+    liveEpisodesCache = episodes;
+    const progressCount = episodes.filter(e=>e.comp.status!=='completed').length;
+    const badge = document.getElementById('live-badge');
+    if(progressCount){ badge.textContent = progressCount; badge.style.display='inline-flex'; } else { badge.style.display='none'; }
+    renderLiveList();
+  }catch(e){
+    loadingEl.textContent = 'เกิดข้อผิดพลาด: ' + e.message;
+  }finally{
+    loadingEl.style.display = 'none';
+  }
+}
+
+function renderLiveList(){
+  const listEl = document.getElementById('live-list');
+  const emptyEl = document.getElementById('live-empty');
+  let episodes = liveEpisodesCache;
+  if(liveFilterMode === 'progress') episodes = episodes.filter(e=>e.comp.status!=='completed');
+  if(!episodes.length){ listEl.innerHTML=''; emptyEl.style.display='block'; return; }
+  emptyEl.style.display='none';
+  listEl.innerHTML = episodes.map(ep=>{
+    const c = ep.comp, f = c.first;
+    const statusHtml = c.status==='completed'
+      ? `<span class="status-pill completed">✓ เสร็จสิ้น</span>`
+      : `<span class="status-pill progress">⏳ กำลังติดตาม</span>`;
+    const gapHtml = c.overdueCount>0
+      ? `<span class="gap-pill warn">⚠ ขาด ${c.overdueCount} จุด</span>`
+      : `<span class="gap-pill ok">✓ ครบตามกำหนด</span>`;
+    const open = liveOpenRecId === ep.recordId;
+    return `<div class="ep-card ${open?'open':''}" data-recid="${escapeHtmlLive(ep.recordId)}">
+      <div class="ep-top">
+        <div>
+          <div class="ep-title">${escapeHtmlLive(c.first.hadName)} — HN ${escapeHtmlLive(f.patientHN)} ${escapeHtmlLive(f.patientName||'')}</div>
+          <div class="ep-meta">หอ/แผนก ${escapeHtmlLive(f.ward||'-')} · เริ่มให้ยา ${fmtDateTimeLive(c.startTime)} · บันทึกโดย ${escapeHtmlLive(f.nurseName||'-')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${statusHtml}${gapHtml}</div>
+      </div>
+      <div class="ep-detail" id="ep-detail-${escapeHtmlLive(ep.recordId)}" style="display:${open?'block':'none'};"></div>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('.ep-card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      const recId = card.dataset.recid;
+      if(liveOpenRecId === recId){ liveOpenRecId = null; }
+      else { liveOpenRecId = recId; }
+      renderLiveList();
+      if(liveOpenRecId) renderEpisodeDetail(liveOpenRecId);
+    });
+  });
+}
+
+function cpRow(cp){
+  const flag = cp.saved ? `<span class="flag done">✓ บันทึกแล้ว ${cp.recordedTime?fmtTimeLive(cp.recordedTime):''}</span>`
+    : cp.overdue ? `<span class="flag overdue">✗ เลยเวลาแล้ว ยังไม่บันทึก</span>`
+    : `<span class="flag pending">⏳ ยังไม่ถึงเวลา</span>`;
+  const vals = cp.row ? [cp.row.bp&&('BP '+cp.row.bp), cp.row.hr&&('HR '+cp.row.hr), cp.row.rr&&('RR '+cp.row.rr), cp.row.o2sat&&('O2 '+cp.row.o2sat), cp.row.temp&&('T '+cp.row.temp)].filter(Boolean).join(' · ') : '';
+  return `<tr><td>${escapeHtmlLive(cp.label)}</td><td>${fmtTimeLive(cp.time)}</td><td>${flag}</td><td style="font-size:12px;color:var(--ink-soft);">${escapeHtmlLive(vals)}${cp.row&&cp.row.note?' · '+escapeHtmlLive(cp.row.note):''}</td></tr>`;
+}
+
+function renderEpisodeDetail(recordId){
+  const ep = liveEpisodesCache.find(e=>e.recordId===recordId);
+  const el = document.getElementById('ep-detail-'+recordId);
+  if(!ep || !el) return;
+  const c = ep.comp;
+  let html = `<table class="cp-mini-table"><thead><tr><th>จุดติดตาม</th><th>เวลาที่ควรทำ</th><th>สถานะ</th><th>ค่าที่บันทึก</th></tr></thead><tbody>`;
+  html += c.primary.map(cpRow).join('');
+  html += '</tbody></table>';
+  if(c.secondary.length){
+    html += `<div class="round-label">การติดตามต่อเนื่อง</div><table class="cp-mini-table"><tbody>` + c.secondary.map(cpRow).join('') + `</tbody></table>`;
+  }
+  c.rounds.forEach(r=>{
+    html += `<div class="round-label">🔁 รอบให้ยาที่ ${r.round}${r.doseInfo?(' — ขนาดยา '+escapeHtmlLive(r.doseInfo)):''}</div>`;
+    html += `<table class="cp-mini-table"><tbody>` + r.checkpoints.map(cpRow).join('') + `</tbody></table>`;
+  });
+  if(c.endRow){
+    html += `<div class="info-banner" style="margin-top:6px;">🏁 สิ้นสุดการให้ยาแล้ว เมื่อ ${c.endRow.checkpointTime?fmtDateTimeLive(new Date(c.endRow.checkpointTime)):'-'}</div>`;
+  }
+  if(c.seRows.length){
+    html += `<div class="round-label" style="color:var(--danger);">⚠ อาการข้างเคียงที่บันทึกไว้</div>`;
+    html += c.seRows.map(r=>{
+      let ov={}; try{ ov = JSON.parse(r.otherValues||'{}'); }catch(e){}
+      return `<div class="se-item">${r.checkpointTime?fmtTimeLive(new Date(r.checkpointTime)):''} — ${escapeHtmlLive(ov.effect||'-')}${ov.management?(' · การจัดการ: '+escapeHtmlLive(ov.management)):''}</div>`;
+    }).join('');
+  }
+  html += `<div class="row-actions" style="margin-top:10px;">
+    <button class="ghost small" id="btn-use-for-check-${recordId}">📋 ใช้ข้อมูลนี้เปิดฟอร์มตรวจสอบ (แท็บ "ตรวจสอบการใช้ยา HAD")</button>
+  </div>`;
+  el.innerHTML = html;
+  const btn = document.getElementById('btn-use-for-check-'+recordId);
+  if(btn) btn.addEventListener('click', (e)=>{ e.stopPropagation(); prefillCheckFromEpisode(ep); });
+}
+
+function prefillCheckFromEpisode(ep){
+  const f = ep.comp.first;
+  document.getElementById('f-hn').value = f.patientHN || '';
+  document.getElementById('f-name').value = f.patientName || '';
+  const wardSel = document.getElementById('f-ward');
+  const wardOpts = Array.from(wardSel.options).map(o=>o.value);
+  if(wardOpts.includes(f.ward)) wardSel.value = f.ward;
+  document.getElementById('f-checkdt').value = new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.querySelector(`input[name="f-status"][value="${ep.comp.status==='completed'?'retro':'ongoing'}"]`).checked = true;
+  // จับคู่ยาแบบ best-effort ด้วยชื่อยา (รายการยา HAD ของแท็บนี้เป็นคนละชุดกับของ had.html)
+  const nameLower = (ep.comp.first.hadName||'').toLowerCase();
+  const match = HAD_DRUGS.find(d=> nameLower.includes(d.name.toLowerCase().split(' ')[0]));
+  const drugSel = document.getElementById('f-drug');
+  if(match){ drugSel.value = match.id; drugSel.dispatchEvent(new Event('change')); }
+  showToast(match ? 'ดึงข้อมูลผู้ป่วยมาเติมให้แล้ว — ตรวจสอบยาที่เลือกอีกครั้งก่อนบันทึก' : 'ดึงข้อมูลผู้ป่วยมาเติมให้แล้ว — กรุณาเลือกยาเอง (จับคู่อัตโนมัติไม่พบ)', 5000);
+  showPanel('check');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('live-filter-progress').addEventListener('click', ()=>{
+  liveFilterMode='progress';
+  document.getElementById('live-filter-progress').classList.add('active');
+  document.getElementById('live-filter-all').classList.remove('active');
+  renderLiveList();
+});
+document.getElementById('live-filter-all').addEventListener('click', ()=>{
+  liveFilterMode='all';
+  document.getElementById('live-filter-all').classList.add('active');
+  document.getElementById('live-filter-progress').classList.remove('active');
+  renderLiveList();
+});
+document.getElementById('btn-refresh-live').addEventListener('click', loadLiveTab);
+
 // ---- init selects ----
 WARDS.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=w; document.getElementById('f-ward').appendChild(o); });
 HAD_DRUGS.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=d.name+' '+d.strength; document.getElementById('f-drug').appendChild(o); });
 document.getElementById('f-checkdt').value = new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 
 // ---- tabs ----
-document.getElementById('tab-check-btn').addEventListener('click', ()=>{
-  document.getElementById('tab-check-btn').classList.add('active');
-  document.getElementById('tab-history-btn').classList.remove('active');
-  document.getElementById('panel-check').style.display='block';
-  document.getElementById('panel-history').style.display='none';
-});
-document.getElementById('tab-history-btn').addEventListener('click', ()=>{
-  document.getElementById('tab-history-btn').classList.add('active');
-  document.getElementById('tab-check-btn').classList.remove('active');
-  document.getElementById('panel-history').style.display='block';
-  document.getElementById('panel-check').style.display='none';
-  loadHistory();
-});
+function showPanel(which){
+  document.getElementById('tab-check-btn').classList.toggle('active', which==='check');
+  document.getElementById('tab-live-btn').classList.toggle('active', which==='live');
+  document.getElementById('tab-history-btn').classList.toggle('active', which==='history');
+  document.getElementById('panel-check').style.display = which==='check' ? 'block':'none';
+  document.getElementById('panel-live').style.display = which==='live' ? 'block':'none';
+  document.getElementById('panel-history').style.display = which==='history' ? 'block':'none';
+  if(liveRefreshTimer){ clearInterval(liveRefreshTimer); liveRefreshTimer = null; }
+  if(which==='live'){
+    loadLiveTab();
+    liveRefreshTimer = setInterval(loadLiveTab, 30000);
+  }
+}
+document.getElementById('tab-check-btn').addEventListener('click', ()=> showPanel('check'));
+document.getElementById('tab-live-btn').addEventListener('click', ()=> showPanel('live'));
+document.getElementById('tab-history-btn').addEventListener('click', ()=>{ showPanel('history'); loadHistory(); });
 
 // ---- drug select -> render reference + checklists ----
 const ORDER_ITEMS = ['ขนาดยาถูกต้องตามมาตรฐาน','ข้อบ่งใช้ตรงกับที่สั่ง','วิธีบริหารยา/อัตราการให้ถูกต้อง','การเจือจาง/ผสมยาถูกต้อง'];
