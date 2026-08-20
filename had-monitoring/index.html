@@ -97,6 +97,11 @@
   .round-label{font-size:12.5px;font-weight:700;color:var(--teal-deep);margin:10px 0 4px;}
   .se-item{font-size:12.5px;background:var(--danger-soft);color:var(--danger);border-radius:7px;padding:6px 10px;margin-bottom:6px;}
   .live-filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .cp-mini-table td, .cp-mini-table th{ }
+  .cp-edit-tr td{background:var(--paper);}
+  .cp-edit-tr input{font-size:12.5px;padding:6px 8px;}
+  .cp-edit-tr label{font-size:10.5px;margin-bottom:2px;}
+  .check-form-embedded-banner{background:var(--teal-soft);color:var(--teal-deep);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
   @media (max-width:640px){ .result-btns{flex-direction:column;} table{font-size:12px;} th,td{padding:6px} }
 </style>
 </head>
@@ -113,12 +118,13 @@
     <p class="sub">สำหรับเภสัชกรตรวจสอบความถูกต้องคำสั่งยาและการติดตาม parameter ของยา HAD ทั้งขณะให้ยาอยู่และตรวจย้อนหลัง</p>
     <div class="tabs">
       <button class="tab-btn active" id="tab-check-btn">ตรวจสอบการใช้ยา HAD</button>
-      <button class="tab-btn" id="tab-live-btn">ติดตามสด (จากพยาบาล) <span class="tab-badge" id="live-badge" style="display:none;"></span></button>
+      <button class="tab-btn" id="tab-live-btn">ข้อมูลการติดตามจากพยาบาล <span class="tab-badge" id="live-badge" style="display:none;"></span></button>
       <button class="tab-btn" id="tab-history-btn">ข้อมูลการติดตาม</button>
     </div>
   </header>
 
   <div id="panel-check">
+   <div id="check-form-wrapper">
     <div class="card">
       <h2>ข้อมูลผู้ป่วยและยา</h2>
       <div class="grid">
@@ -197,6 +203,7 @@
       <button class="primary" id="btn-save-check">บันทึกการตรวจ</button>
       <span class="loading-note" id="save-status"></span>
     </div>
+   </div>
   </div>
 
   <div id="panel-live" style="display:none;">
@@ -270,10 +277,9 @@ function showToast(msg){
 }
 
 // ================================================================
-// ---- แท็บ "ติดตามสด (จากพยาบาล)" — ดึงข้อมูลจริงจาก had.html (Drug Info Center) ----
+// ---- แท็บ "ข้อมูลการติดตามจากพยาบาล" — ดึงข้อมูลจริงจาก had.html (Drug Info Center) ----
 // ================================================================
 let dicHadConfig = null;         // cache ของ had.html: [{id,name,strength,checkpointMinutes,secondaryFields,...}]
-let liveRefreshTimer = null;
 let liveFilterMode = 'progress'; // 'progress' | 'all'
 let liveEpisodesCache = [];      // [{recordId, rows, had, ...}]
 let liveOpenRecId = null;
@@ -324,15 +330,16 @@ function buildComplianceForEpisode(rows, had){
     rowsForGroup.forEach(r=>{ if(r.checkpointLabel) byLabel[r.checkpointLabel]=r; });
     return standard.map(cp=>{
       const r = byLabel[cp.label];
-      if(r){ return {...cp, saved:true, recordedTime: r.checkpointTime ? new Date(r.checkpointTime) : null, row:r}; }
+      if(r){ return {...cp, fullLabel: cp.label, saved:true, recordedTime: r.checkpointTime ? new Date(r.checkpointTime) : null, row:r}; }
       const overdue = cp.time <= now;
-      return {...cp, saved:false, overdue, row:null};
+      return {...cp, fullLabel: cp.label, saved:false, overdue, row:null};
     });
   }
   const primary = markFlags(primaryStandard, primaryRows);
   const secondary = markFlags(secondaryStandard, secondaryRows);
 
   // รอบให้ยาเพิ่ม (Amiodarone 150→300 ฯลฯ) — เทียบ checklist มาตรฐานเดียวกัน anchor ที่เวลาบันทึกแรกของรอบนั้น
+  // หมายเหตุ: fullLabel ของรอบต้องมี prefix "รอบให้ยาที่ N - " กลับคืนเสมอ เวลาบันทึก/แก้ไขข้อมูลจะได้เขียนทับแถวถูกจุด
   const roundGroups = {};
   rows.forEach(r=>{
     const m = /^รอบให้ยาที่ (\d+) - (.+)$/.exec(r.checkpointLabel||'');
@@ -344,7 +351,8 @@ function buildComplianceForEpisode(rows, had){
     const rRows = roundGroups[n];
     const rStart = rRows.reduce((min,r)=> (!min || new Date(r.checkpointTime) < new Date(min)) ? r.checkpointTime : min, null);
     const rStandard = buildCheckpointListLive(had, new Date(rStart));
-    return { round:n, doseInfo: rRows[0].doseInfo || '', checkpoints: markFlags(rStandard, rRows) };
+    const checkpoints = markFlags(rStandard, rRows).map(cp=>({...cp, fullLabel: `รอบให้ยาที่ ${n} - ${cp.label}`}));
+    return { round:n, doseInfo: rRows[0].doseInfo || '', checkpoints };
   });
 
   const allFlagged = [...primary, ...secondary, ...rounds.flatMap(r=>r.checkpoints)];
@@ -393,7 +401,27 @@ async function loadLiveTab(){
   }
 }
 
+let embeddedCheckFormRecordId = null; // recordId ที่ฟอร์ม "ตรวจสอบการใช้ยา HAD" ถูกฝังอยู่ใต้ตอนนี้ (ถ้ามี)
+let liveCpRegistry = {}; // rowId -> {ep, cp} สำหรับปุ่มแก้ไขแต่ละแถว
+
+function restoreCheckFormHome(){
+  const wrapper = document.getElementById('check-form-wrapper');
+  const home = document.getElementById('panel-check');
+  if(wrapper && wrapper.parentElement !== home) home.appendChild(wrapper);
+  embeddedCheckFormRecordId = null;
+}
+
+function embedCheckFormInEpisode(recordId){
+  const wrapper = document.getElementById('check-form-wrapper');
+  const slot = document.getElementById('ep-checkform-slot-'+recordId);
+  if(!wrapper || !slot) return;
+  slot.appendChild(wrapper);
+  embeddedCheckFormRecordId = recordId;
+}
+
 function renderLiveList(){
+  // ฟอร์มตรวจสอบอาจถูกฝังอยู่ใต้การ์ดใดการ์ดหนึ่ง — ย้ายกลับที่ปลอดภัยก่อนเสมอ ป้องกันการ rebuild การ์ดทำให้ฟอร์ม/ข้อมูลที่กรอกค้างหาย
+  restoreCheckFormHome();
   const listEl = document.getElementById('live-list');
   const emptyEl = document.getElementById('live-empty');
   let episodes = liveEpisodesCache;
@@ -421,38 +449,48 @@ function renderLiveList(){
     </div>`;
   }).join('');
   listEl.querySelectorAll('.ep-card').forEach(card=>{
-    card.addEventListener('click', (e)=>{
+    // เปิด/ปิดกล่องนี้เมื่อคลิกที่ "หัวการ์ด" เท่านั้น (ไม่ใช่ทั้งการ์ด) เพื่อไม่ให้การคลิก/กรอกข้อมูลด้านในไปเผลอปิดกล่อง
+    card.querySelector('.ep-top').addEventListener('click', ()=>{
       const recId = card.dataset.recid;
-      if(liveOpenRecId === recId){ liveOpenRecId = null; }
-      else { liveOpenRecId = recId; }
+      liveOpenRecId = (liveOpenRecId === recId) ? null : recId;
       renderLiveList();
       if(liveOpenRecId) renderEpisodeDetail(liveOpenRecId);
     });
   });
+  if(liveOpenRecId) renderEpisodeDetail(liveOpenRecId);
 }
 
-function cpRow(cp){
+function cpRowId(recordId, prefix, idx){ return `cprow-${recordId}-${prefix}-${idx}`.replace(/[^a-zA-Z0-9_-]/g,''); }
+
+function cpRow(cp, ep, prefix, idx){
+  const rowId = cpRowId(ep.recordId, prefix, idx);
+  liveCpRegistry[rowId] = {ep, cp};
   const flag = cp.saved ? `<span class="flag done">✓ บันทึกแล้ว ${cp.recordedTime?fmtTimeLive(cp.recordedTime):''}</span>`
     : cp.overdue ? `<span class="flag overdue">✗ เลยเวลาแล้ว ยังไม่บันทึก</span>`
     : `<span class="flag pending">⏳ ยังไม่ถึงเวลา</span>`;
   const vals = cp.row ? [cp.row.bp&&('BP '+cp.row.bp), cp.row.hr&&('HR '+cp.row.hr), cp.row.rr&&('RR '+cp.row.rr), cp.row.o2sat&&('O2 '+cp.row.o2sat), cp.row.temp&&('T '+cp.row.temp)].filter(Boolean).join(' · ') : '';
-  return `<tr><td>${escapeHtmlLive(cp.label)}</td><td>${fmtTimeLive(cp.time)}</td><td>${flag}</td><td style="font-size:12px;color:var(--ink-soft);">${escapeHtmlLive(vals)}${cp.row&&cp.row.note?' · '+escapeHtmlLive(cp.row.note):''}</td></tr>`;
+  return `<tr id="${rowId}"><td>${escapeHtmlLive(cp.label)}</td><td>${fmtTimeLive(cp.time)}</td><td>${flag}</td><td style="font-size:12px;color:var(--ink-soft);">${escapeHtmlLive(vals)}${cp.row&&cp.row.note?' · '+escapeHtmlLive(cp.row.note):''}</td><td><button class="ghost small btn-edit-cp" data-rowid="${rowId}">✎ แก้ไข</button></td></tr>`;
 }
+
+function cpTableHead(){ return `<thead><tr><th>จุดติดตาม</th><th>เวลาที่ควรทำ</th><th>สถานะ</th><th>ค่าที่บันทึก</th><th></th></tr></thead>`; }
 
 function renderEpisodeDetail(recordId){
   const ep = liveEpisodesCache.find(e=>e.recordId===recordId);
   const el = document.getElementById('ep-detail-'+recordId);
   if(!ep || !el) return;
+  // ถ้าฟอร์มตรวจสอบฝังอยู่ใต้เคสนี้อยู่แล้ว ต้องย้ายออกไปที่ปลอดภัยก่อน เพราะกำลังจะเขียนทับ innerHTML ของกล่องนี้ทั้งหมด
+  const wasEmbeddedHere = (embeddedCheckFormRecordId === recordId);
+  if(wasEmbeddedHere) restoreCheckFormHome();
   const c = ep.comp;
-  let html = `<table class="cp-mini-table"><thead><tr><th>จุดติดตาม</th><th>เวลาที่ควรทำ</th><th>สถานะ</th><th>ค่าที่บันทึก</th></tr></thead><tbody>`;
-  html += c.primary.map(cpRow).join('');
+  let html = `<table class="cp-mini-table">${cpTableHead()}<tbody>`;
+  html += c.primary.map((cp,i)=>cpRow(cp, ep, 'p', i)).join('');
   html += '</tbody></table>';
   if(c.secondary.length){
-    html += `<div class="round-label">การติดตามต่อเนื่อง</div><table class="cp-mini-table"><tbody>` + c.secondary.map(cpRow).join('') + `</tbody></table>`;
+    html += `<div class="round-label">การติดตามต่อเนื่อง</div><table class="cp-mini-table">${cpTableHead()}<tbody>` + c.secondary.map((cp,i)=>cpRow(cp, ep, 's', i)).join('') + `</tbody></table>`;
   }
   c.rounds.forEach(r=>{
     html += `<div class="round-label">🔁 รอบให้ยาที่ ${r.round}${r.doseInfo?(' — ขนาดยา '+escapeHtmlLive(r.doseInfo)):''}</div>`;
-    html += `<table class="cp-mini-table"><tbody>` + r.checkpoints.map(cpRow).join('') + `</tbody></table>`;
+    html += `<table class="cp-mini-table">${cpTableHead()}<tbody>` + r.checkpoints.map((cp,i)=>cpRow(cp, ep, 'r'+r.round, i)).join('') + `</tbody></table>`;
   });
   if(c.endRow){
     html += `<div class="info-banner" style="margin-top:6px;">🏁 สิ้นสุดการให้ยาแล้ว เมื่อ ${c.endRow.checkpointTime?fmtDateTimeLive(new Date(c.endRow.checkpointTime)):'-'}</div>`;
@@ -464,12 +502,118 @@ function renderEpisodeDetail(recordId){
       return `<div class="se-item">${r.checkpointTime?fmtTimeLive(new Date(r.checkpointTime)):''} — ${escapeHtmlLive(ov.effect||'-')}${ov.management?(' · การจัดการ: '+escapeHtmlLive(ov.management)):''}</div>`;
     }).join('');
   }
+  html += `<div id="ep-checkform-slot-${recordId}"></div>`;
   html += `<div class="row-actions" style="margin-top:10px;">
-    <button class="ghost small" id="btn-use-for-check-${recordId}">📋 ใช้ข้อมูลนี้เปิดฟอร์มตรวจสอบ (แท็บ "ตรวจสอบการใช้ยา HAD")</button>
+    <button class="ghost small" id="btn-use-for-check-${recordId}">📋 เปิดฟอร์มตรวจสอบใต้รายการนี้</button>
   </div>`;
   el.innerHTML = html;
+  // กันไม่ให้การคลิก/กรอกข้อมูลใดๆ ภายในกล่องนี้ (ตาราง, ฟอร์มแก้ไข, ฟอร์มตรวจสอบที่ฝังอยู่) ไปเผลอ bubble ขึ้นไปปิดการ์ดด้านนอก
+  el.addEventListener('click', e=> e.stopPropagation());
+  el.querySelectorAll('.btn-edit-cp').forEach(btn=>{
+    btn.addEventListener('click', ()=> openCpEditForm(btn.dataset.rowid));
+  });
   const btn = document.getElementById('btn-use-for-check-'+recordId);
-  if(btn) btn.addEventListener('click', (e)=>{ e.stopPropagation(); prefillCheckFromEpisode(ep); });
+  if(btn) btn.addEventListener('click', ()=> prefillCheckFromEpisode(ep));
+  if(wasEmbeddedHere) embedCheckFormInEpisode(recordId);
+}
+
+// ---- แก้ไข/เพิ่มข้อมูลจุดติดตามที่พยาบาลอาจลืมบันทึก ----
+function openCpEditForm(rowId){
+  const entry = liveCpRegistry[rowId];
+  if(!entry) return;
+  const {cp} = entry;
+  document.querySelectorAll('.cp-edit-tr').forEach(r=>r.remove());
+  const tr = document.getElementById(rowId);
+  if(!tr) return;
+  const existing = cp.row || {};
+  const timeVal = cp.recordedTime || cp.time;
+  const timeLocal = new Date(timeVal.getTime() - timeVal.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const editTr = document.createElement('tr');
+  editTr.className = 'cp-edit-tr';
+  editTr.innerHTML = `<td colspan="5" style="padding:10px;">
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px;">
+      <div><label>เวลาที่บันทึกจริง</label><input type="datetime-local" id="${rowId}-time" value="${timeLocal}"></div>
+      <div><label>BP</label><input type="text" id="${rowId}-bp" value="${escapeHtmlLive(existing.bp||'')}"></div>
+      <div><label>HR</label><input type="text" id="${rowId}-hr" value="${escapeHtmlLive(existing.hr||'')}"></div>
+      <div><label>RR</label><input type="text" id="${rowId}-rr" value="${escapeHtmlLive(existing.rr||'')}"></div>
+      <div><label>O2 sat</label><input type="text" id="${rowId}-o2" value="${escapeHtmlLive(existing.o2sat||'')}"></div>
+      <div><label>Temp</label><input type="text" id="${rowId}-temp" value="${escapeHtmlLive(existing.temp||'')}"></div>
+    </div>
+    <div style="margin-top:6px;"><label style="font-size:10.5px;">หมายเหตุ</label><input type="text" id="${rowId}-note" value="${escapeHtmlLive(existing.note||'')}" style="width:100%;"></div>
+    <div class="row-actions" style="margin-top:8px;">
+      <button class="primary small" id="${rowId}-save">💾 บันทึก</button>
+      <button class="ghost small" id="${rowId}-cancel">ยกเลิก</button>
+      <span class="loading-note" id="${rowId}-status"></span>
+    </div>
+  </td>`;
+  tr.after(editTr);
+  document.getElementById(rowId+'-cancel').addEventListener('click', ()=> editTr.remove());
+  document.getElementById(rowId+'-save').addEventListener('click', ()=> saveCpEdit(rowId, editTr));
+}
+
+async function saveCpEdit(rowId, editTr){
+  const entry = liveCpRegistry[rowId];
+  if(!entry) return;
+  const {ep, cp} = entry;
+  const auth = window.PHQAuth.getAuth();
+  const statusEl = document.getElementById(rowId+'-status');
+  statusEl.textContent = 'กำลังบันทึก...';
+  const timeVal = document.getElementById(rowId+'-time').value;
+  const bp = document.getElementById(rowId+'-bp').value.trim();
+  const hr = document.getElementById(rowId+'-hr').value.trim();
+  const rr = document.getElementById(rowId+'-rr').value.trim();
+  const o2sat = document.getElementById(rowId+'-o2').value.trim();
+  const temp = document.getElementById(rowId+'-temp').value.trim();
+  const noteRaw = document.getElementById(rowId+'-note').value.trim();
+  const note = (noteRaw ? noteRaw+' ' : '') + `[แก้ไข/เพิ่มโดยเภสัชกร ${auth.name}]`;
+  const f = ep.comp.first;
+  const entryBody = {
+    recordId: ep.recordId, hadId: ep.had.id, hadName: f.hadName,
+    patientHN: f.patientHN, patientName: f.patientName, ward: f.ward,
+    startTime: f.startTime, weight: f.weight, doseInfo: f.doseInfo,
+    checkpointLabel: cp.fullLabel || cp.label, checkpointTime: timeVal ? new Date(timeVal).toISOString() : new Date().toISOString(),
+    bp, hr, rr, o2sat, temp, note,
+    nurseName: f.nurseName, preparedBy: f.preparedBy||'', status: ep.comp.status||'in_progress'
+  };
+  try{
+    const data = await apiPostDIC({action:'saveHadRecord', code: auth.code, entry: entryBody});
+    if(!data.ok){ statusEl.textContent = 'บันทึกไม่สำเร็จ: '+(data.error||''); return; }
+    showToast('บันทึกข้อมูลติดตามเรียบร้อย');
+    if(editTr) editTr.remove();
+    await refreshSingleEpisode(ep.recordId);
+  }catch(err){
+    statusEl.textContent = 'เกิดข้อผิดพลาด: '+err.message;
+  }
+}
+
+// รีเฟรชเฉพาะเคสเดียวหลังแก้ไข (ไม่รีโหลดทั้งลิสต์ ไม่รบกวนการ์ดอื่นหรือฟอร์มที่กำลังฝังอยู่)
+async function refreshSingleEpisode(recordId){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth) return;
+  try{
+    const data = await apiPostDIC({action:'listHadRecords', code: auth.code, recordId});
+    if(!data.ok || !(data.records||[]).length) return;
+    const rows = data.records;
+    const idx = liveEpisodesCache.findIndex(e=>e.recordId===recordId);
+    const had = (dicHadConfig||[]).find(d=>d.id===rows[0].hadId) || (idx>=0 ? liveEpisodesCache[idx].had : {id:rows[0].hadId, name:rows[0].hadName, checkpointMinutes:'0'});
+    const comp = buildComplianceForEpisode(rows, had);
+    const newEp = {recordId, rows, had, comp};
+    if(idx>=0) liveEpisodesCache[idx] = newEp; else liveEpisodesCache.unshift(newEp);
+    renderEpisodeDetail(recordId);
+    const card = document.querySelector(`.ep-card[data-recid="${recordId}"]`);
+    if(card){
+      const statusPill = card.querySelector('.status-pill');
+      const gapPill = card.querySelector('.gap-pill');
+      if(statusPill){
+        statusPill.className = 'status-pill ' + (comp.status==='completed'?'completed':'progress');
+        statusPill.textContent = comp.status==='completed' ? '✓ เสร็จสิ้น' : '⏳ กำลังติดตาม';
+      }
+      if(gapPill){
+        gapPill.className = 'gap-pill ' + (comp.overdueCount>0?'warn':'ok');
+        gapPill.textContent = comp.overdueCount>0 ? `⚠ ขาด ${comp.overdueCount} จุด` : '✓ ครบตามกำหนด';
+      }
+    }
+  }catch(e){ /* silent */ }
 }
 
 function prefillCheckFromEpisode(ep){
@@ -486,9 +630,10 @@ function prefillCheckFromEpisode(ep){
   const match = HAD_DRUGS.find(d=> nameLower.includes(d.name.toLowerCase().split(' ')[0]));
   const drugSel = document.getElementById('f-drug');
   if(match){ drugSel.value = match.id; drugSel.dispatchEvent(new Event('change')); }
+  embedCheckFormInEpisode(ep.recordId);
   showToast(match ? 'ดึงข้อมูลผู้ป่วยมาเติมให้แล้ว — ตรวจสอบยาที่เลือกอีกครั้งก่อนบันทึก' : 'ดึงข้อมูลผู้ป่วยมาเติมให้แล้ว — กรุณาเลือกยาเอง (จับคู่อัตโนมัติไม่พบ)', 5000);
-  showPanel('check');
-  window.scrollTo({top:0, behavior:'smooth'});
+  const wrapper = document.getElementById('check-form-wrapper');
+  if(wrapper) wrapper.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 document.getElementById('live-filter-progress').addEventListener('click', ()=>{
@@ -512,17 +657,16 @@ document.getElementById('f-checkdt').value = new Date(Date.now()-new Date().getT
 
 // ---- tabs ----
 function showPanel(which){
+  // ถ้าฟอร์มตรวจสอบถูกย้ายไปฝังอยู่ใต้รายการ "ติดตามสด" อยู่ และผู้ใช้กดแท็บนี้เอง ให้ย้ายกลับที่เดิมก่อนเสมอ
+  if(which==='check') restoreCheckFormHome();
   document.getElementById('tab-check-btn').classList.toggle('active', which==='check');
   document.getElementById('tab-live-btn').classList.toggle('active', which==='live');
   document.getElementById('tab-history-btn').classList.toggle('active', which==='history');
   document.getElementById('panel-check').style.display = which==='check' ? 'block':'none';
   document.getElementById('panel-live').style.display = which==='live' ? 'block':'none';
   document.getElementById('panel-history').style.display = which==='history' ? 'block':'none';
-  if(liveRefreshTimer){ clearInterval(liveRefreshTimer); liveRefreshTimer = null; }
-  if(which==='live'){
-    loadLiveTab();
-    liveRefreshTimer = setInterval(loadLiveTab, 30000);
-  }
+  // ไม่มีการรีเฟรชอัตโนมัติแล้ว — ใช้ปุ่ม "รีเฟรช" เอง เพื่อไม่ให้กล่องที่เปิดดูอยู่ถูกล้าง/ย่อโดยไม่ตั้งใจ
+  if(which==='live' && !liveEpisodesCache.length) loadLiveTab();
 }
 document.getElementById('tab-check-btn').addEventListener('click', ()=> showPanel('check'));
 document.getElementById('tab-live-btn').addEventListener('click', ()=> showPanel('live'));
