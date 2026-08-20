@@ -397,6 +397,11 @@ function renderStockTable(term){
       const qtyReceivedInput = tr.querySelector('.f-qtyReceived');
       if(qtyReceivedInput){
         entry.qtyReceived = Number(qtyReceivedInput.value || 0);
+        // ปุ่ม ✏️ นี้ใช้สำหรับ "ตั้งค่าเริ่มต้น/ปรับยอดสะสม" เท่านั้น — เมื่อปรับยอดสะสมแล้ว ให้ยอดคงเหลือเท่ากับยอดสะสมที่ปรับใหม่โดยอัตโนมัติเสมอ
+        // (ป้องกันปัญหาระบบตัดเบิกให้ รพ.สต. คำนวณผิด เพราะยอดคงเหลือไม่ขยับตามยอดสะสมที่เพิ่งแก้)
+        entry.qtyRemaining = entry.qtyReceived;
+        const remainInput = tr.querySelector('.f-qtyRemaining');
+        if(remainInput) remainInput.value = entry.qtyRemaining;
       }
       btn.disabled = true; btn.textContent = '...';
       fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'updateVaccineLot', entry})})
