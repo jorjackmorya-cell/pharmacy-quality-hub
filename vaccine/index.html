@@ -251,7 +251,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>วันที่</th><th>ประเภท</th><th>วัคซีน</th><th>Lot</th><th>จำนวน</th><th>หน่วยเบิก/หมายเหตุ</th><th>ผู้บันทึก</th></tr></thead>
+          <thead><tr><th>วันที่</th><th>ประเภท</th><th>วัคซีน</th><th>Lot</th><th>จำนวน</th><th>หน่วยเบิก</th><th>ผู้บันทึก</th></tr></thead>
           <tbody id="report-tbody"><tr><td colspan="7" class="empty-state">เลือกช่วงเวลาแล้วกด "ดูรายงาน"</td></tr></tbody>
         </table>
       </div>
@@ -289,8 +289,10 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 
-function loadAllData(){
-  fetch(OFFHOURS_API_URL).then(r=>r.json()).then(data=>{
+function loadVaccineData(){
+  // ★ ใช้ action "getVaccineData" (เบากว่า doGet เดิมมาก — ไม่ดึง Refills/DrpReviews/ErStock/HADChecks ที่หน้านี้ไม่ได้ใช้เลย)
+  fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'getVaccineData'})})
+    .then(r=>r.json()).then(data=>{
     if(!data.ok) throw new Error(data.error||'unknown');
     vaccineLots = data.vaccineLots || [];
     vaccineTransactions = data.vaccineTransactions || [];
@@ -422,7 +424,7 @@ function renderStockTable(term){
     btn.addEventListener('click', ()=>{
       if(!confirm('ยืนยันลบ lot นี้? จะลบออกจากชีตแจ้งเตือนไลน์ด้วย (ประวัติ transaction เดิมจะไม่ถูกลบ)')) return;
       fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'deleteVaccineLot', id: btn.dataset.del})})
-        .then(r=>r.json()).then(data=>{ if(!data.ok) throw new Error(data.error||'unknown'); loadAllData(); })
+        .then(r=>r.json()).then(data=>{ if(!data.ok) throw new Error(data.error||'unknown'); loadVaccineData(); })
         .catch(e=> alert('ลบไม่สำเร็จ: '+e.message));
     });
   });
@@ -439,7 +441,8 @@ document.getElementById('btn-receive').addEventListener('click', ()=>{
     qty: Number(document.getElementById('rv-qty').value),
     receivedDate: document.getElementById('rv-date').value || todayStr(),
     note: document.getElementById('rv-note').value.trim(),
-    staffCode: auth.code
+    staffCode: auth.code,
+    staffName: auth.name
   };
   if(!entry.vaccineType || !entry.lotNo || !entry.expDate || !entry.qty){
     msg.className = 'msg error'; msg.textContent = 'กรุณากรอกชนิดวัคซีน, เลข Lot, วันหมดอายุ และจำนวนให้ครบ'; return;
@@ -450,7 +453,7 @@ document.getElementById('btn-receive').addEventListener('click', ()=>{
       if(!data.ok) throw new Error(data.error||'unknown');
       msg.className = 'msg success'; msg.textContent = 'บันทึกรับเข้าสำเร็จ ✓';
       ['rv-type','rv-lot','rv-exp','rv-qty','rv-date','rv-note'].forEach(id => document.getElementById(id).value = '');
-      loadAllData();
+      loadVaccineData();
     }).catch(e=>{ msg.className = 'msg error'; msg.textContent = 'บันทึกไม่สำเร็จ: '+e.message; })
     .finally(()=>{ btn.disabled = false; btn.textContent = 'บันทึกรับเข้า'; });
 });
@@ -562,6 +565,7 @@ document.getElementById('btn-save-requisition').addEventListener('click', ()=>{
     date: document.getElementById('dp-date').value || todayStr(),
     note: document.getElementById('dp-note').value.trim(),
     staffCode: auth.code,
+    staffName: auth.name,
     items
   };
   if(!entry.recipient || !items.length){
@@ -573,21 +577,24 @@ document.getElementById('btn-save-requisition').addEventListener('click', ()=>{
       if(!data.ok) throw new Error(data.error||'unknown');
       msg.className = 'msg success'; msg.textContent = 'บันทึกใบเบิกสำเร็จ ✓';
       resetRequisitionForm();
-      loadAllData();
+      loadVaccineData();
     }).catch(e=>{ msg.className = 'msg error'; msg.textContent = 'บันทึกไม่สำเร็จ: '+e.message; })
     .finally(()=>{ btn.disabled = false; btn.textContent = editingRequisitionId ? 'บันทึกการแก้ไข' : 'บันทึกใบเบิก'; });
 });
 
 function renderRequisitionList(){
   const container = document.getElementById('requisition-list');
-  const dispenseTx = vaccineTransactions.filter(t => t.type === 'dispense' && t.requisitionId);
+  const curMonth = todayStr().slice(0,7); // YYYY-MM ของเดือนปัจจุบัน (ตามเวลาไทย)
+  // แสดงเฉพาะใบเบิกของ "เดือนนี้" เท่านั้น — พอขึ้นเดือนใหม่ ใบเบิกเดือนก่อนจะไม่โผล่ที่นี่แล้ว (ดูย้อนหลังได้ที่แท็บ "รายงาน" แทน)
+  // กันไม่ให้รายการสะสมยาวขึ้นเรื่อยๆ จนหน้านี้หนักเมื่อใช้งานไปนานๆ
+  const dispenseTx = vaccineTransactions.filter(t => t.type === 'dispense' && t.requisitionId && String(t.date||'').slice(0,7) === curMonth);
   const grouped = {};
   dispenseTx.forEach(t=>{
     if(!grouped[t.requisitionId]) grouped[t.requisitionId] = { recipient: t.recipient, date: t.date, items: [] };
     grouped[t.requisitionId].items.push(t);
   });
   const groups = Object.entries(grouped).sort((a,b)=> (b[1].date||'').localeCompare(a[1].date||''));
-  if(!groups.length){ container.innerHTML = '<div class="empty-state">ยังไม่มีใบเบิกที่บันทึกไว้</div>'; return; }
+  if(!groups.length){ container.innerHTML = '<div class="empty-state">ยังไม่มีใบเบิกของเดือนนี้ — ใบเบิกเดือนก่อนหน้าดูได้ที่แท็บ "รายงาน"</div>'; return; }
 
   container.innerHTML = groups.map(([reqId, g])=>{
     const lines = g.items.map(it => `${escapeHtml(it.vaccineType)} (Lot ${escapeHtml(it.lotNo)}) — ${it.qty} โดส`).join('<br>');
@@ -608,7 +615,7 @@ function renderRequisitionList(){
     btn.addEventListener('click', ()=>{
       if(!confirm('ยืนยันลบใบเบิกนี้ทั้งใบ? สต๊อกทุกรายการในใบนี้จะถูกคืนกลับอัตโนมัติ')) return;
       fetch(OFFHOURS_API_URL, {method:'POST', body: JSON.stringify({action:'deleteVaccineRequisition', requisitionId: btn.dataset.delReq})})
-        .then(r=>r.json()).then(data=>{ if(!data.ok) throw new Error(data.error||'unknown'); loadAllData(); })
+        .then(r=>r.json()).then(data=>{ if(!data.ok) throw new Error(data.error||'unknown'); loadVaccineData(); })
         .catch(e=> alert('ลบไม่สำเร็จ: '+e.message));
     });
   });
@@ -676,8 +683,8 @@ document.getElementById('btn-run-report').addEventListener('click', ()=>{
       <td>${escapeHtml(t.vaccineType)}</td>
       <td>${escapeHtml(t.lotNo)}</td>
       <td>${t.qty}</td>
-      <td>${escapeHtml(t.recipient || t.note || '-')}</td>
-      <td>${escapeHtml(t.staffCode || '-')}</td>
+      <td>${escapeHtml(t.recipient || '-')}</td>
+      <td>${escapeHtml(t.staffName || '-')}</td>
     </tr>
   `).join('');
 });
@@ -685,8 +692,8 @@ document.getElementById('btn-run-report').addEventListener('click', ()=>{
 // ---------- init ----------
 document.getElementById('rv-date').value = todayStr();
 document.getElementById('dp-date').value = todayStr();
-if(auth){ renderWhoami(auth.name); loadAllData(); }
-document.addEventListener('phq-auth-success', (e)=>{ renderWhoami(e.detail.name); loadAllData(); });
+if(auth){ renderWhoami(auth.name); loadVaccineData(); }
+document.addEventListener('phq-auth-success', (e)=>{ renderWhoami(e.detail.name); loadVaccineData(); });
 </script>
 </body>
 </html>
