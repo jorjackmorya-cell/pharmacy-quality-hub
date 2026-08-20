@@ -188,7 +188,7 @@
       </h3>
       <input type="text" class="search-input" id="stock-search" placeholder="🔍 ค้นหาชนิดวัคซีน...">
       <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-faint);margin:8px 0 2px;cursor:pointer;">
-        <input type="checkbox" id="stock-show-empty" style="width:auto;"> แสดงล็อตที่ตัดจ่ายหมดแล้ว (คงเหลือ 0 โดส)
+        <input type="checkbox" id="stock-hide-empty" style="width:auto;"> ซ่อนล็อตที่ตัดจ่ายหมดแล้ว (คงเหลือ 0 โดส)
       </label>
       <div class="table-wrap">
         <table>
@@ -315,8 +315,9 @@ function loadVaccineData(){
 // ---------- Dashboard ----------
 function renderDashboard(){
   const today = todayStr();
-  // ล็อตที่คงเหลือ 0 (ตัดจ่ายหมดแล้ว) ไม่ต้องนับเป็น "lot ทั้งหมด"/"ใกล้หมดอายุ" อีกต่อไป เพราะไม่มีของเหลือให้ต้องเฝ้าระวังแล้ว
-  const lotsWithExpiry = vaccineLots.filter(l => l.expDate && Number(l.qtyRemaining||0) > 0);
+  // หมายเหตุ: ไม่กรองล็อตคงเหลือ 0 ออกจากแดชบอร์ด เพราะล็อตเก่าที่ยังไม่เคยปรับยอดสะสมก็โชว์คงเหลือ 0 เหมือนกัน
+  // (ไม่ได้แปลว่าของหมดจริง) การซ่อนออกไปเลยจะทำให้พลาดล็อตใกล้หมดอายุที่ยังไม่ได้ตรวจสอบ
+  const lotsWithExpiry = vaccineLots.filter(l => l.expDate);
   const totalTypes = new Set(lotsWithExpiry.map(l => l.vaccineType)).size;
   const totalQty = lotsWithExpiry.reduce((sum,l) => sum + Number(l.qtyRemaining||0), 0);
   const sorted = lotsWithExpiry.slice().sort((a,b) => (a.expDate||'').localeCompare(b.expDate||''));
@@ -349,15 +350,16 @@ function renderDashboard(){
 function renderStockTable(term){
   const t = (term||'').trim().toLowerCase();
   const tbody = document.getElementById('stock-tbody');
-  const showEmptyCb = document.getElementById('stock-show-empty');
-  const showEmpty = showEmptyCb ? showEmptyCb.checked : false;
-  // ล็อตที่ตัดจ่ายจนคงเหลือ 0 แล้ว จะซ่อนออกจากตารางนี้โดยอัตโนมัติ (ไม่ได้ลบข้อมูลจริง — ประวัติ/ยอดยังอยู่ครบ ดูย้อนหลังได้ที่แท็บ "รายงาน")
-  // กันปัญหาการลบ lot มือแล้ว error อย่างที่เคยเจอ และไม่ต้องมานั่งลบเองทีละล็อตด้วย
+  const hideEmptyCb = document.getElementById('stock-hide-empty');
+  const hideEmpty = hideEmptyCb ? hideEmptyCb.checked : false;
+  // ค่าเริ่มต้น (ไม่ติ๊ก) = แสดงทุกล็อตเหมือนเดิมทุกประการ ไม่ซ่อนอะไรทั้งนั้น
+  // เพราะล็อตเก่าที่ยังไม่เคยกด "แก้ยอดสะสม" อาจมีคงเหลือโชว์ 0 อยู่ทั้งที่ของจริงยังไม่หมด (แค่ยังไม่เคยปรับยอด) — ต้องให้เห็นและแก้ได้เสมอ
+  // ติ๊ก "ซ่อนล็อตที่ตัดจ่ายหมดแล้ว" เอง เมื่อมั่นใจว่ายอดคงเหลือของทุกล็อตอัปเดตถูกต้องแล้วเท่านั้น
   const rows = vaccineLots
     .filter(l => !t || (l.vaccineType||'').toLowerCase().includes(t))
-    .filter(l => showEmpty || Number(l.qtyRemaining||0) > 0)
+    .filter(l => !hideEmpty || Number(l.qtyRemaining||0) > 0)
     .sort((a,b) => (a.vaccineType||'').localeCompare(b.vaccineType||'') || (a.expDate||'').localeCompare(b.expDate||''));
-  if(!rows.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${showEmpty || vaccineLots.length===0 ? 'ไม่พบข้อมูล' : 'ไม่พบข้อมูล (ล็อตที่หมดแล้วถูกซ่อนอยู่ — ติ๊ก \"แสดงล็อตที่ตัดจ่ายหมดแล้ว\" ด้านบนเพื่อดู)'}</td></tr>`; return; }
+  if(!rows.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${!hideEmpty || vaccineLots.length===0 ? 'ไม่พบข้อมูล' : 'ไม่พบข้อมูล (ล็อตที่หมดแล้วถูกซ่อนอยู่ — เอาติ๊ก \\"ซ่อนล็อตที่ตัดจ่ายหมดแล้ว\\" ด้านบนออกเพื่อดู)'}</td></tr>`; return; }
   tbody.innerHTML = rows.map(l => `
     <tr data-id="${escapeHtml(l.id)}">
       <td><input type="text" class="f-vaccineType" value="${escapeHtml(l.vaccineType)}"></td>
@@ -439,7 +441,7 @@ function renderStockTable(term){
   });
 }
 document.getElementById('stock-search').addEventListener('input', e=> renderStockTable(e.target.value));
-document.getElementById('stock-show-empty').addEventListener('change', ()=> renderStockTable(document.getElementById('stock-search').value));
+document.getElementById('stock-hide-empty').addEventListener('change', ()=> renderStockTable(document.getElementById('stock-search').value));
 
 document.getElementById('btn-receive').addEventListener('click', ()=>{
   const btn = document.getElementById('btn-receive');
