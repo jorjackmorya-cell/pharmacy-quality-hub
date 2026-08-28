@@ -1207,34 +1207,77 @@ function renderHistoryTable(){
   document.getElementById('stat-ok').textContent = items.filter(x=>x.result==='ok').length;
   if(!items.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
   emptyEl.style.display='none';
-  tbody.innerHTML = items.map(it=>`
-    <tr>
+  tbody.innerHTML = items.map((it,idx)=>{
+    const detailId = 'hist-detail-'+idx;
+    return `<tr class="hist-row" data-detail="${detailId}" style="cursor:pointer;">
       <td>${escapeHtml(it.checkDateTime||'')}</td>
       <td>${escapeHtml(it.drugName||'')}</td>
       <td>${escapeHtml(it.hn||'')}</td>
       <td>${escapeHtml(it.ward||'')}</td>
       <td>${it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง'}</td>
       <td><span class="badge ${it.result==='problem'?'badge-problem':'badge-ok'}">${it.result==='problem'?'พบปัญหา':'ปกติ'}</span></td>
-    </tr>`).join('');
+    </tr>
+    <tr id="${detailId}" style="display:none;"><td colspan="6" style="background:var(--paper);padding:14px 16px;">${renderHistoryDetail(it)}</td></tr>`;
+  }).join('');
+  tbody.querySelectorAll('.hist-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const detail = document.getElementById(row.dataset.detail);
+      detail.style.display = detail.style.display==='none' ? 'table-row' : 'none';
+    });
+  });
+}
+
+// แสดงค่าพารามิเตอร์ที่เภสัชกรตรวจไว้จริงต่อเคส — ทั้งรายการตรวจคำสั่งยา (orderChecklist) และรายการติดตาม
+// parameter ของยา HAD นั้น (monitorChecklist) ก่อนหน้านี้ข้อมูลนี้ถูกเก็บไว้แต่ไม่เคยแสดงในหน้านี้เลย
+function renderHistoryDetail(it){
+  let orderAnswers = [], monitorAnswers = [];
+  try{ orderAnswers = JSON.parse(it.orderChecklist||'[]'); }catch(e){}
+  try{ monitorAnswers = JSON.parse(it.monitorChecklist||'[]'); }catch(e){}
+  const orderHtml = orderAnswers.length
+    ? `<div class="round-label">รายการตรวจคำสั่งยา</div><table class="cp-mini-table"><tbody>${
+        orderAnswers.map(a=>`<tr><td>${escapeHtml(a.label||'')}</td><td style="font-weight:600;">${escapeHtml(a.value||'-')}</td></tr>`).join('')
+      }</tbody></table>` : '';
+  const monitorHtml = monitorAnswers.length
+    ? `<div class="round-label">รายการติดตาม Parameter ของยา</div><table class="cp-mini-table"><tbody>${
+        monitorAnswers.map(a=>`<tr><td>${escapeHtml(a.parameter||'')}</td><td style="font-weight:600;">${escapeHtml(a.value||'-')}</td></tr>`).join('')
+      }</tbody></table>` : '';
+  const patientLine = `<div class="ep-meta" style="margin-bottom:8px;">ผู้ป่วย: ${escapeHtml(it.patientName||'-')} · ผู้ตรวจ: ${escapeHtml(it.reporterCode||'-')}</div>`;
+  const problemHtml = it.result==='problem' ? `<div class="problem-box" style="margin-top:10px;">
+      <div><b>ประเภทปัญหา:</b> ${escapeHtml(it.problemType||'-')}</div>
+      <div><b>ความรุนแรง (NCC MERP):</b> ${escapeHtml(it.severity||'-')}</div>
+      <div><b>รายละเอียด:</b> ${escapeHtml(it.problemDetail||'-')}</div>
+      <div><b>การแก้ไข:</b> ${escapeHtml(it.problemFix||'-')}</div>
+    </div>` : '';
+  if(!orderHtml && !monitorHtml && !problemHtml) return patientLine + '<div class="loading-note">ไม่มีรายละเอียดเพิ่มเติมสำหรับรายการนี้</div>';
+  return patientLine + orderHtml + monitorHtml + problemHtml;
 }
 
 document.getElementById('btn-export-xlsx').addEventListener('click', ()=>{
   const items = historyItemsCache.filter(it=>inRange(it.checkDateTime, historyRange));
   if(!items.length){ alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก'); return; }
-  const rows = items.map(it=>({
-    'วันที่/เวลาตรวจ': it.checkDateTime||'',
-    'ผู้ตรวจ': it.reporterCode||'',
-    'HN': it.hn||'',
-    'ชื่อผู้ป่วย': it.patientName||'',
-    'Ward': it.ward||'',
-    'สถานะตรวจ': it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง',
-    'ยา': it.drugName||'',
-    'ผลสรุป': it.result==='problem'?'พบปัญหา':'ปกติ',
-    'ประเภทปัญหา': it.problemType||'',
-    'รายละเอียดปัญหา': it.problemDetail||'',
-    'การแก้ไข': it.problemFix||'',
-    'ความรุนแรง (NCC MERP)': it.severity||''
-  }));
+  const rows = items.map(it=>{
+    let orderAnswers=[], monitorAnswers=[];
+    try{ orderAnswers = JSON.parse(it.orderChecklist||'[]'); }catch(e){}
+    try{ monitorAnswers = JSON.parse(it.monitorChecklist||'[]'); }catch(e){}
+    const orderText = orderAnswers.map(a=>`${a.label}: ${a.value||'-'}`).join(' | ');
+    const monitorText = monitorAnswers.map(a=>`${a.parameter}: ${a.value||'-'}`).join(' | ');
+    return {
+      'วันที่/เวลาตรวจ': it.checkDateTime||'',
+      'ผู้ตรวจ': it.reporterCode||'',
+      'HN': it.hn||'',
+      'ชื่อผู้ป่วย': it.patientName||'',
+      'Ward': it.ward||'',
+      'สถานะตรวจ': it.status==='ongoing'?'ขณะให้ยา':'ย้อนหลัง',
+      'ยา': it.drugName||'',
+      'รายการตรวจคำสั่งยา': orderText,
+      'รายการติดตาม Parameter': monitorText,
+      'ผลสรุป': it.result==='problem'?'พบปัญหา':'ปกติ',
+      'ประเภทปัญหา': it.problemType||'',
+      'รายละเอียดปัญหา': it.problemDetail||'',
+      'การแก้ไข': it.problemFix||'',
+      'ความรุนแรง (NCC MERP)': it.severity||''
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'HAD Monitoring');
@@ -1248,7 +1291,7 @@ async function loadHistory(){
   try{
     const res = await fetch(API_URL);
     const data = await res.json();
-    historyItemsCache = (data.hadChecks||[]).slice().sort((a,b)=>(b.checkDateTime||'').localeCompare(a.checkDateTime||''));
+    historyItemsCache = (data.hadChecks||[]).slice().sort((a,b)=> String(b.checkDateTime||'').localeCompare(String(a.checkDateTime||'')));
     renderHistoryTable();
   }catch(e){
     tbody.innerHTML = `<tr><td colspan="6" class="empty">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</td></tr>`;
