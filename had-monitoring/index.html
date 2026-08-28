@@ -120,6 +120,7 @@
       <button class="tab-btn active" id="tab-check-btn">ตรวจสอบการใช้ยา HAD</button>
       <button class="tab-btn" id="tab-live-btn">ข้อมูลการติดตามจากพยาบาล <span class="tab-badge" id="live-badge" style="display:none;"></span></button>
       <button class="tab-btn" id="tab-history-btn">ข้อมูลการติดตาม</button>
+      <button class="tab-btn" id="tab-report-btn">📊 รายงานสรุป</button>
     </div>
   </header>
 
@@ -211,6 +212,7 @@
       <div class="live-filter-bar">
         <label style="margin:0;">แสดง:</label>
         <button class="chip active" id="live-filter-progress" data-f="progress">⏳ กำลังติดตามอยู่</button>
+        <button class="chip" id="live-filter-unaudited" data-f="unaudited">📋 ยังไม่ได้ตรวจสอบ</button>
         <button class="chip" id="live-filter-all" data-f="all">ทั้งหมด (7 วันล่าสุด)</button>
         <button class="ghost small" id="btn-refresh-live" style="margin-left:auto;">🔄 รีเฟรช</button>
       </div>
@@ -254,6 +256,30 @@
       <div class="empty" id="history-empty" style="display:none;">ยังไม่มีข้อมูลการตรวจ</div>
     </div>
   </div>
+
+  <div id="panel-report" style="display:none;">
+    <div class="info-banner" style="margin-bottom:12px;">
+      ดึงข้อมูลการติดตามจริงของพยาบาล (HAD_Records) มาสรุปว่ายาแต่ละตัว/หอผู้ป่วยแต่ละแห่ง กรอกข้อมูล parameter ครบถ้วนแค่ไหน
+      นับละเอียดถึงระดับ "แต่ละ field" ที่คู่มือ HAD ของยานั้นกำหนดไว้ (ไม่ใช่แค่ระดับ checkpoint) — ใช้ประกอบการคืนข้อมูล/พัฒนาร่วมกับพยาบาลได้
+    </div>
+    <div class="card">
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;">
+        <div><label>จากวันที่</label><input type="date" id="report-from"></div>
+        <div><label>ถึงวันที่</label><input type="date" id="report-to"></div>
+        <div><button class="primary" id="btn-run-report" style="width:100%;">📊 ดึงรายงาน</button></div>
+      </div>
+      <div class="row-actions" style="margin-top:14px;">
+        <button class="chip active" id="report-view-drug" data-v="drug">💊 สรุปตามยา</button>
+        <button class="chip" id="report-view-ward" data-v="ward">🏥 สรุปตามหอ/แผนก</button>
+        <span style="flex:1;"></span>
+        <button class="ghost" id="btn-export-report" type="button" style="display:none;">ดาวน์โหลด Excel</button>
+      </div>
+      <div id="report-loading" class="loading-note" style="display:none;">กำลังดึงและประมวลผลข้อมูล...</div>
+      <div id="report-summary-note" class="loading-note" style="display:none;"></div>
+      <div id="report-body" style="margin-top:10px;"></div>
+      <div class="empty" id="report-empty" style="display:none;">ยังไม่มีข้อมูล — เลือกช่วงวันที่แล้วกด "ดึงรายงาน"</div>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -276,6 +302,14 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 2600);
 }
 
+// ป้ายชื่อภาษาไทยสำหรับ field เสริม (otherValues) ที่พยาบาลอาจบันทึกไว้นอกเหนือจาก BP/HR/RR/O2/Temp พื้นฐาน
+// ต้องตรงกับ FIELD_LIBRARY ใน had.html เพื่อให้แสดงผลตรงกัน
+const FIELD_LABELS_LIVE = {
+  ekgStatus:'EKG', urineOutput:'ปัสสาวะ (Urine)', io:'I/O', intake:'Intake', output:'Output',
+  serumK:'Serum K+', serumCa:'Serum Ca', painScore:'Pain score', sedationScore:'Sedation score',
+  pupil:'รูม่านตา', ivSite:'IV site', pumpCheck:'Infusion pump', other:'อื่นๆ'
+};
+
 // ================================================================
 // ---- แท็บ "ข้อมูลการติดตามจากพยาบาล" — ดึงข้อมูลจริงจาก had.html (Drug Info Center) ----
 // ================================================================
@@ -283,6 +317,22 @@ let dicHadConfig = null;         // cache ของ had.html: [{id,name,strength
 let liveFilterMode = 'progress'; // 'progress' | 'all'
 let liveEpisodesCache = [];      // [{recordId, rows, had, ...}]
 let liveOpenRecId = null;
+let hadChecksCache = null; // cache ของ HADChecks จาก Hub เอง (ใช้เช็คว่า episode ไหนถูกเภสัชกรตรวจสอบแล้วบ้าง)
+
+async function loadHadChecksCache(force){
+  if(hadChecksCache && !force) return hadChecksCache;
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    hadChecksCache = data.hadChecks || [];
+  }catch(e){
+    hadChecksCache = hadChecksCache || [];
+  }
+  return hadChecksCache;
+}
+function getAuditedRecordIdSet(){
+  return new Set((hadChecksCache||[]).filter(c=>c.linkedRecordId).map(c=>c.linkedRecordId));
+}
 
 async function apiPostDIC(body){
   const res = await fetch(DIC_API_URL, {method:'POST', body: JSON.stringify(body)});
@@ -362,6 +412,235 @@ function buildComplianceForEpisode(rows, had){
   return { first, latest, startTime, primary, secondary, rounds, endRow, seRows, overdueCount, status: latest.status||'in_progress' };
 }
 
+// ================================================================
+// ---------------- แท็บ "📊 รายงานสรุป" ----------------
+// ต่อยอดจาก buildComplianceForEpisode ที่มีอยู่แล้ว (บอกแค่ระดับ checkpoint) มาเช็คลึกถึงระดับ "แต่ละ field"
+// ว่ากรอกครบไหม ต่อ checkpoint หนึ่งๆ ที่ควรมีข้อมูลแล้ว (บันทึกแล้ว หรือเลยเวลาที่ควรบันทึกไปแล้ว)
+// ================================================================
+const BASE_FIELD_LABELS = {bp:'BP', hr:'HR', rr:'RR', o2sat:'O2 sat', temp:'Temp'};
+const ALL_FIELD_LABELS_REPORT = Object.assign({}, BASE_FIELD_LABELS, FIELD_LABELS_LIVE);
+
+function fieldValuePresent(row, fieldKey){
+  if(!row) return false;
+  if(BASE_FIELD_LABELS[fieldKey] !== undefined){
+    const v = row[fieldKey];
+    return v !== null && v !== undefined && String(v).trim() !== '';
+  }
+  try{
+    const ov = JSON.parse(row.otherValues || '{}');
+    const v = ov[fieldKey];
+    return v !== null && v !== undefined && String(v).trim() !== '';
+  }catch(e){ return false; }
+}
+
+// คืน [{fieldKey, filled}] หนึ่งรายการต่อ (checkpoint ที่ควรมีข้อมูลแล้ว × field ที่คู่มือ HAD กำหนดไว้)
+function computeFieldCompleteness(comp, had){
+  const primaryFields = (had.monitoringFields||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const secondaryFields = (had.secondaryFields||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const results = [];
+  function processGroup(checkpoints, fields){
+    checkpoints.forEach(cp=>{
+      if(!cp.saved && !cp.overdue) return; // ยังไม่ถึงเวลาที่ควรบันทึก ไม่นับว่า "ขาด"
+      fields.forEach(fk=>{
+        results.push({ fieldKey: fk, filled: cp.saved ? fieldValuePresent(cp.row, fk) : false });
+      });
+    });
+  }
+  processGroup(comp.primary, primaryFields);
+  processGroup(comp.secondary, secondaryFields);
+  comp.rounds.forEach(r=> processGroup(r.checkpoints, primaryFields));
+  return results;
+}
+
+function aggregateReport(episodes){
+  const byDrug = {};  // hadId -> {name, episodeCount, expected, missing, fields:{fk:{expected,missing}}}
+  const byWard = {};  // ward -> {episodeCount, expected, missing, missingBreakdown:{label:count}}
+  episodes.forEach(ep=>{
+    const had = ep.had;
+    const hadId = had.id || 'unknown';
+    const hadName = had.name || ep.comp.first.hadName || hadId;
+    const ward = ep.comp.first.ward || '(ไม่ระบุหอ/แผนก)';
+    if(!byDrug[hadId]) byDrug[hadId] = {name:hadName, episodeCount:0, expected:0, missing:0, fields:{}};
+    if(!byWard[ward]) byWard[ward] = {episodeCount:0, expected:0, missing:0, missingBreakdown:{}};
+    byDrug[hadId].episodeCount++;
+    byWard[ward].episodeCount++;
+
+    const fc = computeFieldCompleteness(ep.comp, had);
+    fc.forEach(({fieldKey, filled})=>{
+      if(!byDrug[hadId].fields[fieldKey]) byDrug[hadId].fields[fieldKey] = {expected:0, missing:0};
+      byDrug[hadId].fields[fieldKey].expected++;
+      byDrug[hadId].expected++;
+      byWard[ward].expected++;
+      if(!filled){
+        byDrug[hadId].fields[fieldKey].missing++;
+        byDrug[hadId].missing++;
+        byWard[ward].missing++;
+        const label = hadName + ' — ' + (ALL_FIELD_LABELS_REPORT[fieldKey]||fieldKey);
+        byWard[ward].missingBreakdown[label] = (byWard[ward].missingBreakdown[label]||0) + 1;
+      }
+    });
+  });
+  return {byDrug, byWard};
+}
+
+let reportAgg = null; // ผลลัพธ์ล่าสุดจาก aggregateReport (เก็บไว้ใช้ตอน export/สลับมุมมอง)
+let reportViewMode = 'drug'; // 'drug' | 'ward'
+
+function pctText(expected, missing){
+  if(!expected) return '-';
+  const pct = Math.round(((expected-missing)/expected)*1000)/10;
+  return pct + '%';
+}
+
+function renderReportBody(){
+  const body = document.getElementById('report-body');
+  const emptyEl = document.getElementById('report-empty');
+  if(!reportAgg){ body.innerHTML=''; emptyEl.style.display='block'; return; }
+  emptyEl.style.display='none';
+
+  if(reportViewMode === 'drug'){
+    const rows = Object.entries(reportAgg.byDrug).sort((a,b)=> b[1].episodeCount - a[1].episodeCount);
+    if(!rows.length){ body.innerHTML=''; emptyEl.style.display='block'; return; }
+    body.innerHTML = rows.map(([hadId, d])=>{
+      const fieldRows = Object.entries(d.fields).sort((a,b)=> b[1].missing - a[1].missing).map(([fk, f])=>{
+        const lbl = ALL_FIELD_LABELS_REPORT[fk] || fk;
+        const warnCls = f.missing>0 ? ' style="color:var(--danger);font-weight:600;"' : '';
+        return `<tr><td>${escapeHtml(lbl)}</td><td>${f.expected}</td><td${warnCls}>${f.missing}</td><td${warnCls}>${pctText(f.expected,f.missing)}</td></tr>`;
+      }).join('');
+      const overallPct = pctText(d.expected, d.missing);
+      return `<div class="ep-card" style="cursor:default;">
+        <div class="ep-top" style="cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';">
+          <div>
+            <div class="ep-title">${escapeHtml(d.name)}</div>
+            <div class="ep-meta">${d.episodeCount} episode · ความครบถ้วนโดยรวม ${overallPct} (ขาด ${d.missing}/${d.expected} จุดข้อมูล)</div>
+          </div>
+          <span class="gap-pill ${d.missing>0?'warn':'ok'}">${d.missing>0?'⚠ พบข้อมูลขาด':'✓ ครบถ้วน'}</span>
+        </div>
+        <div class="ep-detail" style="display:none;">
+          <table class="cp-mini-table"><thead><tr><th>Field</th><th>ควรมีข้อมูล (จุด)</th><th>ขาด (จุด)</th><th>% ครบถ้วน</th></tr></thead>
+          <tbody>${fieldRows}</tbody></table>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    const rows = Object.entries(reportAgg.byWard).sort((a,b)=> b[1].episodeCount - a[1].episodeCount);
+    if(!rows.length){ body.innerHTML=''; emptyEl.style.display='block'; return; }
+    body.innerHTML = rows.map(([ward, w])=>{
+      const missingRows = Object.entries(w.missingBreakdown).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([label,count])=>
+        `<tr><td>${escapeHtml(label)}</td><td style="color:var(--danger);font-weight:600;">${count}</td></tr>`
+      ).join('') || '<tr><td colspan="2" style="color:var(--good);">ไม่พบข้อมูลขาดหาย</td></tr>';
+      const overallPct = pctText(w.expected, w.missing);
+      return `<div class="ep-card" style="cursor:default;">
+        <div class="ep-top" style="cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';">
+          <div>
+            <div class="ep-title">🏥 ${escapeHtml(ward)}</div>
+            <div class="ep-meta">${w.episodeCount} episode · ความครบถ้วนโดยรวม ${overallPct} (ขาด ${w.missing}/${w.expected} จุดข้อมูล)</div>
+          </div>
+          <span class="gap-pill ${w.missing>0?'warn':'ok'}">${w.missing>0?'⚠ พบข้อมูลขาด':'✓ ครบถ้วน'}</span>
+        </div>
+        <div class="ep-detail" style="display:none;">
+          <div class="round-label">Field/ยาที่ขาดข้อมูลบ่อยสุด (สูงสุด 15 รายการ)</div>
+          <table class="cp-mini-table"><thead><tr><th>ยา — Field</th><th>จำนวนจุดที่ขาด</th></tr></thead>
+          <tbody>${missingRows}</tbody></table>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function runReport(){
+  const auth = window.PHQAuth.getAuth();
+  if(!auth) return;
+  const from = document.getElementById('report-from').value;
+  const to = document.getElementById('report-to').value;
+  if(!from || !to){ alert('กรุณาเลือกช่วงวันที่ให้ครบทั้งจากและถึง'); return; }
+  const loadingEl = document.getElementById('report-loading');
+  const noteEl = document.getElementById('report-summary-note');
+  loadingEl.style.display = 'block';
+  document.getElementById('report-body').innerHTML = '';
+  document.getElementById('report-empty').style.display = 'none';
+  noteEl.style.display = 'none';
+  document.getElementById('btn-export-report').style.display = 'none';
+  try{
+    if(!dicHadConfig){
+      const res = await fetch(DIC_API_URL);
+      const data = await res.json();
+      if(data.ok) dicHadConfig = data.had || [];
+    }
+    // dateTo ต้องรวมทั้งวันสุดท้าย — เติมเวลา 23:59:59 ให้
+    const dateFrom = new Date(from + 'T00:00:00').toISOString();
+    const dateTo = new Date(to + 'T23:59:59').toISOString();
+    const data = await apiPostDIC({action:'listHadRecords', code: auth.code, dateFrom, dateTo});
+    if(!data.ok){ loadingEl.textContent = 'ดึงข้อมูลไม่สำเร็จ: ' + (data.error||''); return; }
+    const groups = {};
+    (data.records||[]).forEach(r=>{ (groups[r.recordId]=groups[r.recordId]||[]).push(r); });
+    const episodes = Object.entries(groups).map(([recId, rows])=>{
+      const first = rows[0];
+      const had = (dicHadConfig||[]).find(d=>d.id===first.hadId) || { id:first.hadId, name:first.hadName, checkpointMinutes:'0', monitoringFields:'', secondaryFields:'' };
+      const comp = buildComplianceForEpisode(rows, had);
+      return { recordId: recId, rows, had, comp };
+    });
+    reportAgg = aggregateReport(episodes);
+    noteEl.textContent = `พบข้อมูล ${episodes.length} episode จาก ${from} ถึง ${to}`;
+    noteEl.style.display = 'block';
+    document.getElementById('btn-export-report').style.display = episodes.length ? 'inline-block' : 'none';
+    renderReportBody();
+  }catch(e){
+    loadingEl.textContent = 'เกิดข้อผิดพลาด: ' + e.message;
+    return;
+  }finally{
+    loadingEl.style.display = 'none';
+  }
+}
+
+function exportReportExcel(){
+  if(!reportAgg) return;
+  const wb = XLSX.utils.book_new();
+  const drugRows = [];
+  Object.values(reportAgg.byDrug).forEach(d=>{
+    Object.entries(d.fields).forEach(([fk,f])=>{
+      drugRows.push({
+        'ยา': d.name, 'จำนวน Episode': d.episodeCount, 'Field': ALL_FIELD_LABELS_REPORT[fk]||fk,
+        'ควรมีข้อมูล (จุด)': f.expected, 'ขาด (จุด)': f.missing, '% ครบถ้วน': pctText(f.expected,f.missing)
+      });
+    });
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(drugRows), 'สรุปตามยา');
+  const wardRows = [];
+  Object.entries(reportAgg.byWard).forEach(([ward,w])=>{
+    const overall = {'หอ/แผนก':ward, 'จำนวน Episode':w.episodeCount, 'ขาด (จุด)':w.missing, 'ควรมีข้อมูล (จุด)':w.expected, '% ครบถ้วน': pctText(w.expected,w.missing), 'ยา — Field ที่ขาดบ่อยสุด':''};
+    wardRows.push(overall);
+    Object.entries(w.missingBreakdown).sort((a,b)=>b[1]-a[1]).forEach(([label,count])=>{
+      wardRows.push({'หอ/แผนก':'', 'จำนวน Episode':'', 'ขาด (จุด)':count, 'ควรมีข้อมูล (จุด)':'', '% ครบถ้วน':'', 'ยา — Field ที่ขาดบ่อยสุด':label});
+    });
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wardRows), 'สรุปตามหอ-แผนก');
+  const from = document.getElementById('report-from').value, to = document.getElementById('report-to').value;
+  XLSX.writeFile(wb, `HAD_ความครบถ้วนข้อมูล_${from}_ถึง_${to}.xlsx`);
+}
+
+document.getElementById('btn-run-report').addEventListener('click', runReport);
+document.getElementById('btn-export-report').addEventListener('click', exportReportExcel);
+document.getElementById('report-view-drug').addEventListener('click', ()=>{
+  reportViewMode = 'drug';
+  document.getElementById('report-view-drug').classList.add('active');
+  document.getElementById('report-view-ward').classList.remove('active');
+  renderReportBody();
+});
+document.getElementById('report-view-ward').addEventListener('click', ()=>{
+  reportViewMode = 'ward';
+  document.getElementById('report-view-ward').classList.add('active');
+  document.getElementById('report-view-drug').classList.remove('active');
+  renderReportBody();
+});
+// ตั้งค่าเริ่มต้นของตัวเลือกช่วงวันที่: เดือนปัจจุบัน
+(function initReportDates(){
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('report-from').value = first.toISOString().slice(0,10);
+  document.getElementById('report-to').value = now.toISOString().slice(0,10);
+})();
+
 async function loadLiveTab(){
   const auth = window.PHQAuth.getAuth();
   if(!auth || !auth.code) return;
@@ -373,6 +652,8 @@ async function loadLiveTab(){
       const data = await res.json();
       if(data.ok) dicHadConfig = data.had || [];
     }
+    await loadHadChecksCache(); // ใช้ cache เดิมถ้ามี ไม่บังคับโหลดใหม่ทุกครั้งเพื่อความเร็ว
+    const auditedSet = getAuditedRecordIdSet();
     const dateFrom = new Date(Date.now() - 7*24*60*60*1000).toISOString();
     const data = await apiPostDIC({action:'listHadRecords', code: auth.code, dateFrom});
     if(!data.ok){ loadingEl.textContent = 'ดึงข้อมูลไม่สำเร็จ: ' + (data.error||''); return; }
@@ -382,6 +663,7 @@ async function loadLiveTab(){
       const first = rows[0];
       const had = (dicHadConfig||[]).find(d=>d.id===first.hadId) || { id:first.hadId, name:first.hadName, checkpointMinutes:'0' };
       const comp = buildComplianceForEpisode(rows, had);
+      comp.audited = auditedSet.has(recId);
       return { recordId: recId, rows, had, comp };
     });
     episodes.sort((a,b)=>{
@@ -390,9 +672,9 @@ async function loadLiveTab(){
       return (b.comp.startTime - a.comp.startTime);
     });
     liveEpisodesCache = episodes;
-    const progressCount = episodes.filter(e=>e.comp.status!=='completed').length;
+    const unauditedCount = episodes.filter(e=>!e.comp.audited).length;
     const badge = document.getElementById('live-badge');
-    if(progressCount){ badge.textContent = progressCount; badge.style.display='inline-flex'; } else { badge.style.display='none'; }
+    if(unauditedCount){ badge.textContent = unauditedCount; badge.style.display='inline-flex'; } else { badge.style.display='none'; }
     renderLiveList();
   }catch(e){
     loadingEl.textContent = 'เกิดข้อผิดพลาด: ' + e.message;
@@ -426,6 +708,7 @@ function renderLiveList(){
   const emptyEl = document.getElementById('live-empty');
   let episodes = liveEpisodesCache;
   if(liveFilterMode === 'progress') episodes = episodes.filter(e=>e.comp.status!=='completed');
+  if(liveFilterMode === 'unaudited') episodes = episodes.filter(e=>!e.comp.audited);
   if(!episodes.length){ listEl.innerHTML=''; emptyEl.style.display='block'; return; }
   emptyEl.style.display='none';
   listEl.innerHTML = episodes.map(ep=>{
@@ -436,6 +719,9 @@ function renderLiveList(){
     const gapHtml = c.overdueCount>0
       ? `<span class="gap-pill warn">⚠ ขาด ${c.overdueCount} จุด</span>`
       : `<span class="gap-pill ok">✓ ครบตามกำหนด</span>`;
+    const auditedHtml = c.audited
+      ? `<span class="status-pill completed">📋 เภสัชกรตรวจแล้ว</span>`
+      : `<span class="status-pill progress" style="background:#EEF1EE;color:var(--ink-soft);">📋 ยังไม่ตรวจสอบ</span>`;
     const open = liveOpenRecId === ep.recordId;
     return `<div class="ep-card ${open?'open':''}" data-recid="${escapeHtmlLive(ep.recordId)}">
       <div class="ep-top">
@@ -443,7 +729,7 @@ function renderLiveList(){
           <div class="ep-title">${escapeHtmlLive(c.first.hadName)} — HN ${escapeHtmlLive(f.patientHN)} ${escapeHtmlLive(f.patientName||'')}</div>
           <div class="ep-meta">หอ/แผนก ${escapeHtmlLive(f.ward||'-')} · เริ่มให้ยา ${fmtDateTimeLive(c.startTime)} · บันทึกโดย ${escapeHtmlLive(f.nurseName||'-')}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">${statusHtml}${gapHtml}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${statusHtml}${gapHtml}${auditedHtml}</div>
       </div>
       <div class="ep-detail" id="ep-detail-${escapeHtmlLive(ep.recordId)}" style="display:${open?'block':'none'};"></div>
     </div>`;
@@ -468,7 +754,19 @@ function cpRow(cp, ep, prefix, idx){
   const flag = cp.saved ? `<span class="flag done">✓ บันทึกแล้ว ${cp.recordedTime?fmtTimeLive(cp.recordedTime):''}</span>`
     : cp.overdue ? `<span class="flag overdue">✗ เลยเวลาแล้ว ยังไม่บันทึก</span>`
     : `<span class="flag pending">⏳ ยังไม่ถึงเวลา</span>`;
-  const vals = cp.row ? [cp.row.bp&&('BP '+cp.row.bp), cp.row.hr&&('HR '+cp.row.hr), cp.row.rr&&('RR '+cp.row.rr), cp.row.o2sat&&('O2 '+cp.row.o2sat), cp.row.temp&&('T '+cp.row.temp)].filter(Boolean).join(' · ') : '';
+  const baseVals = cp.row ? [cp.row.bp&&('BP '+cp.row.bp), cp.row.hr&&('HR '+cp.row.hr), cp.row.rr&&('RR '+cp.row.rr), cp.row.o2sat&&('O2 '+cp.row.o2sat), cp.row.temp&&('T '+cp.row.temp)].filter(Boolean) : [];
+  // เดิมโค้ดหยุดอยู่แค่ baseVals ด้านบน ทำให้ field เสริม (ivSite, painScore, sedationScore, serumK ฯลฯ)
+  // ที่พยาบาลบันทึกไว้ใน otherValues หายไปจากมุมมองนี้ทั้งหมด แม้จะเป็นข้อมูลสำคัญที่ต้องใช้ตรวจสอบ/ส่งกลับพยาบาล
+  let otherVals = [];
+  if(cp.row && cp.row.otherValues){
+    try{
+      const ov = JSON.parse(cp.row.otherValues);
+      otherVals = Object.entries(ov)
+        .filter(([k,v])=> v!==undefined && v!==null && String(v).trim()!=='')
+        .map(([k,v])=> (FIELD_LABELS_LIVE[k]||k) + ' ' + v);
+    }catch(e){ /* otherValues ไม่ใช่ JSON ที่ถูกต้อง ข้ามไปเงียบๆ */ }
+  }
+  const vals = [...baseVals, ...otherVals].join(' · ');
   return `<tr id="${rowId}"><td>${escapeHtmlLive(cp.label)}</td><td>${fmtTimeLive(cp.time)}</td><td>${flag}</td><td style="font-size:12px;color:var(--ink-soft);">${escapeHtmlLive(vals)}${cp.row&&cp.row.note?' · '+escapeHtmlLive(cp.row.note):''}</td><td><button class="ghost small btn-edit-cp" data-rowid="${rowId}">✎ แก้ไข</button></td></tr>`;
 }
 
@@ -573,6 +871,7 @@ async function saveCpEdit(rowId, editTr){
     startTime: f.startTime, weight: f.weight, doseInfo: f.doseInfo,
     checkpointLabel: cp.fullLabel || cp.label, checkpointTime: timeVal ? new Date(timeVal).toISOString() : new Date().toISOString(),
     bp, hr, rr, o2sat, temp, note,
+    otherValues: (cp.row && cp.row.otherValues) || '', // เก็บค่า field เสริมเดิม (ivSite, painScore ฯลฯ) ไว้ไม่ให้หายตอนแก้แค่ vital sign พื้นฐาน
     nurseName: f.nurseName, preparedBy: f.preparedBy||'', status: ep.comp.status||'in_progress'
   };
   try{
@@ -586,7 +885,8 @@ async function saveCpEdit(rowId, editTr){
   }
 }
 
-// รีเฟรชเฉพาะเคสเดียวหลังแก้ไข (ไม่รีโหลดทั้งลิสต์ ไม่รบกวนการ์ดอื่นหรือฟอร์มที่กำลังฝังอยู่)
+// รีเฟรชเฉพาะเคสเดียวหลังแก้ไข แล้วเรนเดอร์ลิสต์ใหม่ทั้งหมดเพื่อให้ filter (กำลังติดตามอยู่/ทั้งหมด) ถูกต้องเสมอ —
+// เดิมโค้ดแค่แก้ badge บนการ์ดเดิมในที่เดิม ทำให้เคสที่เพิ่ง "เสร็จสิ้น" จากการแก้ไขนี้ไม่หายไปจากมุมมอง "กำลังติดตามอยู่"
 async function refreshSingleEpisode(recordId){
   const auth = window.PHQAuth.getAuth();
   if(!auth) return;
@@ -597,22 +897,14 @@ async function refreshSingleEpisode(recordId){
     const idx = liveEpisodesCache.findIndex(e=>e.recordId===recordId);
     const had = (dicHadConfig||[]).find(d=>d.id===rows[0].hadId) || (idx>=0 ? liveEpisodesCache[idx].had : {id:rows[0].hadId, name:rows[0].hadName, checkpointMinutes:'0'});
     const comp = buildComplianceForEpisode(rows, had);
+    comp.audited = getAuditedRecordIdSet().has(recordId);
     const newEp = {recordId, rows, had, comp};
     if(idx>=0) liveEpisodesCache[idx] = newEp; else liveEpisodesCache.unshift(newEp);
-    renderEpisodeDetail(recordId);
-    const card = document.querySelector(`.ep-card[data-recid="${recordId}"]`);
-    if(card){
-      const statusPill = card.querySelector('.status-pill');
-      const gapPill = card.querySelector('.gap-pill');
-      if(statusPill){
-        statusPill.className = 'status-pill ' + (comp.status==='completed'?'completed':'progress');
-        statusPill.textContent = comp.status==='completed' ? '✓ เสร็จสิ้น' : '⏳ กำลังติดตาม';
-      }
-      if(gapPill){
-        gapPill.className = 'gap-pill ' + (comp.overdueCount>0?'warn':'ok');
-        gapPill.textContent = comp.overdueCount>0 ? `⚠ ขาด ${comp.overdueCount} จุด` : '✓ ครบตามกำหนด';
-      }
-    }
+    // อัปเดต badge นับจำนวนเคส "กำลังติดตามอยู่" บนแท็บด้วย เผื่อเคสนี้เพิ่งเปลี่ยนสถานะ
+    const unauditedCount = liveEpisodesCache.filter(e=>!e.comp.audited).length;
+    const badge = document.getElementById('live-badge');
+    if(unauditedCount){ badge.textContent = unauditedCount; badge.style.display='inline-flex'; } else { badge.style.display='none'; }
+    renderLiveList();
   }catch(e){ /* silent */ }
 }
 
@@ -636,17 +928,14 @@ function prefillCheckFromEpisode(ep){
   if(wrapper) wrapper.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-document.getElementById('live-filter-progress').addEventListener('click', ()=>{
-  liveFilterMode='progress';
-  document.getElementById('live-filter-progress').classList.add('active');
-  document.getElementById('live-filter-all').classList.remove('active');
-  renderLiveList();
-});
-document.getElementById('live-filter-all').addEventListener('click', ()=>{
-  liveFilterMode='all';
-  document.getElementById('live-filter-all').classList.add('active');
-  document.getElementById('live-filter-progress').classList.remove('active');
-  renderLiveList();
+const LIVE_FILTER_IDS = {progress:'live-filter-progress', unaudited:'live-filter-unaudited', all:'live-filter-all'};
+Object.entries(LIVE_FILTER_IDS).forEach(([mode, id])=>{
+  document.getElementById(id).addEventListener('click', ()=>{
+    liveFilterMode = mode;
+    Object.values(LIVE_FILTER_IDS).forEach(otherId=> document.getElementById(otherId).classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    renderLiveList();
+  });
 });
 document.getElementById('btn-refresh-live').addEventListener('click', loadLiveTab);
 
@@ -662,15 +951,18 @@ function showPanel(which){
   document.getElementById('tab-check-btn').classList.toggle('active', which==='check');
   document.getElementById('tab-live-btn').classList.toggle('active', which==='live');
   document.getElementById('tab-history-btn').classList.toggle('active', which==='history');
+  document.getElementById('tab-report-btn').classList.toggle('active', which==='report');
   document.getElementById('panel-check').style.display = which==='check' ? 'block':'none';
   document.getElementById('panel-live').style.display = which==='live' ? 'block':'none';
   document.getElementById('panel-history').style.display = which==='history' ? 'block':'none';
+  document.getElementById('panel-report').style.display = which==='report' ? 'block':'none';
   // ไม่มีการรีเฟรชอัตโนมัติแล้ว — ใช้ปุ่ม "รีเฟรช" เอง เพื่อไม่ให้กล่องที่เปิดดูอยู่ถูกล้าง/ย่อโดยไม่ตั้งใจ
   if(which==='live' && !liveEpisodesCache.length) loadLiveTab();
 }
 document.getElementById('tab-check-btn').addEventListener('click', ()=> showPanel('check'));
 document.getElementById('tab-live-btn').addEventListener('click', ()=> showPanel('live'));
 document.getElementById('tab-history-btn').addEventListener('click', ()=>{ showPanel('history'); loadHistory(); });
+document.getElementById('tab-report-btn').addEventListener('click', ()=> showPanel('report'));
 
 // ---- drug select -> render reference + checklists ----
 const ORDER_ITEMS = ['ขนาดยาถูกต้องตามมาตรฐาน','ข้อบ่งใช้ตรงกับที่สั่ง','วิธีบริหารยา/อัตราการให้ถูกต้อง','การเจือจาง/ผสมยาถูกต้อง'];
@@ -796,6 +1088,7 @@ document.getElementById('btn-save-check').addEventListener('click', async ()=>{
   const payload = {
     action:'saveHadCheck',
     entry:{
+      linkedRecordId: embeddedCheckFormRecordId || '', // เชื่อมกลับไปยัง episode ของพยาบาลถ้าฟอร์มนี้ถูกฝังอยู่ใต้การ์ดนั้น
       checkDateTime: document.getElementById('f-checkdt').value,
       reporterCode: auth.code,
       hn: document.getElementById('f-hn').value.trim(),
@@ -819,7 +1112,13 @@ document.getElementById('btn-save-check').addEventListener('click', async ()=>{
     const res = await apiPost(payload);
     if(!res.ok) throw new Error(res.error||'unknown');
     showToast('บันทึกการตรวจเรียบร้อย ✓');
+    const wasEmbedded = !!embeddedCheckFormRecordId;
     resetForm();
+    if(wasEmbedded){
+      restoreCheckFormHome();
+      hadChecksCache = null; // บังคับโหลด HADChecks ใหม่ เพราะเพิ่งบันทึกรายการตรวจสอบเพิ่ม ต้องรู้ทันทีว่า episode นี้ตรวจแล้ว
+      await loadLiveTab(); // รีเฟรชข้อมูลติดตามพยาบาลทั้งชุด เพราะฟอร์มตรวจสอบเพิ่งถูกใช้ทบทวนเคสหนึ่งในนั้น
+    }
   }catch(e){
     alert('บันทึกไม่สำเร็จ: '+e.message);
   }
