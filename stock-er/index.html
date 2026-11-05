@@ -31,6 +31,10 @@
   .tl-open{background:var(--teal);} .tl-closed{background:var(--amber);}
   .tl-marks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);margin-top:4px;}
 
+  .tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;width:fit-content;max-width:100%;margin-bottom:18px;flex-wrap:wrap;}
+  .tab-btn{border:none;background:transparent;color:var(--ink-soft);padding:8px 18px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;}
+  .tab-btn.active{background:var(--teal);color:#fff;}
+
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
   .card h2{font-size:17px;margin:0 0 14px;color:var(--teal-deep);}
   .card h3{font-size:14.5px;margin:0 0 10px;color:var(--ink-soft);font-weight:600;}
@@ -38,22 +42,21 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
   label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;font-weight:500;}
   input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14.5px;color:var(--ink);background:#fff;}
+  input[type=checkbox]{width:auto;}
   input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
   input:disabled{background:var(--paper);color:var(--ink-soft);}
-  textarea{resize:vertical;min-height:60px;}
 
   .row-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;}
   button.primary{background:var(--teal);color:#fff;border:none;padding:9px 20px;border-radius:7px;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;transition:.15s;}
   button.primary:hover{background:var(--teal-deep);}
-  button.ghost{background:none;border:1px solid var(--line);color:var(--ink-soft);padding:9px 16px;border-radius:7px;font-family:inherit;font-size:14px;cursor:pointer;}
+  button.ghost{background:#fff;border:1px solid var(--line);color:var(--ink-soft);padding:9px 16px;border-radius:7px;font-family:inherit;font-size:14px;cursor:pointer;}
   button.ghost:hover{border-color:var(--teal);color:var(--teal-deep);}
   button:disabled{opacity:.5;cursor:not-allowed;}
-  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
 
   .filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
   .filter-bar > div{min-width:130px;}
   .chip-group{display:flex;gap:6px;flex-wrap:wrap;}
-  .chip{padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+  .chip{padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer;color:var(--ink-soft);user-select:none;}
   .chip.active{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-deep);font-weight:600;}
 
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
@@ -67,28 +70,34 @@
 
   .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;}
   .stat{background:var(--teal-soft);border-radius:8px;padding:14px 16px;}
+  .stat.warn{background:var(--danger-soft);} .stat.warn .num{color:var(--danger);}
   .stat .num{font-size:26px;font-weight:700;color:var(--teal-deep);line-height:1.1;}
   .stat .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
 
   .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;}
-  .bar-name{width:170px;flex-shrink:0;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-name{width:170px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .bar-track{flex:1;background:var(--paper);border-radius:5px;height:18px;overflow:hidden;}
-  .bar-fill{background:var(--teal);height:100%;border-radius:5px 0 0 5px;transition:width .3s;}
+  .bar-fill{background:var(--teal);height:100%;border-radius:5px 0 0 5px;}
   .bar-val{width:50px;text-align:right;flex-shrink:0;font-weight:600;color:var(--teal-deep);}
 
   .drug-hint{font-size:12.5px;color:var(--ink-soft);background:var(--teal-soft);border-radius:6px;padding:8px 10px;margin-top:8px;}
-  .drug-row{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--paper);position:relative;}
+  .drug-row{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--paper);}
   .drug-row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;}
   .drug-row-actions{display:flex;gap:6px;}
-  .row-icon-btn{background:var(--card);border:1px solid var(--line);color:var(--ink-soft);width:34px;height:34px;border-radius:7px;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .row-icon-btn{background:var(--card);border:1px solid var(--line);color:var(--ink-soft);width:34px;height:34px;border-radius:7px;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .row-icon-btn:hover{border-color:var(--teal);color:var(--teal-deep);}
   .row-icon-btn.remove:hover{border-color:var(--danger);color:var(--danger);}
   .drug-row-num{font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:8px;}
   @media (max-width:760px){ .drug-row-grid{grid-template-columns:1fr 1fr;} }
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;}
   .toast.show{opacity:1;}
   .loading-note{font-size:13px;color:var(--ink-soft);padding:6px 0;}
   .shared-note{font-size:12px;color:var(--ink-soft);background:var(--teal-soft);border-radius:6px;padding:6px 10px;margin-bottom:14px;display:inline-block;}
+  .info-note{font-size:13px;background:var(--amber-soft);color:#6B4220;border-radius:6px;padding:8px 12px;margin-bottom:14px;}
+  .badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .b-dead{background:var(--danger-soft);color:var(--danger);}
+  .b-slow{background:var(--amber-soft);color:#8A5220;}
+  .b-ok{background:var(--good-soft);color:var(--good);}
 
   @media (max-width:640px){ .bar-name{width:110px;} table{font-size:12px;} th,td{padding:6px} }
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
@@ -116,13 +125,15 @@
     </div>
   </header>
 
-  <div class="shared-note">🔗 ข้อมูลนี้เป็นข้อมูลกลาง เจ้าหน้าที่ห้องยาทุกคนเห็นและบันทึกร่วมกันได้</div>
+  <div class="shared-note">🔗 ข้อมูลนี้เป็นข้อมูลกลาง เจ้าหน้าที่ห้องยาทุกคนเห็นและบันทึกร่วมกันได้ <span id="sync-note"></span></div>
 
-  <div class="tabs" id="mainTabs" style="display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; width:fit-content; margin-bottom:18px; flex-wrap:wrap;">
-    <button class="tab-btn active" data-tab="refill" style="border:none;background:var(--teal);color:#fff;padding:8px 18px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">บันทึกเติมยา</button>
-    <button class="tab-btn" data-tab="manage" style="border:none;background:transparent;color:var(--ink-soft);padding:8px 18px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">จัดการ ER Stock</button>
+  <div class="tabs" id="mainTabs">
+    <button class="tab-btn active" data-tab="refill">บันทึกเติมยา</button>
+    <button class="tab-btn" data-tab="manage">จัดการ ER Stock</button>
+    <button class="tab-btn" data-tab="dead">ยาไม่เคลื่อนไหว</button>
   </div>
 
+  <!-- ===================== TAB 1: REFILL ===================== -->
   <div class="panel" id="panel-refill">
   <div class="card">
     <h2>บันทึกใบสั่งยา (ผู้ป่วย 1 คน)</h2>
@@ -134,13 +145,7 @@
       </div>
       <div>
         <label>ผู้บันทึก (เจ้าหน้าที่ห้องยา)</label>
-        <select id="rf-nurse-select">
-          <option value="">-- เลือกผู้บันทึก --</option>
-          <option value="คุณโชติวัฒน์ แก้วกลางเมือง">คุณโชติวัฒน์ แก้วกลางเมือง</option>
-          <option value="คุณเกียรติคุณ อุ่นกันทะ">คุณเกียรติคุณ อุ่นกันทะ</option>
-          <option value="คุณภัทรียาพร คำมาปัน">คุณภัทรียาพร คำมาปัน</option>
-          <option value="__other__">อื่นๆ (ระบุเอง)</option>
-        </select>
+        <select id="rf-nurse-select"></select>
         <input type="text" id="rf-nurse-other" autocomplete="off" placeholder="ระบุชื่อผู้บันทึก" style="margin-top:6px;display:none;">
       </div>
     </div>
@@ -207,22 +212,18 @@
   </div>
   </div>
 
+  <!-- ===================== TAB 2: MANAGE ===================== -->
   <div class="panel" id="panel-manage" style="display:none;">
     <div class="card">
       <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-        <button class="ghost" id="es-export-btn">📄 เปิดเอกสารสำหรับปริ้น</button>
+        <button class="ghost" id="es-xlsx-btn">⬇ ดาวน์โหลดรายการยาทั้งหมด (Excel)</button>
+        <button class="ghost" id="es-print-btn">🖨 พิมพ์ / บันทึกเป็น PDF</button>
         <button class="ghost" id="es-add-btn">+ เพิ่มรายการยา</button>
       </div>
       <div class="grid">
         <div>
           <label>ผู้บรรจุ</label>
-          <select id="es-packedby-select">
-            <option value="">-- เลือกผู้บรรจุ --</option>
-            <option value="คุณโชติวัฒน์ แก้วกลางเมือง">คุณโชติวัฒน์ แก้วกลางเมือง</option>
-            <option value="คุณเกียรติคุณ อุ่นกันทะ">คุณเกียรติคุณ อุ่นกันทะ</option>
-            <option value="คุณภัทรียาพร คำมาปัน">คุณภัทรียาพร คำมาปัน</option>
-            <option value="__other__">อื่นๆ (ระบุเอง)</option>
-          </select>
+          <select id="es-packedby-select"></select>
           <input type="text" id="es-packedby-other" placeholder="ระบุชื่อผู้บรรจุ" style="margin-top:6px;display:none;">
         </div>
         <div>
@@ -230,7 +231,7 @@
           <input type="date" id="es-packeddate">
         </div>
         <div>
-          <label>ว/ด/ป ที่ต้องเปลี่ยนยา</label>
+          <label>ว/ด/ป ที่ต้องเปลี่ยนยา (ก่อนยาหมดอายุตัวแรก 3 เดือน)</label>
           <input type="text" id="es-changedate" disabled value="ยังไม่คำนวณ">
         </div>
       </div>
@@ -239,8 +240,7 @@
     <div class="card">
       <h2>รายการยา</h2>
       <div style="margin-bottom:12px;max-width:380px;">
-        <input type="text" id="es-search" placeholder="🔍 ค้นหาชื่อยา..." autocomplete="off"
-          style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:8px;font-size:14px;">
+        <input type="text" id="es-search" placeholder="🔍 ค้นหาชื่อยา..." autocomplete="off">
       </div>
       <div style="overflow-x:auto;">
         <table>
@@ -248,11 +248,61 @@
           <tbody id="es-table-body"></tbody>
         </table>
       </div>
+      <datalist id="es-drug-datalist"></datalist>
       <div class="empty" id="es-empty" style="display:none;">ยังไม่มีรายการยา กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น</div>
       <div class="row-actions">
         <button class="primary" id="es-save-btn">บันทึกการเปลี่ยนแปลง</button>
         <span id="es-status" class="loading-note"></span>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== TAB 3: DEAD STOCK ===================== -->
+  <div class="panel" id="panel-dead" style="display:none;">
+    <div class="card">
+      <h2>รายงานยาที่ไม่เคลื่อนไหวในช่วงนอกเวลา</h2>
+      <p class="sub" style="font-size:13px;margin:0 0 14px;">ดูว่ายาตัวไหนใน ER Stock ไม่ถูกเบิกใช้/เติมเลยในช่วงเวลาที่เลือก เพื่อใช้พิจารณาปรับรายการยาหรือลดจำนวน Par</p>
+      <div class="filter-bar">
+        <div class="chip-group" id="dd-period-chips">
+          <span class="chip" data-months="1">1 เดือน</span>
+          <span class="chip active" data-months="3">3 เดือน</span>
+          <span class="chip" data-months="6">6 เดือน</span>
+          <span class="chip" data-months="12">12 เดือน</span>
+          <span class="chip" data-months="custom">กำหนดเอง</span>
+        </div>
+      </div>
+      <div class="filter-bar" id="dd-custom-range" style="display:none;">
+        <div><label>ตั้งแต่วันที่</label><input type="date" id="dd-range-start"></div>
+        <div><label>ถึงวันที่</label><input type="date" id="dd-range-end"></div>
+      </div>
+      <div class="filter-bar">
+        <div style="min-width:260px;">
+          <label>รายการยาที่ใช้ตรวจ</label>
+          <select id="dd-source">
+            <option value="erstock">รายการใน ER Stock ปัจจุบัน (แท็บจัดการ ER Stock)</option>
+            <option value="master">รายการยาตามฟอร์มมาตรฐาน</option>
+            <option value="both">ทั้งสองแหล่งรวมกัน</option>
+          </select>
+        </div>
+        <div style="min-width:200px;">
+          <label>แสดง</label>
+          <select id="dd-show">
+            <option value="dead">เฉพาะยาที่ไม่ถูกใช้เลย</option>
+            <option value="slow">ยาที่ไม่ถูกใช้ + ใช้น้อย (≤2 ครั้ง)</option>
+            <option value="all">ทุกรายการ</option>
+          </select>
+        </div>
+        <div><button class="ghost" id="dd-xlsx-btn">⬇ ดาวน์โหลด Excel (.xlsx)</button></div>
+      </div>
+      <div id="dd-note"></div>
+      <div class="stat-grid" id="dd-stats"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>ชื่อยา</th><th>หน่วย</th><th>Par / คงคลัง</th><th>หมดอายุใกล้สุด</th><th>ครั้งที่ใช้ในช่วง</th><th>หน่วยที่ใช้</th><th>ใช้ล่าสุด</th><th>ไม่ถูกใช้มา</th><th>สถานะ</th></tr></thead>
+          <tbody id="dd-table-body"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="dd-empty" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -263,305 +313,282 @@
 // ---- Real ER stock drug master list (from hospital's existing monthly tracking form) ----
 const DRUG_MASTER = [{"name": "0.02% TA cream", "strength": "5gm", "unit": "ตลับ", "par": 3}, {"name": "0.1% TA cream", "strength": "5gm", "unit": "ตลับ", "par": 3}, {"name": "2% Lidocaine", "strength": "", "unit": "", "par": 0}, {"name": "50% glucose inj.", "strength": "50%/50ml", "unit": "ขวด", "par": 1}, {"name": "Activated charcoal", "strength": "", "unit": "", "par": 0}, {"name": "Adrenaline inj.", "strength": "1mg/1ml", "unit": "amp", "par": 0}, {"name": "Air-x", "strength": "80 mg", "unit": "เม็ด", "par": 60}, {"name": "Amitriptyline", "strength": "10 mg", "unit": "เม็ด", "par": 20}, {"name": "Amlodipine", "strength": "5 mg Tab.", "unit": "", "par": 0}, {"name": "Amoxicillin", "strength": "500 mg", "unit": "เม็ด", "par": 80}, {"name": "Amoxicillin syr.", "strength": "125 mg/5 ml", "unit": "ขวด", "par": 6}, {"name": "Amoxicillin syr.", "strength": "250 mg/5 ml", "unit": "ขวด", "par": 6}, {"name": "Ampicillin  inj.", "strength": "1 g", "unit": "Vial", "par": 4}, {"name": "Antacid Gel", "strength": "240 ml", "unit": "ขวด", "par": 5}, {"name": "Aspirin", "strength": "300 mg", "unit": "Tab", "par": 1}, {"name": "Atenolol", "strength": "50 mg", "unit": "", "par": 0}, {"name": "Augmentin", "strength": "1000 mg", "unit": "เม็ด", "par": 8}, {"name": "Berodual Forte", "strength": "0.5/1.25mg/4ml", "unit": "NB", "par": 15}, {"name": "Berodual MDI", "strength": "200 puff", "unit": "กล่อง", "par": 0}, {"name": "Betahistine", "strength": "6 mg", "unit": "เม็ด", "par": 20}, {"name": "Buscopan  syr.", "strength": "5 mg/5 ml", "unit": "ขวด", "par": 3}, {"name": "Buscopan inj.", "strength": "20 mg/ml", "unit": "amp", "par": 5}, {"name": "Calamine lotion", "strength": "60ml", "unit": "ขวด", "par": 3}, {"name": "Captopril", "strength": "25 mg", "unit": "เม็ด", "par": 10}, {"name": "Cefazolin  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Ceftazidime  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Ceftriaxone  inj.", "strength": "1 g", "unit": "vial", "par": 10}, {"name": "Chloram Oph", "strength": "10ml", "unit": "ขวด", "par": 2}, {"name": "Clopidogrel", "strength": "75 mg", "unit": "Tab", "par": 4}, {"name": "Cloxacillin  inj.", "strength": "1 g", "unit": "vial", "par": 4}, {"name": "Co-trimoxazole susp.", "strength": "200/40mg/5ml", "unit": "ขวด", "par": 2}, {"name": "CPM", "strength": "4 mg", "unit": "เม็ด", "par": 40}, {"name": "CPM  inj.", "strength": "10mg/1ml", "unit": "amp", "par": 5}, {"name": "CPM  syr.", "strength": "2 mg/5 ml", "unit": "ขวด", "par": 3}, {"name": "Dexa Oph", "strength": "", "unit": "", "par": 0}, {"name": "Dexamethasone  inj.", "strength": "4mg/1ml", "unit": "amp", "par": 8}, {"name": "Dextromethorphan", "strength": "5 mg", "unit": "เม็ด", "par": 20}, {"name": "Diazepam  inj.", "strength": "10mg/2ml", "unit": "amp", "par": 10}, {"name": "Diclofenac", "strength": "75 mg", "unit": "เม็ด", "par": 20}, {"name": "Diclofenac inj.", "strength": "", "unit": "Amp", "par": 3}, {"name": "Dicloxacillin", "strength": "250 mg", "unit": "เม็ด", "par": 80}, {"name": "Dimenhydrinate", "strength": "50 mg", "unit": "เม็ด", "par": 40}, {"name": "Dimenhydrinate  inj.", "strength": "50mg/1ml", "unit": "amp", "par": 5}, {"name": "Domperidone", "strength": "10 mg", "unit": "เม็ด", "par": 40}, {"name": "Domperidone susp.", "strength": "5mg/5ml", "unit": "ขวด", "par": 3}, {"name": "Doxycycline", "strength": "100 mg (14 tab/ซอง)", "unit": "", "par": 0}, {"name": "Drotaverine", "strength": "40 mg", "unit": "เม็ด", "par": 60}, {"name": "Ergotamine", "strength": "100 mg", "unit": "เม็ด", "par": 0}, {"name": "Erythromycin", "strength": "125 mg/5ml", "unit": "", "par": 0}, {"name": "Furosemide inj.", "strength": "20mg/2ml", "unit": "amp", "par": 6}, {"name": "Furosemide inj.", "strength": "250mg/25ml", "unit": "Vial", "par": 2}, {"name": "Gentamycin", "strength": "80 mg/2 ml", "unit": "Amp", "par": 3}, {"name": "Glycerin chil suppositories", "strength": "1.5gm", "unit": "แท่ง", "par": 12}, {"name": "Glyceryl guaiacolate", "strength": "100 mg", "unit": "เม็ด", "par": 60}, {"name": "Guaifenesin syr.", "strength": "100mg/5ml", "unit": "ขวด", "par": 3}, {"name": "Haloperidol  inj.", "strength": "5mg/1ml", "unit": "amp", "par": 2}, {"name": "Heparin Sodium inj.", "strength": "5000 iu/mL", "unit": "vial", "par": 1}, {"name": "Hista Oph", "strength": "10ml", "unit": "ขวด", "par": 3}, {"name": "Hydralazine", "strength": "25 mg", "unit": "เม็ด", "par": 10}, {"name": "Hydroxyzine", "strength": "10 mg", "unit": "เม็ด", "par": 0}, {"name": "Ibuprofen", "strength": "400 mg", "unit": "เม็ด", "par": 40}, {"name": "Ibuprofen syr.", "strength": "100 mg/5 ml", "unit": "ขวด", "par": 2}, {"name": "Insulin RI", "strength": "", "unit": "", "par": 0}, {"name": "Isordil", "strength": "5 mg", "unit": "Tab", "par": 1}, {"name": "Kalimate", "strength": "5 gm.ซอง (แพคละ 6 ซอง)", "unit": "ซอง", "par": 12}, {"name": "KCl elixir", "strength": "30 ml", "unit": "ขวด", "par": 6}, {"name": "Lactolose", "strength": "100ml", "unit": "ขวด", "par": 0}, {"name": "Levophed", "strength": "", "unit": "", "par": 0}, {"name": "Lidocaine viscous", "strength": "", "unit": "", "par": 0}, {"name": "Lorazepam", "strength": "1 mg", "unit": "เม็ด", "par": 40}, {"name": "M.carminative", "strength": "180 ml", "unit": "ขวด", "par": 40}, {"name": "Methyldopa", "strength": "250 mg", "unit": "", "par": 0}, {"name": "Metronidazole  inj.", "strength": "500mg/100ml", "unit": "ขวด", "par": 2}, {"name": "Mlonupiravir", "strength": "200 mg", "unit": "Tab", "par": 100}, {"name": "MOM", "strength": "60 ml", "unit": "", "par": 0}, {"name": "Morphine inj.", "strength": "10mg/1ml", "unit": "amp", "par": 3}, {"name": "Naloxone", "strength": "400mcg", "unit": "", "par": 0}, {"name": "Nicardipine", "strength": "10mg/10ml", "unit": "", "par": 0}, {"name": "Norfloxacin", "strength": "400 mg", "unit": "เม็ด", "par": 20}, {"name": "Omeprazole", "strength": "20 mg", "unit": "เม็ด", "par": 40}, {"name": "Omeprazole  inj.", "strength": "40mg/10ml", "unit": "vial", "par": 4}, {"name": "ORS ผู้ใหญ่", "strength": "", "unit": "ซอง", "par": 20}, {"name": "ORS เด็ก", "strength": "", "unit": "ซอง", "par": 20}, {"name": "Paracetamol", "strength": "325 mg", "unit": "เม็ด", "par": 60}, {"name": "Paracetamol", "strength": "500 mg", "unit": "เม็ด", "par": 100}, {"name": "Paracetamol syr.", "strength": "120mg/5 ml", "unit": "ขวด", "par": 5}, {"name": "Paranic", "strength": "450/35mg", "unit": "เม็ด", "par": 40}, {"name": "Pethidine inj.", "strength": "50mg /1ml", "unit": "amp", "par": 3}, {"name": "Plasil inj.", "strength": "10mg/2ml", "unit": "amp", "par": 2}, {"name": "Poly Oph", "strength": "5ml", "unit": "ขวด", "par": 2}, {"name": "Potassium chloride inj.", "strength": "20mEq/10ml", "unit": "amp", "par": 6}, {"name": "Prednisolone", "strength": "5 mg", "unit": "เม็ด", "par": 80}, {"name": "Propranolol", "strength": "10 mg", "unit": "เม็ด", "par": 20}, {"name": "Roxithromycin", "strength": "150 mg", "unit": "เม็ด", "par": 20}, {"name": "Salbutamol", "strength": "2 mg", "unit": "เม็ด", "par": 0}, {"name": "Salbutamol solution", "strength": "2 mg/5 mL", "unit": "ขวด", "par": 2}, {"name": "Silver cream", "strength": "", "unit": "", "par": 0}, {"name": "SK inj", "strength": "", "unit": "", "par": 0}, {"name": "Sodiumbicarbonateหยอดหู", "strength": "15ml", "unit": "ขวด", "par": 10}, {"name": "Special mouth wash", "strength": "180 ml", "unit": "ขวด", "par": 0}, {"name": "TA oral base", "strength": "", "unit": "ซอง", "par": 2}, {"name": "Terra Oint", "strength": "", "unit": "", "par": 0}, {"name": "Tramadol", "strength": "50 mg", "unit": "เม็ด", "par": 60}, {"name": "Tramadol inj.", "strength": "50mg/1ml", "unit": "amp", "par": 5}, {"name": "Unison", "strength": "100ml", "unit": "ลูก", "par": 2}, {"name": "Vit Bco", "strength": "", "unit": "เม็ด", "par": 0}, {"name": "Vit K", "strength": "1 mg/0.5ml", "unit": "amp", "par": 10}, {"name": "Vit.B 1 inj.", "strength": "", "unit": "Amp", "par": 4}, {"name": "Vitamin C", "strength": "100 mg", "unit": "เม็ด", "par": 20}, {"name": "VitB1-6-12", "strength": "", "unit": "เม็ด", "par": 0}, {"name": "ยาธาตุผสมอบเชย", "strength": "120 ml", "unit": "ขวด", "par": 3}, {"name": "ยาอมมะแว้ง", "strength": "200 mg", "unit": "เม็ด", "par": 80}, {"name": "ยาแก้ไอมะขามป้อม", "strength": "60 ml", "unit": "ขวด", "par": 3}, {"name": "เถาวัลย์เปรียง", "strength": "(10 cap./ซอง)", "unit": "", "par": 0}];
 
+const STAFF_LIST = ['คุณโชติวัฒน์ แก้วกลางเมือง','คุณเกียรติคุณ อุ่นกันทะ','คุณภัทรียาพร คำมาปัน'];
+const UNIT_OPTIONS = ['เม็ด','แคปซูล','ml','vial','amp','ซอง','หลอด','ขวด','ตลับ','แท่ง','กล่อง','NB','ลูก','อื่นๆ'];
+// URL นี้ใช้ร่วมกับระบบ "ทบทวน DRP" — มาจากการ Deploy Code.gs ตัวเดียวกัน
+const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
+const CACHE_KEY = 'erstock_cache_v2';
+
+// ---------- helpers ----------
 function displayName(d){ return d.strength ? `${d.name} ${d.strength}` : d.name; }
-function findDrugByDisplay(name){
-  return DRUG_MASTER.find(d => displayName(d) === name);
-}
+// ทำให้ชื่อยาเปรียบเทียบกันได้ (ฟอร์มเดิมมีเว้นวรรค 2 ช่อง เช่น "Ampicillin  inj.")
+function norm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+const MASTER_BY_KEY = new Map(DRUG_MASTER.map(d=>[norm(displayName(d)), d]));
+function findDrugByDisplay(name){ return MASTER_BY_KEY.get(norm(name)); }
 
 let refillEntries = [];
 let draftRows = [];
 let rfPeriod = 'day';
 let erStockItems = [];
 let erStockMeta = { packedBy:'', packedDate:'', changeDate:'' };
+let isSaving = false;
+let lastSyncAt = null;
 
-function todayStr(){
-  // ต้องใช้วันที่ตามเวลาไทย (UTC+7) ไม่ใช่ UTC ตรงๆ เพราะ toISOString() คืนค่าวันที่แบบ UTC
-  // ซึ่งจะข้ามวันก่อนเวลาไทยจริงตอนดึกๆ/เช้ามืด (เช่น เที่ยงคืน-ตี 7 เวลาไทย ยังเป็น "เมื่อวาน" ใน UTC)
-  const now = new Date();
-  const bkk = new Date(now.getTime() + 7*60*60*1000);
-  return bkk.toISOString().slice(0,10);
+function bkkDate(){ return new Date(Date.now() + 7*60*60*1000); }
+function todayStr(){ return bkkDate().toISOString().slice(0,10); } // วันที่ตามเวลาไทย
+function normDate(v){ if(!v) return ''; const s = String(v); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,10) : s; }
+// บวก/ลบเดือนแบบไม่ขึ้นกับ timezone (เดิมใช้ toISOString() กับวันที่ local ทำให้วันที่ต้องเปลี่ยนยาเลื่อนไป 1 วัน)
+function addMonthsIso(iso, n){
+  const [y,m,d] = iso.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m-1+n, 1));
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth()+1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(d, lastDay));
+  return first.toISOString().slice(0,10);
+}
+function daysBetween(a, b){ return Math.round((Date.parse(b+'T00:00:00Z') - Date.parse(a+'T00:00:00Z'))/86400000); }
+function fmtDateDisplay(v){
+  const s = normDate(v);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || '-';
+  const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`;
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+  clearTimeout(showToast._t); showToast._t = setTimeout(()=>t.classList.remove('show'),2600);
 }
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function csvCell(v){ const s = String(v ?? ''); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function downloadCsv(csv, filename){
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function staffOptionsHtml(placeholder){
+  return `<option value="">${placeholder}</option>` + STAFF_LIST.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') + '<option value="__other__">อื่นๆ (ระบุเอง)</option>';
+}
+
 function updateClock(){
-  const now=new Date();
-  const h=now.getHours(); const isOpen = h>=8 && h<22;
+  const now=new Date(); const h=now.getHours(); const isOpen = h>=8 && h<22;
   document.getElementById('tl-now').textContent =
     now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) + (isOpen? ' · ห้องยาเปิด':' · ห้องยาปิด (ใช้ ER stock)');
 }
 updateClock(); setInterval(updateClock,30000);
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function downloadCsv(csv, filename){
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
-// ---------- backend helpers (Google Apps Script Web App via fetch) ----------
-// URL นี้ใช้ร่วมกับระบบ "ทบทวน DRP" — มาจากการ Deploy Code.gs ตัวเดียวกัน (แผ่นชีตเดียวกัน คนละแท็บ)
-const API_URL = 'https://script.google.com/macros/s/AKfycbwqJ-UnliVTuV_541BnpP7ezCUZM9cloUMvMzg4i-Ara1AkOP4G4e8xNG2Moh9DYII3/exec';
-
+// ---------- backend ----------
 async function apiCall(action, payload){
-  const res = await fetch(API_URL, {
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({action, ...payload})
-  });
+  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({action, ...payload}) });
   return res.json();
 }
+function applyData(data){
+  refillEntries = (data.refillEntries || []).map(e=>({
+    ...e,
+    date: normDate(e.date),
+    used: Number(e.used) || 0,
+    total: (e.total===null || e.total==='' || isNaN(Number(e.total))) ? null : Number(e.total),
+    remaining: (e.remaining===null || e.remaining==='' || isNaN(Number(e.remaining))) ? null : Number(e.remaining),
+    createdAt: Number(e.createdAt) || 0,
+    note: e.note || '', nurse: e.nurse || '', drug: String(e.drug||'')
+  }));
+  erStockItems = (data.erStockItems || []).map(it=>({...it, expDate: normDate(it.expDate)}));
+  erStockMeta = data.erStockMeta || { packedBy:'', packedDate:'', changeDate:'' };
+}
+// โหลดเฉพาะข้อมูลของหน้านี้ (?scope=erstock) — ไม่ดึงข้อมูลวัคซีน/DRP/HAD ทั้ง Hub เหมือนเดิม
 async function loadAll(){
   try{
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL + '?scope=erstock', {cache:'no-store'});
     const data = await res.json();
     if(!data.ok) throw new Error(data.error||'unknown');
-    refillEntries = data.refillEntries || [];
-    erStockItems = data.erStockItems || [];
-    erStockMeta = data.erStockMeta || { packedBy:'', packedDate:'', changeDate:'' };
+    applyData(data);
+    lastSyncAt = new Date();
+    document.getElementById('sync-note').textContent = '· อัปเดตล่าสุด ' + lastSyncAt.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({refillEntries:data.refillEntries, erStockItems:data.erStockItems, erStockMeta:data.erStockMeta})); }catch(e){}
+    return true;
   }catch(e){
-    showToast('โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
-    refillEntries = [];
-    erStockItems = [];
-  }
-}
-async function saveErStockItem(entry){
-  try{
-    const res = await apiCall('saveErStockItem', {entry});
-    return res.ok ? res.id : null;
-  }catch(e){
-    showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
-    return null;
-  }
-}
-async function deleteErStockItemApi(id){
-  try{
-    const res = await apiCall('deleteErStockItem', {id});
-    return !!res.ok;
-  }catch(e){
-    showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
+    if(!lastSyncAt) showToast('โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าใหม่');
     return false;
   }
 }
-async function updateErStockMetaApi(meta){
+function loadCache(){
   try{
-    const res = await apiCall('updateErStockMeta', {meta});
-    return !!res.ok;
-  }catch(e){
-    return false;
-  }
-}
-async function saveRefillEntry(entry){
-  try{
-    const res = await apiCall('addRefill', {entry});
-    return !!res.ok;
-  }catch(e){
-    showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
-    return false;
-  }
-}
-async function deleteRefillEntry(id){
-  try{
-    const res = await apiCall('deleteRefill', {id});
-    return !!res.ok;
-  }catch(e){
-    showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
-    return false;
-  }
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return false;
+    applyData(JSON.parse(raw)); return true;
+  }catch(e){ return false; }
 }
 
-// ---------- date range helpers ----------
-function bkkDate(){ return new Date(Date.now() + 7*60*60*1000); }
+// ---------- date range ----------
 function rangeFor(period, customStart, customEnd){
   let start, end;
   if(period==='day'){ start = todayStr(); end = todayStr(); }
   else if(period==='week'){
-    const d = bkkDate();
-    const day = d.getUTCDay(); const diff = (day===0?6:day-1);
+    const d = bkkDate(); const day = d.getUTCDay(); const diff = (day===0?6:day-1);
     d.setUTCDate(d.getUTCDate()-diff);
     start = d.toISOString().slice(0,10); end = todayStr();
-  } else if(period==='month'){
-    start = bkkDate().toISOString().slice(0,7)+'-01'; end = todayStr();
-  } else {
-    start = customStart || todayStr(); end = customEnd || todayStr();
-  }
+  } else if(period==='month'){ start = todayStr().slice(0,7)+'-01'; end = todayStr(); }
+  else { start = customStart || todayStr(); end = customEnd || todayStr(); }
+  if(start > end) [start, end] = [end, start];
   return {start,end};
 }
 function inRange(dateStr, start, end){ return dateStr >= start && dateStr <= end; }
 
-// ---------- DRUG LIST UI ----------
+// ---------- drug list ----------
 function renderDrugDatalist(){
-  const dl = document.getElementById('drug-datalist');
-  dl.innerHTML = DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}">`).join('');
+  const opts = DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}">`).join('');
+  document.getElementById('drug-datalist').innerHTML = opts;
+  document.getElementById('es-drug-datalist').innerHTML = opts;
+}
+function renderDrugFilter(){
   const filt = document.getElementById('rf-drug-filter');
   const cur = filt.value;
-  filt.innerHTML = '<option value="">ทุกรายการ</option>' + DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}">${escapeHtml(displayName(d))}</option>`).join('');
+  const names = new Map(DRUG_MASTER.map(d=>[norm(displayName(d)), displayName(d)]));
+  refillEntries.forEach(e=>{ const k = norm(e.drug); if(k && !names.has(k)) names.set(k, e.drug); }); // รวมชื่อที่พิมพ์เองด้วย
+  filt.innerHTML = '<option value="">ทุกรายการ</option>' + Array.from(names.entries()).map(([k,n])=>`<option value="${escapeHtml(k)}">${escapeHtml(n)}</option>`).join('');
   filt.value = cur;
 }
 
-// ---------- REFILL FORM (multi-drug prescription) ----------
+// ---------- REFILL FORM ----------
 document.getElementById('rf-date').value = todayStr();
-
+document.getElementById('rf-nurse-select').innerHTML = staffOptionsHtml('-- เลือกผู้บันทึก --');
 document.getElementById('rf-nurse-select').addEventListener('change', (e)=>{
   document.getElementById('rf-nurse-other').style.display = e.target.value==='__other__' ? 'block' : 'none';
 });
 
-function newDraftRow(){
-  return { key: uid(), drug:'', unit:'เม็ด', total:'', used:'' };
-}
+function newDraftRow(){ return { key: uid(), drug:'', unit:'เม็ด', total:'', used:'' }; }
 draftRows = [newDraftRow()];
 
 function computeRemaining(row){
-  const total = parseFloat(row.total);
-  const used = parseFloat(row.used);
+  const total = parseFloat(row.total), used = parseFloat(row.used);
   if(isNaN(total) || isNaN(used)) return null;
   return total - used;
+}
+function unitOptionsHtml(selected){
+  const list = UNIT_OPTIONS.slice();
+  if(selected && !list.includes(selected)) list.unshift(selected); // เช่น "Tab", "Vial" จากฟอร์มเดิม
+  return list.map(u=>`<option ${u===selected?'selected':''}>${escapeHtml(u)}</option>`).join('');
+}
+function hintHtml(match){
+  return match ? `หน่วย: ${escapeHtml(match.unit||'-')} · จำนวนทั้งหมด (Par) มาตรฐาน: ${match.par||'-'} — แก้ไขได้ถ้าจำนวนวันนี้ไม่เท่าเดิม` : '';
+}
+function updateRemaining(rowEl, row){
+  const rem = computeRemaining(row);
+  const el = rowEl.querySelector('.dr-remaining');
+  el.value = rem===null ? '' : rem;
+  el.classList.toggle('neg', rem!==null && rem<0);
 }
 
 function renderDraftRows(){
   const wrap = document.getElementById('rf-drug-rows');
   wrap.innerHTML = draftRows.map((row, i)=>{
-    const rem = computeRemaining(row);
-    const remDisplay = rem===null ? '' : rem;
-    const match = findDrugByDisplay((row.drug||'').trim());
-    const hint = match ? `หน่วย: ${match.unit||'-'} · จำนวนทั้งหมด (Par) มาตรฐาน: ${match.par||'-'}` : '';
+    const match = findDrugByDisplay(row.drug);
+    const hint = hintHtml(match);
     return `
     <div class="drug-row" data-key="${row.key}">
       <div class="drug-row-num">รายการยาที่ ${i+1}</div>
       <div class="drug-row-grid">
-        <div>
-          <label>ชื่อยา</label>
-          <input type="text" class="dr-drug" list="drug-datalist" autocomplete="off" value="${escapeHtml(row.drug)}" placeholder="พิมพ์หรือเลือกชื่อยา">
-        </div>
-        <div>
-          <label>หน่วย</label>
-          <select class="dr-unit">
-            ${['เม็ด','แคปซูล','ml','vial','amp','ซอง','หลอด','ขวด','ตลับ','แท่ง','กล่อง','NB','ลูก','อื่นๆ'].map(u=>`<option ${u===row.unit?'selected':''}>${u}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label>ทั้งหมด (Par)</label>
-          <input type="number" class="dr-total" min="0" step="1" autocomplete="off" value="${escapeHtml(row.total)}" placeholder="100">
-        </div>
-        <div>
-          <label>ใช้จริง</label>
-          <input type="number" class="dr-used" min="0" step="0.5" autocomplete="off" value="${escapeHtml(row.used)}" placeholder="10">
-        </div>
-        <div>
-          <label>คงเหลือ</label>
-          <input type="text" class="dr-remaining" disabled value="${remDisplay}">
-        </div>
+        <div><label>ชื่อยา</label>
+          <input type="text" class="dr-drug" list="drug-datalist" autocomplete="off" value="${escapeHtml(row.drug)}" placeholder="พิมพ์หรือเลือกชื่อยา"></div>
+        <div><label>หน่วย</label><select class="dr-unit">${unitOptionsHtml(row.unit)}</select></div>
+        <div><label>ทั้งหมด (Par)</label>
+          <input type="number" class="dr-total" min="0" step="1" autocomplete="off" value="${escapeHtml(row.total)}" placeholder="100"></div>
+        <div><label>ใช้จริง</label>
+          <input type="number" class="dr-used" min="0" step="0.5" autocomplete="off" value="${escapeHtml(row.used)}" placeholder="10"></div>
+        <div><label>คงเหลือ</label><input type="text" class="dr-remaining" disabled></div>
         <div class="drug-row-actions">
           <button type="button" class="row-icon-btn add" title="เพิ่มยาอีกรายการ">+</button>
           ${draftRows.length>1 ? '<button type="button" class="row-icon-btn remove" title="ลบรายการนี้">×</button>' : ''}
         </div>
       </div>
-      ${hint ? `<div class="drug-hint">${hint} — แก้ไขได้ถ้าจำนวนวันนี้ไม่เท่าเดิม</div>` : ''}
+      <div class="drug-hint" style="${hint?'':'display:none'}">${hint}</div>
     </div>`;
   }).join('');
 
   wrap.querySelectorAll('.drug-row').forEach(rowEl=>{
-    const key = rowEl.dataset.key;
-    const row = draftRows.find(r=>r.key===key);
-
+    const row = draftRows.find(r=>r.key===rowEl.dataset.key);
+    updateRemaining(rowEl, row);
+    // ไม่ re-render ทั้งฟอร์มทุกครั้งที่พิมพ์ (สาเหตุที่พิมพ์ชื่อยาแล้วหน่วง/กระตุก) — อัปเดตเฉพาะช่องที่เกี่ยวข้อง
     rowEl.querySelector('.dr-drug').addEventListener('input', (e)=>{
       row.drug = e.target.value;
-      const match = findDrugByDisplay(row.drug.trim());
-      if(match){ row.unit = match.unit || 'เม็ด'; row.total = match.par || ''; }
-      renderDraftRows();
-      // restore focus to the same field after re-render
-      const idx = draftRows.indexOf(row);
-      const inputs = document.querySelectorAll('.dr-drug');
-      if(inputs[idx]){ inputs[idx].focus(); inputs[idx].setSelectionRange(inputs[idx].value.length, inputs[idx].value.length); }
+      const match = findDrugByDisplay(row.drug);
+      const hintEl = rowEl.querySelector('.drug-hint');
+      if(match){
+        row.unit = match.unit || 'เม็ด';
+        row.total = match.par ? String(match.par) : '';
+        rowEl.querySelector('.dr-unit').innerHTML = unitOptionsHtml(row.unit);
+        rowEl.querySelector('.dr-total').value = row.total;
+        updateRemaining(rowEl, row);
+      }
+      hintEl.innerHTML = hintHtml(match);
+      hintEl.style.display = match ? '' : 'none';
     });
     rowEl.querySelector('.dr-unit').addEventListener('change', (e)=>{ row.unit = e.target.value; });
-    rowEl.querySelector('.dr-total').addEventListener('input', (e)=>{
-      row.total = e.target.value;
-      const rem = computeRemaining(row);
-      rowEl.querySelector('.dr-remaining').value = rem===null ? '' : rem;
-      rowEl.querySelector('.dr-remaining').classList.toggle('neg', rem!==null && rem<0);
-    });
-    rowEl.querySelector('.dr-used').addEventListener('input', (e)=>{
-      row.used = e.target.value;
-      const rem = computeRemaining(row);
-      rowEl.querySelector('.dr-remaining').value = rem===null ? '' : rem;
-      rowEl.querySelector('.dr-remaining').classList.toggle('neg', rem!==null && rem<0);
-    });
+    rowEl.querySelector('.dr-total').addEventListener('input', (e)=>{ row.total = e.target.value; updateRemaining(rowEl,row); });
+    rowEl.querySelector('.dr-used').addEventListener('input', (e)=>{ row.used = e.target.value; updateRemaining(rowEl,row); });
     rowEl.querySelector('.add').addEventListener('click', ()=>{
-      const idx = draftRows.indexOf(row);
-      draftRows.splice(idx+1, 0, newDraftRow());
+      draftRows.splice(draftRows.indexOf(row)+1, 0, newDraftRow());
       renderDraftRows();
+      const inputs = document.querySelectorAll('.dr-drug');
+      inputs[draftRows.indexOf(row)+1]?.focus();
     });
-    const removeBtn = rowEl.querySelector('.remove');
-    if(removeBtn){
-      removeBtn.addEventListener('click', ()=>{
-        draftRows = draftRows.filter(r=>r.key!==key);
-        renderDraftRows();
-      });
-    }
+    rowEl.querySelector('.remove')?.addEventListener('click', ()=>{
+      draftRows = draftRows.filter(r=>r!==row); renderDraftRows();
+    });
   });
 }
 renderDraftRows();
 
 document.getElementById('rf-add-btn').addEventListener('click', async ()=>{
+  if(isSaving) return;
   const date = document.getElementById('rf-date').value || todayStr();
   const nurseSelect = document.getElementById('rf-nurse-select').value;
   const nurse = nurseSelect==='__other__' ? document.getElementById('rf-nurse-other').value.trim() : nurseSelect;
   const note = document.getElementById('rf-note').value.trim();
   const statusEl = document.getElementById('rf-status');
+  const btn = document.getElementById('rf-add-btn');
 
-  if(!nurse){
-    showToast('กรุณาเลือกหรือระบุผู้บันทึก');
-    return;
-  }
+  if(!nurse){ showToast('กรุณาเลือกหรือระบุผู้บันทึก'); return; }
   const validRows = draftRows.filter(r => r.drug.trim() && !isNaN(parseFloat(r.used)) && parseFloat(r.used)>=0);
-  if(validRows.length===0){
-    showToast('กรุณากรอกชื่อยาและจำนวนใช้จริงอย่างน้อย 1 รายการ');
-    return;
-  }
+  if(validRows.length===0){ showToast('กรุณากรอกชื่อยาและจำนวนใช้จริงอย่างน้อย 1 รายการ'); return; }
+  const incomplete = draftRows.filter(r => r.drug.trim() && !validRows.includes(r));
+  if(incomplete.length && !confirm(`มี ${incomplete.length} รายการที่ยังไม่ได้กรอกจำนวนใช้จริง — รายการนั้นจะไม่ถูกบันทึก ดำเนินการต่อ?`)) return;
 
   const visitId = uid();
   const entries = validRows.map(r=>{
-    const total = parseFloat(r.total);
-    const used = parseFloat(r.used);
-    const remaining = isNaN(total) ? null : (total - used);
-    return {
-      id: uid(), date, drug: r.drug.trim(), unit: r.unit,
-      total: isNaN(total)?null:total, used, remaining,
-      nurse, note, createdAt: Date.now(), visitId
-    };
+    const total = parseFloat(r.total), used = parseFloat(r.used);
+    return { id: uid(), date, drug: r.drug.trim(), unit: r.unit,
+      total: isNaN(total)?null:total, used, remaining: isNaN(total)?null:(total-used),
+      nurse, note, createdAt: Date.now(), visitId };
   });
 
-  statusEl.textContent = `กำลังบันทึก... (0/${entries.length})`;
-  let savedCount = 0;
-  for(const entry of entries){
-    const ok = await saveRefillEntry(entry);
-    if(!ok){
-      statusEl.textContent = '';
-      showToast(`บันทึกสำเร็จ ${savedCount}/${entries.length} รายการ — รายการที่เหลือลองกด "ส่งข้อมูล" อีกครั้ง`);
-      refillEntries.push(...entries.slice(0, savedCount));
-      renderNurseFilter();
-      renderRefillReport();
-      return;
-    }
-    savedCount++;
-    statusEl.textContent = `กำลังบันทึก... (${savedCount}/${entries.length})`;
-  }
-  statusEl.textContent = '';
+  isSaving = true; btn.disabled = true;
+  statusEl.textContent = `กำลังบันทึก ${entries.length} รายการ...`;
+  let ok = false;
+  try{
+    // บันทึกทั้งใบสั่งยาในครั้งเดียว (เดิมส่งทีละรายการ ทำให้ช้า)
+    const res = await apiCall('addRefillBatch', {entries});
+    if(res.ok) ok = true;
+    else if(String(res.error||'').includes('unknown action')){
+      // fallback: กรณียังไม่ได้อัปเดต Code.gs
+      let n = 0;
+      for(const entry of entries){ const r = await apiCall('addRefill', {entry}); if(!r.ok) break; n++; statusEl.textContent = `กำลังบันทึก... (${n}/${entries.length})`; }
+      ok = n === entries.length;
+      if(!ok){ refillEntries.push(...entries.slice(0,n)); showToast(`บันทึกสำเร็จ ${n}/${entries.length} รายการ — กรุณาตรวจสอบ`); }
+    } else throw new Error(res.error);
+  }catch(e){ showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'); }
+  isSaving = false; btn.disabled = false; statusEl.textContent = '';
+  if(!ok){ renderAllReports(); return; }
+
   refillEntries.push(...entries);
   draftRows = [newDraftRow()];
   renderDraftRows();
   document.getElementById('rf-note').value='';
   showToast(`บันทึกใบสั่งยาเรียบร้อย (${entries.length} รายการยา)`);
-  renderNurseFilter();
-  renderRefillReport();
+  renderAllReports();
 });
 
+// ---------- REFILL REPORT ----------
 document.querySelectorAll('#rf-period-chips .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     document.querySelectorAll('#rf-period-chips .chip').forEach(c=>c.classList.remove('active'));
@@ -571,9 +598,7 @@ document.querySelectorAll('#rf-period-chips .chip').forEach(chip=>{
     renderRefillReport();
   });
 });
-document.getElementById('rf-range-start').addEventListener('change', renderRefillReport);
-document.getElementById('rf-range-end').addEventListener('change', renderRefillReport);
-const STAFF_LIST = ['คุณโชติวัฒน์ แก้วกลางเมือง','คุณเกียรติคุณ อุ่นกันทะ','คุณภัทรียาพร คำมาปัน'];
+['rf-range-start','rf-range-end','rf-nurse-filter','rf-drug-filter'].forEach(id=>document.getElementById(id).addEventListener('change', renderRefillReport));
 
 function renderNurseFilter(){
   const filt = document.getElementById('rf-nurse-filter');
@@ -583,30 +608,26 @@ function renderNurseFilter(){
   filt.innerHTML = '<option value="">ทุกคน</option>' + Array.from(names).map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   filt.value = cur;
 }
-document.getElementById('rf-nurse-filter').addEventListener('change', renderRefillReport);
-document.getElementById('rf-drug-filter').addEventListener('change', renderRefillReport);
+function filteredRefillRows(){
+  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
+  const drugFilter = document.getElementById('rf-drug-filter').value;
+  const nurseFilter = document.getElementById('rf-nurse-filter').value;
+  const rows = refillEntries.filter(e=>inRange(e.date,start,end) && (!drugFilter || norm(e.drug)===drugFilter) && (!nurseFilter || e.nurse===nurseFilter));
+  return {rows, start, end};
+}
 
 document.getElementById('rf-export-btn').addEventListener('click', ()=>{
-  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
-  const drugFilter = document.getElementById('rf-drug-filter').value;
-  const nurseFilter = document.getElementById('rf-nurse-filter').value;
-  const rows = refillEntries.filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter));
+  const {rows,start,end} = filteredRefillRows();
+  rows.sort((a,b)=> a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
   let csv = 'วันที่,เลขที่ใบสั่งยา,ชื่อยา,หน่วย,จำนวนทั้งหมด,ใช้จริง,คงเหลือ,ผู้บันทึก,หมายเหตุ\n';
-  rows.forEach(e=>{
-    csv += `${e.date},"${e.visitId||e.id}","${e.drug}",${e.unit},${e.total ?? ''},${e.used},${e.remaining ?? ''},"${e.nurse}","${e.note}"\n`;
-  });
+  rows.forEach(e=>{ csv += [e.date, e.visitId||e.id, e.drug, e.unit, e.total ?? '', e.used, e.remaining ?? '', e.nurse, e.note].map(csvCell).join(',') + '\n'; });
   downloadCsv(csv, `er_stock_refill_${start}_to_${end}.csv`);
 });
-
 document.getElementById('rf-export-xlsx-btn').addEventListener('click', ()=>{
-  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
-  const drugFilter = document.getElementById('rf-drug-filter').value;
-  const nurseFilter = document.getElementById('rf-nurse-filter').value;
-  const rows = refillEntries
-    .filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter))
-    .sort((a,b)=> a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
-  const header = ['วันที่','เลขที่ใบสั่งยา','ชื่อยา','หน่วย','จำนวนทั้งหมด','ใช้จริง','คงเหลือ','ผู้บันทึก','หมายเหตุ'];
-  const aoa = [header, ...rows.map(e=>[e.date, e.visitId||e.id, e.drug, e.unit, e.total ?? '', e.used, e.remaining ?? '', e.nurse, e.note])];
+  const {rows,start,end} = filteredRefillRows();
+  rows.sort((a,b)=> a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
+  const aoa = [['วันที่','เลขที่ใบสั่งยา','ชื่อยา','หน่วย','จำนวนทั้งหมด','ใช้จริง','คงเหลือ','ผู้บันทึก','หมายเหตุ'],
+    ...rows.map(e=>[e.date, e.visitId||e.id, e.drug, e.unit, e.total ?? '', e.used, e.remaining ?? '', e.nurse, e.note])];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{wch:11},{wch:16},{wch:28},{wch:8},{wch:10},{wch:9},{wch:9},{wch:24},{wch:30}];
   const wb = XLSX.utils.book_new();
@@ -615,287 +636,416 @@ document.getElementById('rf-export-xlsx-btn').addEventListener('click', ()=>{
 });
 
 async function deleteRefill(id){
-  refillEntries = refillEntries.filter(e=>e.id!==id);
-  await deleteRefillEntry(id);
-  renderRefillReport();
-  showToast('ลบรายการแล้ว');
+  const e = refillEntries.find(x=>x.id===id);
+  if(!confirm(`ยืนยันลบรายการ "${e ? e.drug : ''}" ?`)) return;
+  try{
+    const res = await apiCall('deleteRefill', {id});
+    if(!res.ok) throw new Error(res.error);
+    refillEntries = refillEntries.filter(x=>x.id!==id);
+    renderAllReports();
+    showToast('ลบรายการแล้ว');
+  }catch(err){ showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง'); }
 }
 
-function renderRefillReport(){
-  const {start,end} = rangeFor(rfPeriod, document.getElementById('rf-range-start').value, document.getElementById('rf-range-end').value);
-  const drugFilter = document.getElementById('rf-drug-filter').value;
-  const nurseFilter = document.getElementById('rf-nurse-filter').value;
-  const rows = refillEntries
-    .filter(e=>inRange(e.date,start,end) && (!drugFilter || e.drug===drugFilter) && (!nurseFilter || e.nurse===nurseFilter))
-    .sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
-
-  const totalUsed = rows.reduce((s,e)=>s+e.used,0);
-  const uniqueDrugs = new Set(rows.map(e=>e.drug)).size;
-  const entryCount = rows.length;
-
-  const totalPatients = new Set(rows.map(e=>e.visitId || e.id)).size;
-  const rate = totalPatients ? (totalUsed/totalPatients).toFixed(1) : '-';
-
-  document.getElementById('rf-stats').innerHTML = `
-    <div class="stat"><div class="num">${entryCount}</div><div class="lbl">รายการยาที่บันทึก</div></div>
-    <div class="stat"><div class="num">${totalUsed}</div><div class="lbl">จำนวนหน่วยยาที่ใช้จริงรวม</div></div>
-    <div class="stat"><div class="num">${uniqueDrugs}</div><div class="lbl">ชนิดยาที่ถูกใช้</div></div>
-    <div class="stat"><div class="num">${totalPatients}</div><div class="lbl">จำนวนใบสั่งยา (ผู้ป่วย)</div></div>
-    <div class="stat"><div class="num">${rate}</div><div class="lbl">อัตราใช้ยาเฉลี่ย/ผู้ป่วย (หน่วย)</div></div>
-  `;
-
-  const byDrug = {};
-  rows.forEach(e=>{ byDrug[e.drug] = (byDrug[e.drug]||0) + e.used; });
-  const sorted = Object.entries(byDrug).sort((a,b)=>b[1]-a[1]);
-  const maxVal = sorted.length? sorted[0][1] : 1;
-  document.getElementById('rf-bars').innerHTML = sorted.length ? sorted.map(([d,v])=>`
+function barsHtml(sorted){
+  if(!sorted.length) return '<div class="empty">ไม่มีข้อมูล</div>';
+  const maxVal = sorted[0][1] || 1;
+  return sorted.map(([d,v])=>`
     <div class="bar-row">
       <div class="bar-name" title="${escapeHtml(d)}">${escapeHtml(d)}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${(v/maxVal*100).toFixed(0)}%"></div></div>
       <div class="bar-val">${v}</div>
-    </div>`).join('') : '<div class="empty">ไม่มีข้อมูล</div>';
+    </div>`).join('');
+}
 
+function renderRefillReport(){
+  const {rows} = filteredRefillRows();
+  rows.sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+  const totalUsed = rows.reduce((s,e)=>s+e.used,0);
+  const uniqueDrugs = new Set(rows.map(e=>norm(e.drug))).size;
+  const totalPatients = new Set(rows.map(e=>e.visitId || e.id)).size;
+  const rate = totalPatients ? (totalUsed/totalPatients).toFixed(1) : '-';
+
+  document.getElementById('rf-stats').innerHTML = `
+    <div class="stat"><div class="num">${rows.length}</div><div class="lbl">รายการยาที่บันทึก</div></div>
+    <div class="stat"><div class="num">${+totalUsed.toFixed(1)}</div><div class="lbl">จำนวนหน่วยยาที่ใช้จริงรวม</div></div>
+    <div class="stat"><div class="num">${uniqueDrugs}</div><div class="lbl">ชนิดยาที่ถูกใช้</div></div>
+    <div class="stat"><div class="num">${totalPatients}</div><div class="lbl">จำนวนใบสั่งยา (ผู้ป่วย)</div></div>
+    <div class="stat"><div class="num">${rate}</div><div class="lbl">อัตราใช้ยาเฉลี่ย/ผู้ป่วย (หน่วย)</div></div>`;
+
+  const byDrug = {};
+  rows.forEach(e=>{ byDrug[e.drug] = (byDrug[e.drug]||0) + e.used; });
+  document.getElementById('rf-bars').innerHTML = barsHtml(Object.entries(byDrug).sort((a,b)=>b[1]-a[1]));
   const byNurse = {};
   rows.forEach(e=>{ const n = e.nurse || 'ไม่ระบุ'; byNurse[n] = (byNurse[n]||0) + 1; });
-  const nurseSorted = Object.entries(byNurse).sort((a,b)=>b[1]-a[1]);
-  const maxNurse = nurseSorted.length? nurseSorted[0][1] : 1;
-  document.getElementById('rf-nurse-bars').innerHTML = nurseSorted.length ? nurseSorted.map(([n,v])=>`
-    <div class="bar-row">
-      <div class="bar-name" title="${escapeHtml(n)}">${escapeHtml(n)}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxNurse*100).toFixed(0)}%"></div></div>
-      <div class="bar-val">${v}</div>
-    </div>`).join('') : '<div class="empty">ไม่มีข้อมูล</div>';
+  document.getElementById('rf-nurse-bars').innerHTML = barsHtml(Object.entries(byNurse).sort((a,b)=>b[1]-a[1]));
 
   const tbody = document.getElementById('rf-table-body');
   document.getElementById('rf-empty').style.display = rows.length? 'none':'block';
   tbody.innerHTML = rows.map(e=>`
     <tr>
-      <td>${e.date}</td><td title="${escapeHtml(e.visitId||e.id)}">${escapeHtml((e.visitId||e.id).slice(-6))}</td>
+      <td>${fmtDateDisplay(e.date)}</td><td title="${escapeHtml(e.visitId||e.id)}">${escapeHtml(String(e.visitId||e.id).slice(-6))}</td>
       <td>${escapeHtml(e.drug)}</td><td>${escapeHtml(e.unit)}</td>
       <td>${e.total ?? '-'}</td><td>${e.used}</td>
       <td class="${(e.remaining!==null && e.remaining<0)?'neg':''}">${e.remaining ?? '-'}</td>
       <td>${escapeHtml(e.nurse||'-')}</td><td>${escapeHtml(e.note||'-')}</td>
-      <td><button class="del-btn" data-id="${e.id}">ลบ</button></td>
+      <td><button class="del-btn" data-id="${escapeHtml(e.id)}">ลบ</button></td>
     </tr>`).join('');
-  tbody.querySelectorAll('.del-btn').forEach(b=>{
-    b.addEventListener('click', ()=>deleteRefill(b.dataset.id));
-  });
+  tbody.querySelectorAll('.del-btn').forEach(b=> b.addEventListener('click', ()=>deleteRefill(b.dataset.id)));
 }
 
-// ---------- TAB SWITCHING ----------
+// ---------- TABS ----------
+let currentTab = 'refill';
 document.querySelectorAll('#mainTabs .tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#mainTabs .tab-btn').forEach(b=>{
-      b.classList.remove('active');
-      b.style.background = 'transparent';
-      b.style.color = 'var(--ink-soft)';
-    });
-    btn.classList.add('active');
-    btn.style.background = 'var(--teal)';
-    btn.style.color = '#fff';
-    document.getElementById('panel-refill').style.display = btn.dataset.tab==='refill' ? '' : 'none';
-    document.getElementById('panel-manage').style.display = btn.dataset.tab==='manage' ? '' : 'none';
-    if(btn.dataset.tab==='manage') renderErStockPanel();
+    document.querySelectorAll('#mainTabs .tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    currentTab = btn.dataset.tab;
+    ['refill','manage','dead'].forEach(t=> document.getElementById('panel-'+t).style.display = t===currentTab ? '' : 'none');
+    if(currentTab==='manage') renderErStockPanel();
+    if(currentTab==='dead') renderDeadStock();
   });
 });
 
-// ---------- ER STOCK EXPIRY MANAGEMENT ----------
-function fmtDateDisplay(v){
-  if(!v) return 'ยังไม่คำนวณ';
-  const d = new Date(v+'T00:00:00');
-  if(isNaN(d.getTime())) return String(v);
-  const dd = String(d.getDate()).padStart(2,'0');
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  return `${dd}/${mm}/${d.getFullYear()}`;
-}
-
+// ---------- ER STOCK MANAGEMENT ----------
+document.getElementById('es-packedby-select').innerHTML = staffOptionsHtml('-- เลือกผู้บรรจุ --');
 function renderErStockMetaFields(){
-  const matched = ['คุณโชติวัฒน์ แก้วกลางเมือง','คุณเกียรติคุณ อุ่นกันทะ','คุณภัทรียาพร คำมาปัน'].includes(erStockMeta.packedBy);
+  const matched = STAFF_LIST.includes(erStockMeta.packedBy);
   const sel = document.getElementById('es-packedby-select');
   sel.value = matched ? erStockMeta.packedBy : (erStockMeta.packedBy ? '__other__' : '');
   const other = document.getElementById('es-packedby-other');
   other.style.display = (!matched && erStockMeta.packedBy) ? 'block' : 'none';
   other.value = (!matched && erStockMeta.packedBy) ? erStockMeta.packedBy : '';
-  document.getElementById('es-packeddate').value = erStockMeta.packedDate || todayStr();
-  document.getElementById('es-changedate').value = fmtDateDisplay(erStockMeta.changeDate);
+  document.getElementById('es-packeddate').value = normDate(erStockMeta.packedDate) || todayStr();
+  document.getElementById('es-changedate').value = erStockMeta.changeDate ? fmtDateDisplay(erStockMeta.changeDate) : 'ยังไม่คำนวณ';
 }
 document.getElementById('es-packedby-select').addEventListener('change', (e)=>{
   document.getElementById('es-packedby-other').style.display = e.target.value==='__other__' ? 'block' : 'none';
 });
 function getPackedByValue(){
   const sel = document.getElementById('es-packedby-select');
-  const other = document.getElementById('es-packedby-other');
-  return sel.value==='__other__' ? other.value.trim() : sel.value;
+  return sel.value==='__other__' ? document.getElementById('es-packedby-other').value.trim() : sel.value;
 }
-
-function esRiskClass(expDate){
+function esRiskStyle(expDate){
   if(!expDate) return '';
-  const d = new Date(expDate); d.setHours(0,0,0,0);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const diffDays = Math.floor((d-today)/86400000);
+  const diffDays = daysBetween(todayStr(), expDate);
+  if(isNaN(diffDays)) return '';
   if(diffDays<0) return 'style="background:#7A1616;color:#fff;"';
   if(diffDays<=15) return 'style="background:#FCE4D6;"';
   if(diffDays<=90) return 'style="background:var(--amber-soft);"';
   return '';
 }
-
+function esRowHtml(it){
+  return `
+    <td><input list="es-drug-datalist" class="es-f-name" value="${escapeHtml(it.drugName||'')}"></td>
+    <td><input class="es-f-qty" type="number" min="0" value="${escapeHtml(it.qty ?? '')}"></td>
+    <td><input class="es-f-unit" value="${escapeHtml(it.unit||'')}"></td>
+    <td><input class="es-f-exp" type="date" value="${escapeHtml(it.expDate||'')}"></td>
+    <td><input class="es-f-note" value="${escapeHtml(it.note||'')}"></td>
+    <td><button class="del-btn es-del-btn">ลบ</button></td>`;
+}
+function bindEsRow(tr){
+  tr.querySelector('.es-f-name').addEventListener('change', (e)=>{
+    const m = findDrugByDisplay(e.target.value);
+    const unitEl = tr.querySelector('.es-f-unit');
+    if(m && !unitEl.value) unitEl.value = m.unit || '';
+  });
+  tr.querySelector('.es-del-btn').addEventListener('click', async ()=>{
+    const id = tr.dataset.id;
+    if(!confirm('ยืนยันลบรายการยานี้?')) return;
+    if(id && id!=='new'){
+      try{
+        const res = await apiCall('deleteErStockItem', {id});
+        if(!res.ok) throw new Error(res.error);
+        erStockItems = erStockItems.filter(x=>String(x.id)!==String(id));
+      }catch(err){ showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+    }
+    tr.remove(); applyEsSearchFilter();
+  });
+}
 function renderErStockPanel(){
   renderErStockMetaFields();
   const tbody = document.getElementById('es-table-body');
   const sorted = erStockItems.slice().sort((a,b)=>(a.expDate||'9999').localeCompare(b.expDate||'9999'));
-  document.getElementById('es-empty').style.display = sorted.length ? 'none' : 'block';
-  tbody.innerHTML = sorted.map(it=>`
-    <tr data-id="${it.id}" ${esRiskClass(it.expDate)}>
-      <td><input list="es-drug-datalist" class="es-f-name" value="${escapeHtml(it.drugName||'')}"></td>
-      <td><input class="es-f-qty" type="number" min="0" value="${it.qty ?? ''}"></td>
-      <td><input class="es-f-unit" value="${escapeHtml(it.unit||'')}"></td>
-      <td><input class="es-f-exp" type="date" value="${it.expDate||''}"></td>
-      <td><input class="es-f-note" value="${escapeHtml(it.note||'')}"></td>
-      <td><button class="del-btn es-del-btn">ลบ</button></td>
-    </tr>`).join('') + `<datalist id="es-drug-datalist">${DRUG_MASTER.map(d=>`<option value="${escapeHtml(displayName(d))}" data-unit="${escapeHtml(d.unit||'')}">`).join('')}</datalist>`;
-
-  tbody.querySelectorAll('.es-del-btn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const tr = btn.closest('tr');
-      const id = tr.dataset.id;
-      if(!confirm('ยืนยันลบรายการยานี้?')) return;
-      if(id && id!=='new'){ await deleteErStockItemApi(id); erStockItems = erStockItems.filter(x=>x.id!==id); }
-      tr.remove();
-      if(!document.querySelectorAll('#es-table-body tr').length) document.getElementById('es-empty').style.display='block';
-      applyEsSearchFilter();
-    });
-  });
+  tbody.innerHTML = sorted.map(it=>`<tr data-id="${escapeHtml(it.id)}" ${esRiskStyle(it.expDate)}>${esRowHtml(it)}</tr>`).join('');
+  tbody.querySelectorAll('tr').forEach(bindEsRow);
   applyEsSearchFilter();
 }
-
 function applyEsSearchFilter(){
   const searchEl = document.getElementById('es-search');
-  const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const term = norm(searchEl.value);
   const rows = document.querySelectorAll('#es-table-body tr');
   let anyVisible = false;
   rows.forEach(tr=>{
-    if(tr.dataset.id === 'new'){ tr.style.display=''; anyVisible = true; return; } // always show unsaved new rows
-    const nameInput = tr.querySelector('.es-f-name');
-    const name = (nameInput ? nameInput.value : '').toLowerCase();
-    const match = !term || name.includes(term);
+    if(tr.dataset.id === 'new'){ tr.style.display=''; anyVisible = true; return; }
+    const match = !term || norm(tr.querySelector('.es-f-name').value).includes(term);
     tr.style.display = match ? '' : 'none';
     if(match) anyVisible = true;
   });
   const emptyEl = document.getElementById('es-empty');
-  if(!rows.length){
-    emptyEl.textContent = 'ยังไม่มีรายการยา กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น';
-    emptyEl.style.display = 'block';
-  } else if(term && !anyVisible){
-    emptyEl.textContent = `ไม่พบยาที่ตรงกับ "${searchEl.value.trim()}"`;
-    emptyEl.style.display = 'block';
-  } else {
-    emptyEl.style.display = 'none';
-  }
+  if(!rows.length){ emptyEl.textContent = 'ยังไม่มีรายการยา กด "+ เพิ่มรายการยา" เพื่อเริ่มต้น'; emptyEl.style.display = 'block'; }
+  else if(term && !anyVisible){ emptyEl.textContent = `ไม่พบยาที่ตรงกับ "${searchEl.value.trim()}"`; emptyEl.style.display = 'block'; }
+  else emptyEl.style.display = 'none';
 }
 document.getElementById('es-search').addEventListener('input', applyEsSearchFilter);
 
 document.getElementById('es-add-btn').addEventListener('click', ()=>{
-  const tbody = document.getElementById('es-table-body');
-  document.getElementById('es-empty').style.display = 'none';
   const tr = document.createElement('tr');
   tr.dataset.id = 'new';
-  tr.innerHTML = `
-    <td><input list="es-drug-datalist" class="es-f-name" value=""></td>
-    <td><input class="es-f-qty" type="number" min="0" value=""></td>
-    <td><input class="es-f-unit" value=""></td>
-    <td><input class="es-f-exp" type="date" value=""></td>
-    <td><input class="es-f-note" value=""></td>
-    <td><button class="del-btn es-del-btn">ลบ</button></td>`;
-  tbody.appendChild(tr);
-  tr.querySelector('.es-del-btn').addEventListener('click', ()=>{ if(confirm('ยืนยันลบแถวนี้?')) { tr.remove(); applyEsSearchFilter(); } });
+  tr.innerHTML = esRowHtml({});
+  document.getElementById('es-table-body').appendChild(tr);
+  bindEsRow(tr);
   tr.querySelector('.es-f-name').focus();
   applyEsSearchFilter();
 });
 
-document.getElementById('es-save-btn').addEventListener('click', async ()=>{
-  const rows = document.querySelectorAll('#es-table-body tr');
-  const statusEl = document.getElementById('es-status');
-  statusEl.textContent = 'กำลังบันทึก...';
-  let earliestExp = null;
-  const entries = [];
-  rows.forEach(tr=>{
+// อ่านข้อมูลจากตารางบนหน้าจอ (รวมที่ยังไม่บันทึก) — ใช้ทั้งตอนบันทึกและตอนส่งออก
+function readEsTable(){
+  const items = [];
+  document.querySelectorAll('#es-table-body tr').forEach(tr=>{
     const name = tr.querySelector('.es-f-name').value.trim();
     if(!name) return;
-    const expVal = tr.querySelector('.es-f-exp').value;
-    entries.push({
+    items.push({
       id: tr.dataset.id==='new' ? undefined : tr.dataset.id,
       drugName: name,
-      unit: tr.querySelector('.es-f-unit').value,
+      unit: tr.querySelector('.es-f-unit').value.trim(),
       qty: tr.querySelector('.es-f-qty').value,
-      expDate: expVal,
-      note: tr.querySelector('.es-f-note').value,
+      expDate: tr.querySelector('.es-f-exp').value,
+      note: tr.querySelector('.es-f-note').value.trim(),
     });
-    if(expVal && (!earliestExp || expVal < earliestExp)) earliestExp = expVal;
   });
+  return items;
+}
 
+document.getElementById('es-save-btn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('es-status');
+  const btn = document.getElementById('es-save-btn');
+  const entries = readEsTable();
+  let earliestExp = null;
+  entries.forEach(e=>{ if(e.expDate && (!earliestExp || e.expDate < earliestExp)) earliestExp = e.expDate; });
+
+  btn.disabled = true; isSaving = true; statusEl.textContent = 'กำลังบันทึก...';
   try{
     const res = await apiCall('saveErStockItemsBatch', {entries});
     if(!res.ok) throw new Error(res.error||'unknown');
-
-    let changeDateIso = erStockMeta.changeDate || '';
-    if(earliestExp){
-      const d = new Date(earliestExp+'T00:00:00');
-      d.setMonth(d.getMonth()-3);
-      changeDateIso = d.toISOString().slice(0,10);
-    }
-    const packedBy = getPackedByValue();
-    const packedDate = document.getElementById('es-packeddate').value;
-    await updateErStockMetaApi({ packedBy, packedDate, changeDate: changeDateIso });
-    erStockMeta = { packedBy, packedDate, changeDate: changeDateIso };
-
+    const changeDateIso = earliestExp ? addMonthsIso(earliestExp, -3) : (erStockMeta.changeDate || '');
+    const meta = { packedBy: getPackedByValue(), packedDate: document.getElementById('es-packeddate').value, changeDate: changeDateIso };
+    await apiCall('updateErStockMeta', {meta});
+    erStockMeta = meta;
     await loadAll();
     renderErStockPanel();
-    statusEl.textContent = '';
     showToast(`บันทึกการเปลี่ยนแปลงเรียบร้อย ✓ (${entries.length} รายการ)`);
   }catch(e){
-    statusEl.textContent = '';
     showToast('บันทึกไม่สำเร็จ: '+e.message);
   }
+  btn.disabled = false; isSaving = false; statusEl.textContent = '';
 });
 
+// ---- ส่งออกรายการยา: สร้างไฟล์ในเครื่องเลย ไม่ผ่าน Google Drive (สาเหตุของ error สิทธิ์ DriveApp เดิม) ----
+function esExportRows(){
+  return readEsTable().sort((a,b)=>(a.expDate||'9999').localeCompare(b.expDate||'9999')).map(it=>{
+    const left = it.expDate ? daysBetween(todayStr(), it.expDate) : '';
+    return { ...it, left };
+  });
+}
+document.getElementById('es-xlsx-btn').addEventListener('click', ()=>{
+  const rows = esExportRows();
+  if(!rows.length){ showToast('ยังไม่มีรายการยา'); return; }
+  const aoa = [
+    ['วันหมดอายุยา ER Stock นอกเวลา — รพ.เชียงม่วน'],
+    ['ผู้บรรจุ', getPackedByValue() || '-', 'วันที่บรรจุ', fmtDateDisplay(document.getElementById('es-packeddate').value), 'วันที่ต้องเปลี่ยนยา', erStockMeta.changeDate ? fmtDateDisplay(erStockMeta.changeDate) : '-'],
+    [],
+    ['ลำดับ','ชื่อยา','จำนวน','หน่วย','วันหมดอายุ','เหลืออีก (วัน)','หมายเหตุ'],
+    ...rows.map((it,i)=>[i+1, it.drugName, it.qty===''?'':Number(it.qty), it.unit, fmtDateDisplay(it.expDate), it.left, it.note])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:6},{wch:34},{wch:8},{wch:8},{wch:12},{wch:13},{wch:30}];
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:6}}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ER Stock');
+  XLSX.writeFile(wb, `ER_Stock_รายการยา_${todayStr()}.xlsx`);
+});
+document.getElementById('es-print-btn').addEventListener('click', ()=>{
+  const rows = esExportRows();
+  if(!rows.length){ showToast('ยังไม่มีรายการยา'); return; }
+  const w = window.open('', '_blank');
+  if(!w){ alert('เบราว์เซอร์บล็อกหน้าต่างใหม่ — กรุณาอนุญาต pop-up สำหรับเว็บนี้'); return; }
+  const body = rows.map((it,i)=>{
+    const bg = it.left!=='' && it.left<0 ? '#f3c9c4' : (it.left!=='' && it.left<=90 ? '#fbe9d7' : '');
+    return `<tr style="background:${bg}"><td>${i+1}</td><td>${escapeHtml(it.drugName)}</td><td style="text-align:center">${escapeHtml(it.qty)}</td><td>${escapeHtml(it.unit)}</td><td style="text-align:center">${fmtDateDisplay(it.expDate)}</td><td>${escapeHtml(it.note)}</td></tr>`;
+  }).join('');
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ป้าย ER Stock ${todayStr()}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>body{font-family:'Sarabun',sans-serif;margin:16mm;color:#000}h1{font-size:18px;text-align:center;margin:0 0 6px}
+    .meta{font-size:13px;text-align:center;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:12.5px}
+    th,td{border:1px solid #555;padding:4px 6px}th{background:#E8EAF6}@media print{body{margin:10mm}}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>
+    <h1>วันหมดอายุยา ER Stock นอกเวลา — รพ.เชียงม่วน</h1>
+    <div class="meta">ผู้บรรจุ: ${escapeHtml(getPackedByValue()||'-')} · วันที่บรรจุ: ${fmtDateDisplay(document.getElementById('es-packeddate').value)} · วันที่ต้องเปลี่ยนยา: ${erStockMeta.changeDate?fmtDateDisplay(erStockMeta.changeDate):'-'}</div>
+    <table><thead><tr><th>#</th><th>รายการยา</th><th>จำนวน</th><th>หน่วย</th><th>วันหมดอายุ</th><th>หมายเหตุ</th></tr></thead><tbody>${body}</tbody></table>
+    <script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
+  w.document.close();
+});
 
-document.getElementById('es-export-btn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('es-export-btn');
-  btn.disabled = true; btn.textContent = 'กำลังสร้างเอกสาร...';
-  const newTab = window.open('', '_blank');
-  if(newTab) newTab.document.write('<p style="font-family:sans-serif;padding:20px;">กำลังสร้างเอกสาร กรุณารอสักครู่...</p>');
-  try{
-    const res = await apiCall('exportErStockDocx', {});
-    if(!res.ok) throw new Error(res.error||'unknown');
-    if(newTab && !newTab.closed) newTab.location.href = res.url;
-    else window.open(res.url, '_blank');
-  }catch(e){
-    if(newTab && !newTab.closed) newTab.close();
-    alert('สร้างเอกสารไม่สำเร็จ: '+e.message);
+// ---------- DEAD STOCK REPORT ----------
+let ddMonths = '3';
+document.querySelectorAll('#dd-period-chips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#dd-period-chips .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    ddMonths = chip.dataset.months;
+    document.getElementById('dd-custom-range').style.display = ddMonths==='custom' ? 'flex' : 'none';
+    renderDeadStock();
+  });
+});
+['dd-range-start','dd-range-end','dd-source','dd-show'].forEach(id=>document.getElementById(id).addEventListener('change', renderDeadStock));
+
+function ddRange(){
+  const end = todayStr();
+  if(ddMonths==='custom'){
+    let s = document.getElementById('dd-range-start').value || addMonthsIso(end,-3);
+    let e = document.getElementById('dd-range-end').value || end;
+    if(s > e) [s,e] = [e,s];
+    return {start:s, end:e};
   }
-  btn.disabled = false; btn.textContent = '📄 เปิดเอกสารสำหรับปริ้น';
+  return { start: addMonthsIso(end, -Number(ddMonths)), end };
+}
+
+function buildDrugUniverse(source){
+  const map = new Map();
+  const add = (name, unit)=>{
+    const k = norm(name); if(!k) return null;
+    if(!map.has(k)) map.set(k, { key:k, name:String(name).trim(), unit:unit||'', par:null, qty:null, minExp:'' });
+    return map.get(k);
+  };
+  if(source!=='erstock') DRUG_MASTER.forEach(d=>{ const it = add(displayName(d), d.unit); it.par = d.par; });
+  if(source!=='master'){
+    erStockItems.forEach(s=>{
+      const it = add(s.drugName, s.unit); if(!it) return;
+      const q = parseFloat(s.qty); if(!isNaN(q)) it.qty = (it.qty||0) + q;
+      if(s.expDate && (!it.minExp || s.expDate < it.minExp)) it.minExp = s.expDate;
+      if(!it.unit) it.unit = s.unit || '';
+      const m = MASTER_BY_KEY.get(it.key); if(m && it.par===null) it.par = m.par;
+    });
+  }
+  return [...map.values()];
+}
+
+let ddLastRows = [];
+function renderDeadStock(){
+  const {start, end} = ddRange();
+  let source = document.getElementById('dd-source').value;
+  const show = document.getElementById('dd-show').value;
+  const noteEl = document.getElementById('dd-note');
+  let notes = [];
+  if(source==='erstock' && !erStockItems.length){
+    source = 'master';
+    notes.push('ยังไม่มีรายการในแท็บ "จัดการ ER Stock" — ใช้รายการยาตามฟอร์มมาตรฐานแทน');
+  }
+
+  // สรุปการใช้ยา: ทั้งช่วงที่เลือก และวันที่ใช้ล่าสุด (ตลอดทั้งหมด)
+  const usage = new Map();
+  let firstRecord = null;
+  refillEntries.forEach(e=>{
+    if(!e.date) return;
+    if(!firstRecord || e.date < firstRecord) firstRecord = e.date;
+    const k = norm(e.drug);
+    if(!usage.has(k)) usage.set(k, {count:0, units:0, last:'', visits:new Set()});
+    const u = usage.get(k);
+    if(!u.last || e.date > u.last) u.last = e.date;
+    if(inRange(e.date, start, end)){ u.visits.add(e.visitId||e.id); u.units += e.used; }
+  });
+
+  const drugs = buildDrugUniverse(source).map(d=>{
+    const u = usage.get(d.key);
+    const count = u ? u.visits.size : 0;
+    const last = u ? u.last : '';
+    const idle = last ? daysBetween(last, end) : null;
+    const status = count===0 ? 'dead' : (count<=2 ? 'slow' : 'ok');
+    return {...d, count, units: u ? +u.units.toFixed(1) : 0, last, idle, status};
+  });
+  drugs.sort((a,b)=>{
+    const rank = {dead:0, slow:1, ok:2};
+    if(rank[a.status]!==rank[b.status]) return rank[a.status]-rank[b.status];
+    if(a.status==='dead'){ // ไม่เคยใช้เลยขึ้นก่อน แล้วตามจำนวนวันที่ไม่ได้ใช้
+      const ai = a.idle===null ? Infinity : a.idle, bi = b.idle===null ? Infinity : b.idle;
+      if(ai!==bi) return bi-ai;
+    }
+    if(a.count!==b.count) return a.count-b.count;
+    return a.name.localeCompare(b.name);
+  });
+
+  const deadCount = drugs.filter(d=>d.status==='dead').length;
+  const slowCount = drugs.filter(d=>d.status==='slow').length;
+  if(!firstRecord) notes.push('ยังไม่มีข้อมูลการเติมยาในระบบ');
+  else if(firstRecord > start) notes.push(`ระบบเริ่มมีข้อมูลการเติมยาวันที่ ${fmtDateDisplay(firstRecord)} — ช่วงก่อนหน้านั้นไม่มีข้อมูล ผลรายงานจึงครอบคลุมเพียง ${daysBetween(firstRecord,end)+1} วัน`);
+  notes.push('หมายเหตุ: ระบบนับเฉพาะยาที่ถูกบันทึกในหน้านี้ ถ้าชื่อยาที่บันทึกไม่ตรงกับรายการใน ER Stock (เช่น พิมพ์เอง) ยานั้นอาจแสดงว่าไม่ถูกใช้ — แนะนำให้เลือกชื่อยาจากรายการทุกครั้ง');
+  noteEl.innerHTML = notes.map(n=>`<div class="info-note">${escapeHtml(n)}</div>`).join('');
+
+  document.getElementById('dd-stats').innerHTML = `
+    <div class="stat"><div class="num">${drugs.length}</div><div class="lbl">รายการยาที่ตรวจ</div></div>
+    <div class="stat warn"><div class="num">${deadCount}</div><div class="lbl">ไม่ถูกใช้เลยในช่วง ${fmtDateDisplay(start)} – ${fmtDateDisplay(end)}</div></div>
+    <div class="stat"><div class="num">${slowCount}</div><div class="lbl">ใช้น้อย (1–2 ใบสั่งยา)</div></div>
+    <div class="stat"><div class="num">${drugs.length ? Math.round(deadCount/drugs.length*100) : 0}%</div><div class="lbl">สัดส่วนยาไม่เคลื่อนไหว</div></div>`;
+
+  const visible = drugs.filter(d=> show==='all' || d.status==='dead' || (show==='slow' && d.status==='slow'));
+  ddLastRows = drugs;
+  const label = {dead:'<span class="badge b-dead">ไม่ถูกใช้</span>', slow:'<span class="badge b-slow">ใช้น้อย</span>', ok:'<span class="badge b-ok">เคลื่อนไหวปกติ</span>'};
+  document.getElementById('dd-table-body').innerHTML = visible.map(d=>`
+    <tr>
+      <td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.unit||'-')}</td>
+      <td>${d.par ?? '-'} / ${d.qty ?? '-'}</td>
+      <td ${esRiskStyle(d.minExp)}>${d.minExp ? fmtDateDisplay(d.minExp) : '-'}</td>
+      <td>${d.count}</td><td>${d.units}</td>
+      <td>${d.last ? fmtDateDisplay(d.last) : 'ไม่เคยบันทึก'}</td>
+      <td>${d.idle===null ? '-' : d.idle+' วัน'}</td>
+      <td>${label[d.status]}</td>
+    </tr>`).join('');
+  const emptyEl = document.getElementById('dd-empty');
+  emptyEl.style.display = visible.length ? 'none' : 'block';
+  emptyEl.textContent = 'ไม่มียาที่ตรงเงื่อนไขในช่วงเวลานี้ 🎉';
+}
+
+document.getElementById('dd-xlsx-btn').addEventListener('click', ()=>{
+  renderDeadStock();
+  const {start,end} = ddRange();
+  const show = document.getElementById('dd-show').value;
+  const rows = ddLastRows.filter(d=> show==='all' || d.status==='dead' || (show==='slow' && d.status==='slow'));
+  const statusTxt = {dead:'ไม่ถูกใช้', slow:'ใช้น้อย', ok:'เคลื่อนไหวปกติ'};
+  const aoa = [
+    [`รายงานยา ER Stock ที่ไม่เคลื่อนไหวช่วงนอกเวลา ${fmtDateDisplay(start)} – ${fmtDateDisplay(end)}`],
+    [],
+    ['ชื่อยา','หน่วย','Par','คงคลัง','หมดอายุใกล้สุด','จำนวนใบสั่งยาในช่วง','หน่วยที่ใช้ในช่วง','ใช้ล่าสุด','ไม่ถูกใช้มา (วัน)','สถานะ','ข้อเสนอ/การพิจารณา'],
+    ...rows.map(d=>[d.name, d.unit, d.par ?? '', d.qty ?? '', d.minExp ? fmtDateDisplay(d.minExp) : '', d.count, d.units, d.last ? fmtDateDisplay(d.last) : 'ไม่เคยบันทึก', d.idle ?? '', statusTxt[d.status], ''])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:34},{wch:8},{wch:6},{wch:8},{wch:13},{wch:12},{wch:12},{wch:13},{wch:12},{wch:14},{wch:30}];
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:10}}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ยาไม่เคลื่อนไหว');
+  XLSX.writeFile(wb, `ER_Stock_ยาไม่เคลื่อนไหว_${start}_to_${end}.xlsx`);
 });
 
 // ---------- INIT ----------
+function renderAllReports(){
+  renderNurseFilter(); renderDrugFilter(); renderRefillReport();
+  if(currentTab==='dead') renderDeadStock();
+}
 (async function init(){
-  document.getElementById('rf-status').textContent = 'กำลังโหลดข้อมูล...';
   renderDrugDatalist();
+  // แสดงข้อมูลล่าสุดที่เก็บไว้ในเครื่องทันที แล้วค่อยดึงข้อมูลใหม่ตามมา
+  if(loadCache()) renderAllReports();
+  document.getElementById('rf-status').textContent = 'กำลังโหลดข้อมูลล่าสุด...';
   await loadAll();
-  renderNurseFilter();
-  renderRefillReport();
+  renderAllReports();
   document.getElementById('rf-status').textContent = '';
 })();
 
-// รีเฟรชข้อมูลอัตโนมัติทุก 30 วินาที (หยุดพักถ้าสลับไปแท็บอื่น เพื่อเห็นเคสใหม่แบบเรียลไทม์)
+// รีเฟรชอัตโนมัติทุก 60 วินาทีเมื่อเปิดหน้าอยู่ (ไม่ทับตารางแท็บจัดการ ER Stock ที่กำลังแก้ไข)
 async function refreshStockData(){
-  await loadAll();
-  renderNurseFilter();
-  renderRefillReport();
-  // หมายเหตุ: ไม่ re-render แท็บ "จัดการ ER Stock" ตรงนี้อีกต่อไป
-  // เพราะถ้าผู้ใช้กำลังพิมพ์แก้ไขตารางอยู่ (ยังไม่ได้กดบันทึก) การรีเฟรชอัตโนมัติจะไปทับข้อมูลที่พิมพ์ค้างไว้ทิ้งหมด
-  // ข้อมูลแท็บนี้จะโหลดใหม่เองตอนสลับแท็บเข้ามา หรือตอนกด "บันทึกการเปลี่ยนแปลง" อยู่แล้ว
+  if(isSaving) return;
+  if(await loadAll()) renderAllReports();
 }
-setInterval(()=>{ if(document.visibilityState === 'visible') refreshStockData(); }, 30000);
+setInterval(()=>{ if(document.visibilityState === 'visible') refreshStockData(); }, 60000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') refreshStockData(); });
 </script>
 </body>
