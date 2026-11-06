@@ -336,7 +336,13 @@ let lastSyncAt = null;
 
 function bkkDate(){ return new Date(Date.now() + 7*60*60*1000); }
 function todayStr(){ return bkkDate().toISOString().slice(0,10); } // วันที่ตามเวลาไทย
-function normDate(v){ if(!v) return ''; const s = String(v); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,10) : s; }
+function normDate(v){
+  if(!v) return ''; const s = String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); // 22/1/2028 (ว/ด/ป ที่พิมพ์ในชีต)
+  if(m){ let y = +m[3]; if(y>2400) y -= 543; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  return s;
+}
 // บวก/ลบเดือนแบบไม่ขึ้นกับ timezone (เดิมใช้ toISOString() กับวันที่ local ทำให้วันที่ต้องเปลี่ยนยาเลื่อนไป 1 วัน)
 function addMonthsIso(iso, n){
   const [y,m,d] = iso.split('-').map(Number);
@@ -886,6 +892,54 @@ document.getElementById('es-print-btn').addEventListener('click', ()=>{
   w.document.close();
 });
 
+// ---- Drug name matcher: จับคู่ชื่อยาที่เขียนต่างกัน (เช่น "Omeprazole  inj. 40mg/10ml" = "Omeprazole 40 mg inj.") ----
+const FORM_RULES = [
+  ['oph',  /\b(oph|eye|ตา)\b|หยอดตา/i],
+  ['ear',  /หยอดหู|\bear\b/i],
+  ['inj',  /\b(inj|inf|infusion|iv|im|vial|amp)\b|inj\.|inj$/i],
+  ['nb',   /\b(nb|neb|mdi|inhaler)\b/i],
+  ['supp', /suppositor/i],
+  ['paste',/oral\s*base/i],
+  ['topical', /\b(cream|oint|ointment)\b/i],
+  ['liquid', /(syr|susp|elixir|solution|lotion|\bgel\b|mixture|\/\s*5\s*m[lL]|\d\s*(ml|cc)\b)/i],
+];
+const FORM_WORDS = new Set(['inj','inf','infusion','syr','susp','elixir','solution','lotion','gel','mixture','cream','oint','ointment',
+  'oph','tab','tabs','cap','caps','nb','mdi','oral','base','suppositories','suppository','forte_x','mg','ml','g','gm','mcg','meq','iu','cc','amp','vial','tab.']);
+function drugForm(name){
+  const s = String(name||'');
+  for(const [f,re] of FORM_RULES) if(re.test(s)) return f;
+  return 'oral';
+}
+function drugKey(name){
+  const s = String(name||'').toLowerCase().replace(/\*/g,' ');
+  // ชื่อสามัญ: คำตัวอักษร (ไทย/อังกฤษ) ไม่เกิน 2 คำแรก ไม่นับคำบอกรูปแบบยา/หน่วย
+  const words = (s.match(/[a-z฀-๿][a-z฀-๿.\-]*/g) || [])
+    .map(w=>w.replace(/[.\-]/g,''))
+    .map(w=>w.replace(/(syr|susp|inj)$/,''))   // "paracetamolsyr" → "paracetamol"
+    .filter(w=>w && !FORM_WORDS.has(w));
+  const generic = words.slice(0,2).join(' ');
+  const first = (words[0]||'');
+  const numM = s.match(/\d+(?:\.\d+)?/);
+  return { generic, first, form: drugForm(name), num: numM ? numM[0].replace(/^0+(?=\d)/,'') : '' };
+}
+function normName(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+// สร้างตัวจับคู่จากรายการยาเป้าหมาย (เช่น รายการใน ER Stock) — คืนค่า function(name) → [keys ของเป้าหมาย]
+function buildMatcher(targets){ // targets: [{key, name}]
+  const T = targets.map(t=>({ key:t.key, n:normName(t.name), k:drugKey(t.name) }));
+  const uniq = arr => [...new Set(arr.map(t=>t.key))];
+  return function(name){
+    const n = normName(name); const k = drugKey(name);
+    let c = T.filter(t=>t.n===n);                                    if(c.length) return {keys:uniq(c), tier:'exact'};
+    if(!k.generic) return {keys:[], tier:'none'};
+    c = T.filter(t=>t.k.generic===k.generic && t.k.form===k.form && t.k.num && t.k.num===k.num); if(c.length) return {keys:uniq(c), tier:'strength'};
+    c = T.filter(t=>t.k.generic===k.generic && t.k.form===k.form);  if(uniq(c).length===1) return {keys:uniq(c), tier:'form'};
+    c = T.filter(t=>t.k.first===k.first && t.k.form===k.form && (!t.k.num || !k.num || t.k.num===k.num)); if(uniq(c).length===1) return {keys:uniq(c), tier:'form'};
+    c = T.filter(t=>t.k.generic===k.generic);                         if(uniq(c).length===1) return {keys:uniq(c), tier:'name'};
+    c = T.filter(t=>t.k.first===k.first);                             if(uniq(c).length===1) return {keys:uniq(c), tier:'name'};
+    return {keys:[], tier:'none'};
+  };
+}
+
 // ---------- DEAD STOCK REPORT ----------
 let ddMonths = '3';
 document.querySelectorAll('#dd-period-chips .chip').forEach(chip=>{
@@ -919,18 +973,31 @@ function buildDrugUniverse(source){
   };
   if(source!=='erstock') DRUG_MASTER.forEach(d=>{ const it = add(displayName(d), d.unit); it.par = d.par; });
   if(source!=='master'){
+    // ถ้ารวมสองแหล่ง ให้ยาใน ER Stock ที่เป็นตัวเดียวกับฟอร์มมาตรฐาน (แต่เขียนชื่อต่างกัน) รวมเป็นแถวเดียว
+    const masterMatch = source==='both' ? buildMatcher([...map.values()].map(it=>({key:it.key, name:it.name}))) : null;
     erStockItems.forEach(s=>{
-      const it = add(s.drugName, s.unit); if(!it) return;
+      if(!norm(s.drugName)) return;
+      let it = null;
+      if(masterMatch){ const r = masterMatch(s.drugName); if(r.keys.length===1) it = map.get(r.keys[0]); }
+      if(!it) it = add(s.drugName, s.unit);
       const q = parseFloat(s.qty); if(!isNaN(q)) it.qty = (it.qty||0) + q;
-      if(s.expDate && (!it.minExp || s.expDate < it.minExp)) it.minExp = s.expDate;
+      const exp = normDate(s.expDate);
+      if(exp && (!it.minExp || exp < it.minExp)) it.minExp = exp;
       if(!it.unit) it.unit = s.unit || '';
-      const m = MASTER_BY_KEY.get(it.key); if(m && it.par===null) it.par = m.par;
+    });
+    // Par มาตรฐาน: จับคู่ชื่อใน ER Stock กับฟอร์มมาตรฐาน
+    const parMatch = buildMatcher(DRUG_MASTER.map(d=>({key:norm(displayName(d)), name:displayName(d)})));
+    map.forEach(it=>{
+      if(it.par!==null) return;
+      const r = parMatch(it.name);
+      if(r.keys.length===1){ const d = MASTER_BY_KEY.get(r.keys[0]); if(d) it.par = d.par; }
     });
   }
   return [...map.values()];
 }
 
 let ddLastRows = [];
+let ddUnmatched = [];
 function renderDeadStock(){
   const {start, end} = ddRange();
   let source = document.getElementById('dd-source').value;
@@ -942,31 +1009,46 @@ function renderDeadStock(){
     notes.push('ยังไม่มีรายการในแท็บ "จัดการ ER Stock" — ใช้รายการยาตามฟอร์มมาตรฐานแทน');
   }
 
-  // สรุปการใช้ยา: ทั้งช่วงที่เลือก และวันที่ใช้ล่าสุด (ตลอดทั้งหมด)
+  const universe = buildDrugUniverse(source);
+  // ชื่อยาที่บันทึกตอนเติมยา (ตามฟอร์มมาตรฐาน) มักเขียนต่างจากชื่อใน ER Stock
+  // เช่น "Omeprazole  inj. 40mg/10ml" กับ "Omeprazole 40 mg inj." — จับคู่ด้วยชื่อสามัญ + รูปแบบยา + ความแรง
+  const matcher = buildMatcher(universe.map(d=>({key:d.key, name:d.name})));
+  const matchCache = new Map();
+  const matchOf = name => { const k = norm(name); if(!matchCache.has(k)) matchCache.set(k, matcher(name)); return matchCache.get(k); };
+
   const usage = new Map();
+  const unmatched = new Map();
   let firstRecord = null;
   refillEntries.forEach(e=>{
-    if(!e.date) return;
+    if(!e.date || !e.drug) return;
     if(!firstRecord || e.date < firstRecord) firstRecord = e.date;
-    const k = norm(e.drug);
-    if(!usage.has(k)) usage.set(k, {count:0, units:0, last:'', visits:new Set()});
-    const u = usage.get(k);
-    if(!u.last || e.date > u.last) u.last = e.date;
-    if(inRange(e.date, start, end)){ u.visits.add(e.visitId||e.id); u.units += e.used; }
+    const inR = inRange(e.date, start, end);
+    const r = matchOf(e.drug);
+    if(!r.keys.length){
+      if(inR){ const u = unmatched.get(e.drug) || 0; unmatched.set(e.drug, u+1); }
+      return;
+    }
+    r.keys.forEach(k=>{
+      if(!usage.has(k)) usage.set(k, {units:0, last:'', visits:new Set(), names:new Set()});
+      const u = usage.get(k);
+      if(!u.last || e.date > u.last) u.last = e.date;
+      u.names.add(e.drug.replace(/\s+/g,' ').trim());
+      if(inR){ u.visits.add(e.visitId||e.id); u.units += e.used; }
+    });
   });
 
-  const drugs = buildDrugUniverse(source).map(d=>{
+  const drugs = universe.map(d=>{
     const u = usage.get(d.key);
     const count = u ? u.visits.size : 0;
     const last = u ? u.last : '';
     const idle = last ? daysBetween(last, end) : null;
     const status = count===0 ? 'dead' : (count<=2 ? 'slow' : 'ok');
-    return {...d, count, units: u ? +u.units.toFixed(1) : 0, last, idle, status};
+    return {...d, count, units: u ? +u.units.toFixed(1) : 0, last, idle, status, recordedAs: u ? [...u.names].filter(n=>norm(n)!==d.key) : []};
   });
   drugs.sort((a,b)=>{
     const rank = {dead:0, slow:1, ok:2};
     if(rank[a.status]!==rank[b.status]) return rank[a.status]-rank[b.status];
-    if(a.status==='dead'){ // ไม่เคยใช้เลยขึ้นก่อน แล้วตามจำนวนวันที่ไม่ได้ใช้
+    if(a.status==='dead'){
       const ai = a.idle===null ? Infinity : a.idle, bi = b.idle===null ? Infinity : b.idle;
       if(ai!==bi) return bi-ai;
     }
@@ -978,8 +1060,14 @@ function renderDeadStock(){
   const slowCount = drugs.filter(d=>d.status==='slow').length;
   if(!firstRecord) notes.push('ยังไม่มีข้อมูลการเติมยาในระบบ');
   else if(firstRecord > start) notes.push(`ระบบเริ่มมีข้อมูลการเติมยาวันที่ ${fmtDateDisplay(firstRecord)} — ช่วงก่อนหน้านั้นไม่มีข้อมูล ผลรายงานจึงครอบคลุมเพียง ${daysBetween(firstRecord,end)+1} วัน`);
-  notes.push('หมายเหตุ: ระบบนับเฉพาะยาที่ถูกบันทึกในหน้านี้ ถ้าชื่อยาที่บันทึกไม่ตรงกับรายการใน ER Stock (เช่น พิมพ์เอง) ยานั้นอาจแสดงว่าไม่ถูกใช้ — แนะนำให้เลือกชื่อยาจากรายการทุกครั้ง');
-  noteEl.innerHTML = notes.map(n=>`<div class="info-note">${escapeHtml(n)}</div>`).join('');
+  ddUnmatched = [...unmatched.entries()].sort((a,b)=>b[1]-a[1]);
+  let html = notes.map(n=>`<div class="info-note">${escapeHtml(n)}</div>`).join('');
+  if(ddUnmatched.length){
+    html += `<div class="info-note">⚠ มี ${ddUnmatched.length} ชื่อยาที่บันทึกการเติมแต่จับคู่กับรายการที่ตรวจไม่ได้ (ไม่ถูกนับในรายงาน): ` +
+      ddUnmatched.map(([n,c])=>`<b>${escapeHtml(n)}</b> (${c})`).join(', ') +
+      ` — ตรวจว่ายานี้มีในแท็บ "จัดการ ER Stock" หรือไม่ หรือเลือก "ทั้งสองแหล่งรวมกัน"</div>`;
+  }
+  noteEl.innerHTML = html;
 
   document.getElementById('dd-stats').innerHTML = `
     <div class="stat"><div class="num">${drugs.length}</div><div class="lbl">รายการยาที่ตรวจ</div></div>
@@ -992,7 +1080,8 @@ function renderDeadStock(){
   const label = {dead:'<span class="badge b-dead">ไม่ถูกใช้</span>', slow:'<span class="badge b-slow">ใช้น้อย</span>', ok:'<span class="badge b-ok">เคลื่อนไหวปกติ</span>'};
   document.getElementById('dd-table-body').innerHTML = visible.map(d=>`
     <tr>
-      <td>${escapeHtml(d.name)}</td><td>${escapeHtml(d.unit||'-')}</td>
+      <td>${escapeHtml(d.name)}${d.recordedAs.length ? `<div style="font-size:11.5px;color:var(--ink-soft)">บันทึกเป็น: ${escapeHtml(d.recordedAs.join(', '))}</div>` : ''}</td>
+      <td>${escapeHtml(d.unit||'-')}</td>
       <td>${d.par ?? '-'} / ${d.qty ?? '-'}</td>
       <td ${esRiskStyle(d.minExp)}>${d.minExp ? fmtDateDisplay(d.minExp) : '-'}</td>
       <td>${d.count}</td><td>${d.units}</td>
@@ -1014,14 +1103,19 @@ document.getElementById('dd-xlsx-btn').addEventListener('click', ()=>{
   const aoa = [
     [`รายงานยา ER Stock ที่ไม่เคลื่อนไหวช่วงนอกเวลา ${fmtDateDisplay(start)} – ${fmtDateDisplay(end)}`],
     [],
-    ['ชื่อยา','หน่วย','Par','คงคลัง','หมดอายุใกล้สุด','จำนวนใบสั่งยาในช่วง','หน่วยที่ใช้ในช่วง','ใช้ล่าสุด','ไม่ถูกใช้มา (วัน)','สถานะ','ข้อเสนอ/การพิจารณา'],
-    ...rows.map(d=>[d.name, d.unit, d.par ?? '', d.qty ?? '', d.minExp ? fmtDateDisplay(d.minExp) : '', d.count, d.units, d.last ? fmtDateDisplay(d.last) : 'ไม่เคยบันทึก', d.idle ?? '', statusTxt[d.status], ''])
+    ['ชื่อยา','หน่วย','Par','คงคลัง','หมดอายุใกล้สุด','จำนวนใบสั่งยาในช่วง','หน่วยที่ใช้ในช่วง','ใช้ล่าสุด','ไม่ถูกใช้มา (วัน)','สถานะ','ชื่อที่ใช้ตอนบันทึกเติมยา','ข้อเสนอ/การพิจารณา'],
+    ...rows.map(d=>[d.name, d.unit, d.par ?? '', d.qty ?? '', d.minExp ? fmtDateDisplay(d.minExp) : '', d.count, d.units, d.last ? fmtDateDisplay(d.last) : 'ไม่เคยบันทึก', d.idle ?? '', statusTxt[d.status], d.recordedAs.join(', '), ''])
   ];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{wch:34},{wch:8},{wch:6},{wch:8},{wch:13},{wch:12},{wch:12},{wch:13},{wch:12},{wch:14},{wch:30}];
-  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:10}}];
+  ws['!cols'] = [{wch:34},{wch:8},{wch:6},{wch:8},{wch:13},{wch:12},{wch:12},{wch:13},{wch:12},{wch:14},{wch:30},{wch:30}];
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:11}}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ยาไม่เคลื่อนไหว');
+  if(ddUnmatched.length){
+    const ws2 = XLSX.utils.aoa_to_sheet([['ชื่อยาที่บันทึกแต่จับคู่ไม่ได้','จำนวนครั้งในช่วง'], ...ddUnmatched]);
+    ws2['!cols'] = [{wch:40},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'จับคู่ไม่ได้');
+  }
   XLSX.writeFile(wb, `ER_Stock_ยาไม่เคลื่อนไหว_${start}_to_${end}.xlsx`);
 });
 
